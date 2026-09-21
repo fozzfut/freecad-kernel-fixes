@@ -22,3 +22,7 @@ install/
 issues/001-occt-fillet-at-seam/build-scripts/verify-seam-fillet.txt
 # результаты скриптов разбора фикстур, пересоздаются при запуске
 issues/*/fixtures/*.txt
+
+# копии файлов владельца и синтетика для набора действий: не в git
+bench/files/
+bench/runs/
