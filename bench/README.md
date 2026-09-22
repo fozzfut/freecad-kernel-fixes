@@ -43,7 +43,11 @@ FreeCAD, записан в `C:/dev/tools/fcslot.sh` 22.09.2026; значение
 
     ./run_bench.sh smoke-fc stock fc "C:/Program Files/FreeCAD 1.1" fixture:pad pad open,orbit,hover,select,edit_body,save
 
-Серия базы — `run_matrix.sh <variant> <FC_DIR> <повторы>` (появится в Task 4). Свод «было → стало»:
+Серия — `run_matrix.sh <variant> <FC_DIR> <повторы>`: шесть файлов × профили fc/hd, теги
+`<variant>-<метка>-<профиль>-r<k>`, строка на прогон (`COUNTED` — `errors` пуст, `FAILED`, `SKIP-lowmem`) в журнал.
+Переменные: `ONLY="<тег> ..."` (перезапуск отдельных прогонов), `RESUME=1` (пропустить уже зачётные), `REPS_FROM`,
+`SET=small|big` (прогоны, которым хватает 4 ГБ свободной памяти, или 8-гигабайтные `s5000`/`holes`). Таблицы одного
+варианта по его серии — `python tools/baseline.py runs <variant>` (база стока — `reports/BASELINE.md`). Свод «было → стало»:
 
     python report.py runs <base_variant> <variant> [reports/<имя>.md]
 
@@ -132,6 +136,11 @@ BENCH_CUT_BASE для VR6-current = Part__Feature013 (450 граней)
 - `runs/<tag>/result.json` — метрики; рядом `fc.log`, `stdout.log`, `cfg.log`, `saved.FCStd`, копии `user.cfg` и
   `system.cfg`, по которым шёл прогон. `runs/` и `files/` в git не попадают.
 - `files/` — копии файлов владельца, md5 в `files/MD5SUMS.txt`. Оригиналы не трогаются (только читаются для копии).
+  - `synthetic_<N>_copies_vis.FCStd` — синтетические файлы с показанными деталями. Исходные `synthetic_*` записаны
+    FreeCADCmd (без `GuiDocument.xml`) и в GUI открываются со скрытыми деталями — замер шёл бы по пустой сцене.
+    1000 — сохранён FreeCAD (`tools/make_visible.sh <FC_DIR> <src> <dst>`), 5000 — `tools/add_gui_visibility.py <src>
+    <dst>` (показ 5000 деталей в GUI не укладывается в 600 с); сцена одна и та же (`runs/t4-s1000vis-probe` против
+    `runs/t4-s1000xml-probe`). Тесселяция деталей — по умолчанию из настроек владельца, 6,4°.
   - `VR6-350-new.FCStd` (метка `vr6`) — прежняя копия, md5 `f639e41f7f59994fbcbdbadede4de318`: по ней мерили
     `hybriddesign-perf` и `hybriddesign-render`, она остаётся для преемственности с теми замерами. Винт ШВП
     (`Part__Feature014`) в ней виден (худший случай), скрыты два штифта (`Part__Feature024`, `Part__Feature025`).
