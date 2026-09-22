@@ -167,6 +167,20 @@ class ReportTest(unittest.TestCase):
             self.assertNotIn("ВНИМАНИЕ oring", md)
             self.assertIn("Итог проверки: 5 предупреждений", md)
 
+    def test_guard_same_gpu_with_slashes_is_no_warning(self):
+        # the real GL renderer string has "/" in it (runs/stock-*: "NVIDIA GeForce RTX 3050 Laptop GPU/PCIe/SSE2")
+        with tempfile.TemporaryDirectory() as root:
+            env = {"freecad": "1.1.1", "md5": dict(MD5), "gl": {"renderer": "RTX 3050 Laptop GPU/PCIe/SSE2"}, "hd": None}
+            _run(root, "s1-stock-vr6-fc-r1", "stock", "vr6", 50.0, 40.0, env=env)
+            _run(root, "s1-p012-vr6-fc-r1", "p012", "vr6", 5.0, 4.0, env=dict(env))
+            md = _md(root, "s1", "stock", "p012")
+            self.assertIn("Итог проверки: всё то же", md)
+            env2 = dict(env, gl={"renderer": "Intel UHD/PCIe"})
+            _run(root, "s1-p012-vr6-fc-r2", "p012", "vr6", 5.0, 4.0, env=env2)
+            md = _md(root, "s1", "stock", "p012")
+            self.assertIn("ВНИМАНИЕ vr6 fc: GPU: stock RTX 3050 Laptop GPU/PCIe/SSE2, p012 Intel UHD/PCIe | "
+                          "RTX 3050 Laptop GPU/PCIe/SSE2", md)
+
     def test_guard_says_when_the_file_md5_was_not_recorded(self):
         with tempfile.TemporaryDirectory() as root:
             _run(root, "s1-stock-vr6-fc-r1", "stock", "vr6", 50.0, 40.0, file_md5=None)

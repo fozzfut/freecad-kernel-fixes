@@ -123,7 +123,8 @@ def table(ok, bad, base, variant):
         side = {v: [r for r in ok if r["variant"] == v and r["file_label"] == fl and r["profile"] == prof]
                 for v in (base, variant)}
         if not side[base] and not side[variant]:
-            lines.append("| %s | %s | — | — | 0 | — | 0 | — | нет данных ни у %s, ни у %s |" % (fl, prof, base, variant))
+            lines.append("| %s | %s | — | — | 0 | — | 0 | — | нет данных ни у %s, ни у %s |"
+                         % (fl, prof, base, variant))
             continue
         for action, path in METRICS:
             name = action + "." + ".".join(path)
@@ -182,10 +183,13 @@ def _vals(rs, fn):
     return out
 
 
+def _distinct(xs):
+    return sorted({str(x) for x in xs})
+
+
 def _one(xs):
-    """The values as text: one value, or the distinct values joined by '/'."""
-    u = sorted({str(x) for x in xs})
-    return "/".join(u)
+    """The values as text: one value, or the distinct values joined by ' | ' (a GL renderer string has '/' in it)."""
+    return " | ".join(_distinct(xs))
 
 
 def guard(ok, base, variant):
@@ -202,7 +206,7 @@ def guard(ok, base, variant):
         if not side[base] or not side[variant]:
             continue
         where = "%s %s" % (fl, prof)
-        both = side[base] + side[variant]
+        both = side[base] + [r for r in side[variant] if r not in side[base]]
 
         def w(msg):
             warn.append("- ВНИМАНИЕ %s: %s" % (where, msg))
@@ -211,16 +215,18 @@ def guard(ok, base, variant):
         if nomd5:
             w("md5 открытого файла не записан: %s" % ", ".join(nomd5))
         else:
-            fm = {v: _one(r["file_md5"] for r in side[v]) for v in (base, variant)}
-            if fm[base] != fm[variant] or "/" in fm[base] + fm[variant]:
+            md5s = {v: _distinct(r["file_md5"] for r in side[v]) for v in (base, variant)}
+            fm = {v: " | ".join(md5s[v]) for v in (base, variant)}
+            if md5s[base] != md5s[variant] or len(md5s[base]) > 1 or len(md5s[variant]) > 1:
                 w("другой файл: md5 открытого файла %s %s, %s %s" % (base, fm[base], variant, fm[variant]))
         checks = [("версия FreeCAD", lambda r: r["env"]["freecad"]),
                   ("GPU", lambda r: (r["env"].get("gl") or {}).get("renderer"))]
         if prof == "hd":
             checks.insert(0, ("другой коммит HD", lambda r: (r["env"].get("hd") or {}).get("commit")))
         for what, fn in checks:
-            vv = {v: _one(_vals(side[v], fn)) for v in (base, variant)}
-            if vv[base] != vv[variant] or "/" in vv[base] + vv[variant]:
+            dv = {v: _distinct(_vals(side[v], fn)) for v in (base, variant)}
+            vv = {v: " | ".join(dv[v]) for v in (base, variant)}
+            if dv[base] != dv[variant] or len(dv[base]) > 1 or len(dv[variant]) > 1:
                 w("%s: %s %s, %s %s" % (what, base, vv[base], variant, vv[variant]))
         dll = {}
         for v in (base, variant):
