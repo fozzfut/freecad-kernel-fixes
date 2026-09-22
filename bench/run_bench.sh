@@ -7,14 +7,41 @@
 # most 600: the owner's ceiling for one FreeCAD run, C:/dev/tools/fcslot.sh, 22.09.2026), BENCH_REFINE_TO (s, 300),
 # BENCH_MIN_FREE_MB (4096: FreeCAD starts only with that much free RAM, checked inside the slot by tools/ramgate.sh;
 # 0 for a run known to stay under 1 GB, such as fixture:pad).
+# BENCH_SERIES (the series id run_matrix.sh puts in front of its tags; recorded in result.json).
+# A COUNTED run (runs/<tag>/result.json with an empty errors object and actions) is never overwritten (final review
+# I3: a reused tag deleted the baseline's evidence): exit=4, nothing runs. A directory holding a run that did not count
+# (failed, SKIP-lowmem, unreadable result.json) is kept as runs/<tag>.old-<time> and the tag runs anew.
 # Prints: exit=<code> tag=<tag> result=yes|NO errors=<names of the errors in result.json, comma-separated, or ->.
 set -u
 if [ $# -ne 7 ]; then echo "usage: run_bench.sh <tag> <variant> <fc|hd> <FC_DIR> <file|fixture:name> <label> <actions>" >&2; exit 2; fi
 TAG=$1; VARIANT=$2; PROFILE=$3; FC_DIR=$4; FILE=$5; LABEL=$6; ACTIONS=$7
-case "$TAG" in ""|*/*|*..*) echo "bad tag '$TAG': the run directory runs/<tag> is deleted first" >&2; exit 2 ;; esac
+case "$TAG" in ""|*/*|*..*) echo "bad tag '$TAG': it names the run directory runs/<tag>" >&2; exit 2 ;; esac
 HERE=C:/dev/freecad-kernel-fixes/bench
 RUN=$HERE/runs/$TAG
-rm -rf "$RUN"; mkdir -p "$RUN/work" "$RUN/userdata/Mod/BenchNoPyc"
+if [ -e "$RUN" ]; then
+  # counted | not | unreadable | none; anything else (no python, a crash) stops here: a counted run must never be
+  # moved on a check that did not run
+  STATE=none
+  if [ -f "$RUN/result.json" ]; then
+    STATE=$("$FC_DIR/bin/python.exe" -c "
+import json, sys
+try:
+    r = json.load(open(sys.argv[1], encoding='utf-8'))
+except ValueError:
+    print('unreadable'); sys.exit(0)
+print('counted' if isinstance(r, dict) and not (r.get('errors') or {}) and r.get('actions') else 'not')" "$RUN/result.json" 2>/dev/null | tr -d '\r')
+  fi
+  case "$STATE" in
+    counted) echo "exit=4 tag=$TAG refused: runs/$TAG holds a COUNTED run, which is never overwritten; use a new tag or series"
+             exit 4 ;;
+    not|unreadable|none) ;;
+    *) echo "exit=2 tag=$TAG cannot tell whether runs/$TAG counted (python: '$STATE'): nothing touched"; exit 2 ;;
+  esac
+  OLD="$RUN.old-$(date '+%Y%m%d-%H%M%S')"
+  if ! mv "$RUN" "$OLD"; then echo "exit=2 tag=$TAG cannot move the earlier uncounted run out of the way"; exit 2; fi
+  echo "runs/$TAG held a run that did not count ($STATE): kept as runs/$(basename "$OLD")" >&2
+fi
+mkdir -p "$RUN/work" "$RUN/userdata/Mod/BenchNoPyc"
 # The HD repo is read-only for the bench, and importing it writes __pycache__ for stale modules. FreeCAD's Python
 # ignores PYTHON* variables (sys.flags.ignore_environment=1, probe 1), so the switch goes in an Init.py: every
 # Init.py runs before the first InitGui.py, which is where HD imports its package.
@@ -28,7 +55,7 @@ if [ "$PROFILE" = "hd" ]; then EXTRA="-M C:/Users/B72A~1/AppData/Roaming/FreeCAD
 export FREECAD_USER_DATA="$(cygpath -w "$RUN/userdata")"
 export FREECAD_USER_TEMP="$RUN/work"
 export QT_QPA_PLATFORM=offscreen
-export BENCH_FILE="$FILE" BENCH_LABEL="$LABEL" BENCH_VARIANT="$VARIANT" BENCH_PROFILE="$PROFILE"
+export BENCH_FILE="$FILE" BENCH_LABEL="$LABEL" BENCH_VARIANT="$VARIANT" BENCH_PROFILE="$PROFILE" BENCH_SERIES="${BENCH_SERIES:-}"
 export BENCH_ACTIONS="$ACTIONS" BENCH_OUT="$RUN"
 # An hd run can be two FreeCAD processes: on a heavy file HD re-meshes the parts it drew coarse in a FreeCAD.exe of
 # its own (hybriddesign/gui/mesh_process.py, offscreen, started by HD, not through fcslot). So an hd run holds two
