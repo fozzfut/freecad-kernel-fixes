@@ -1,13 +1,14 @@
 """Tables of one variant's matrix series (run_matrix.sh): per file, profile and metric the median over the reps,
 min-max over the reps, n, and a "шумная" mark when max/min > 1.5; then one row per run (cpu load, peak memory) and the
-environment the runs recorded. Only runs whose tag is <variant>-<label>-<profile>-r<k> and whose result.json has an
-empty errors object are used (the ruling of 22.09: a run with errors does not count); the others are listed.
+environment the runs recorded. Only the COUNTED runs of the series are used - report.collect: tag
+<series>-<variant>-<label>-<profile>-r<k> (series "baseline", the default, is the stock series of 22.09 whose tags have
+no series prefix) and a result.json with an empty errors object (ruling of 22.09); the others are listed with the
+reason, a result.json that cannot be read by its path.
 
-    python tools/baseline.py <runs_dir> <variant> > part.md
+    python tools/baseline.py <runs_dir> <variant> [series] > part.md
 """
 import json
 import os
-import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -55,25 +56,12 @@ def order(runs):
 
 def main():
     root, variant = sys.argv[1], sys.argv[2]
-    pat = re.compile(r"^%s-(\w+)-(fc|hd)-r(\d+)$" % re.escape(variant))
-    ok, bad = [], []
-    for tag in sorted(os.listdir(root)):
-        m = pat.match(tag)
-        if not m:
-            continue
-        p = os.path.join(root, tag, "result.json")
-        if not os.path.isfile(p):
-            why = "SKIP-lowmem" if os.path.isfile(os.path.join(root, tag, "SKIP-lowmem")) else "нет result.json"
-            bad.append((tag, why))
-            continue
-        with open(p, encoding="utf-8") as f:
-            r = json.load(f)
-        r["tag"] = tag
-        errs = r.get("errors") or {}
-        if errs or not r.get("actions"):
-            bad.append((tag, "ошибки: " + ", ".join(sorted(errs)) if errs else "нет действий"))
-            continue
-        ok.append(r)
+    series = sys.argv[3] if len(sys.argv) > 3 else report.LEGACY_SERIES
+    # the counted runs of the series and the others with the reason (report.collect: one rule for both tools; a
+    # result.json that cannot be read is named and listed, final review I6)
+    ok, uncounted = report.collect(root, series, (variant,))
+    bad = [(b["tag"], "ошибки: " + ", ".join(b["errors"]) if b["kind"] == "ошибки" else b["reason"],
+            b["file_label"], b["profile"]) for b in uncounted]
     out = []
     noisy = []
     heads = {"fc": "### Профиль fc — FreeCAD без дополнений (по нему судятся патчи ядра)",
@@ -83,9 +71,9 @@ def main():
         for fl in LABELS + sorted({r["file_label"] for r in ok} - set(LABELS)):
             rs = [r for r in ok if r["file_label"] == fl and r["profile"] == prof]
             if not rs:
-                skipped = [t for t, why in bad if pat.match(t).group(1) == fl and pat.match(t).group(2) == prof]
+                skipped = [t for t, why, bfl, bprof in bad if bfl == fl and bprof == prof]
                 if skipped:
-                    whys = sorted({why for t, why in bad if t in skipped})
+                    whys = sorted({why for t, why, _, _ in bad if t in skipped})
                     out.append("| %s | — | не измерено: %d из %d прогонов — %s | | 0 | |" % (
                         fl, len(skipped), len(skipped), ", ".join(whys)))
                 continue
@@ -123,7 +111,7 @@ def main():
         out.append("")
         out.append("Незачётные прогоны (в медианы не вошли):")
         out.append("")
-        for tag, why in bad:
+        for tag, why, _, _ in bad:
             out.append("- %s — %s" % (tag, why))
     envs = {}
     for r in ok:
@@ -138,8 +126,9 @@ def main():
     for key, tags in envs.items():
         out.append("- %d прогонов: `%s`" % (len(tags), key))
     print("\n".join(out))
-    json.dump({"noisy": noisy, "ok": [r["tag"] for r in ok], "bad": bad},
-              open(os.path.join(root, "baseline-%s.json" % variant), "w", encoding="utf-8"), indent=1)
+    name = "baseline-%s.json" % variant if series == report.LEGACY_SERIES else "baseline-%s-%s.json" % (series, variant)
+    with open(os.path.join(root, name), "w", encoding="utf-8") as f:
+        json.dump({"noisy": noisy, "ok": [r["tag"] for r in ok], "bad": [b[:2] for b in bad]}, f, indent=1)
 
 
 if __name__ == "__main__":
