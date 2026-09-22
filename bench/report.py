@@ -12,7 +12,7 @@ from fcbench import stats  # noqa: E402
 
 # (action, path in the action dict) -> metric name. Lower is better for all of them.
 METRICS = [
-    ("open", ("open_s",)), ("open", ("idle_s",)), ("open", ("first_frame_ms",)),
+    ("open", ("open_s",)), ("open", ("idle_s",)), ("open", ("hd_refine_s",)), ("open", ("first_frame_ms",)),
     ("orbit", ("overview", "median")), ("orbit", ("closeup", "median")),
     ("hover", ("all", "median")), ("hover", ("all", "max")), ("hover", ("heavy", "median")),
     ("select", ("select", "median")),
@@ -62,7 +62,27 @@ def table(runs, base, variant):
             lines.append("| %s | %s | %s | %g | %g | %.1f× |" % (fl, prof, name, vals[base], vals[variant], ratio))
     lines.append("")
     lines.append("геосреднее ускорения по %d метрикам: %.2f×" % (len(ratios), stats.geomean(ratios)))
+    lines.extend(_error_lines(runs, base, variant))
     return "\n".join(lines)
+
+
+def _error_lines(runs, base, variant):
+    """The errors of the compared runs under the table: a metric a run could not take (errors.hover_heavy - the
+    hover grid hit no part - or open_hd_refine) and a failed action are left out of the rows above, and must not
+    vanish from the report. A traceback is shown by its last line."""
+    rows = []
+    for r in runs:
+        if r["variant"] not in (base, variant):
+            continue
+        for name, text in sorted((r.get("errors") or {}).items()):
+            last = [ln.strip() for ln in str(text).splitlines() if ln.strip()]
+            msg = (last[-1] if last else "")[:200].replace("|", "/")
+            rows.append("| %s | %s | %s | %s | %s: %s |" % (r["tag"], r["variant"], r["file_label"], r["profile"],
+                                                            name, msg))
+    if not rows:
+        return []
+    return ["", "Ошибки прогонов (чего нет в строках выше):", "",
+            "| прогон | вариант | файл | профиль | ошибка |", "|---|---|---|---|---|"] + rows
 
 
 def main():

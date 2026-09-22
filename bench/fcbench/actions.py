@@ -10,20 +10,33 @@ from . import common as C
 from .stats import summary
 
 
-def open_doc(path, rd_factory):
+def open_doc(path, rd_factory, refine_max_s=300.0):
+    """Open, wait for the event loop, and with HybridDesign loaded wait for its stage 2 as well (common.hd_refinement):
+    every later action then runs on the file's own display quality in both profiles.
+
+    With HD (profile hd) three more numbers: hd_refine_s - seconds from the openDocument call until HD's refinement
+    queue was empty with every shown part drawn at the file's own quality (HD's first, coarse picture is at
+    open_s + idle_s); None when the wait (refine_max_s, 300 s) ran out or HD left shown parts coarse.
+    hd_refine_wait_s - how long the driver waited for it after idle_s. hd_workers - how many worker processes
+    (FreeCAD.exe) HD started for it. hd_refine keeps the state, the worker pids, HD's own end mark and HD's report
+    per part."""
     with open(path, "rb") as f:          # warm the disk cache: we measure FreeCAD, not the disk
         while f.read(1 << 24):
             pass
-    t = time.perf_counter()
+    t0 = time.perf_counter()
     doc = App.openDocument(path)
-    open_s = time.perf_counter() - t
+    open_s = time.perf_counter() - t0
     idle_s = C.wait_idle()
+    hd = C.hd_refinement(doc.Name, refine_max_s)
+    if hd is not None and hd["state"] in ("done", "stuck"):
+        hd["idle_after_s"] = round(C.wait_idle(), 3)      # HD's last slices; a quiet loop for what follows
     Gui.ActiveDocument.ActiveView.viewIsometric()
     C.pump(5)
     rd = rd_factory()
     # The offscreen renderer's GL context is the harness's stand-in for the viewer's own (which has none offscreen):
-    # made before the first frame and reported apart. Measured: the first context of the process takes ~1.5 s
-    # (driver load); inside first_frame_ms it made the pad fixture's first frame 1801 ms, outside it 29 ms (smoke-fc).
+    # made before the first frame and reported apart. Measured: the first context of the process took 1550.7 ms and
+    # the second 63.3 ms (runs/probe-p1/probe.json); with it inside, the pad's first frame was 709.0 ms
+    # (runs/smoke-fc-before/result.json, the brief's code), with it outside tens of ms (runs/smoke-fc/result.json).
     t = time.perf_counter()
     rd.r.render(coin.SoSeparator())
     rd.r.getBuffer()
@@ -31,9 +44,34 @@ def open_doc(path, rd_factory):
     rd.fit_iso()
     first = rd.frame()
     second = rd.frame()
-    return doc, rd, {"open_s": round(open_s, 3), "idle_s": round(idle_s, 3), "gl_init_ms": round(gl_init, 1),
-                     "first_frame_ms": round(first, 1), "second_frame_ms": round(second, 1),
-                     "objects": len(doc.Objects), "mem": C.mem_mb()}
+    res = {"open_s": round(open_s, 3), "idle_s": round(idle_s, 3), "gl_init_ms": round(gl_init, 1),
+           "first_frame_ms": round(first, 1), "second_frame_ms": round(second, 1),
+           "objects": len(doc.Objects), "mem": C.mem_mb()}
+    if hd is not None:
+        # When the queue emptied: nothing drawn coarse - the picture was exact when the loop went idle (open_s +
+        # idle_s, as in profile fc); parts drawn coarse - HD's own end-of-pass mark. The moment this process SAW it
+        # empty comes later by the 200 ms quiet window of wait_idle (smoke-hd, fix round 1: 1.252 s seen against
+        # 1.051 s), which is the harness, not HD; it is kept as seen_empty_s.
+        first_picture = open_s + idle_s
+        fin = hd.get("hd_finished_at")
+        lowered = bool((hd.get("report") or {}).get("lowered"))
+        if hd["state"] not in ("done", "no-session"):   # timeout, error, or shown parts left coarse (stuck)
+            refine = None
+        elif not lowered:
+            refine = first_picture
+        elif fin is not None:
+            refine = max(first_picture, fin - t0)
+        else:
+            refine = hd["empty_at"] - t0
+        res["hd_refine_s"] = round(refine, 3) if refine is not None else None
+        res["hd_refine_wait_s"] = hd["wait_s"]
+        res["hd_workers"] = len(hd["worker_pids"])
+        empty_at = hd.pop("empty_at")
+        hd["seen_empty_s"] = round(empty_at - t0, 3) if empty_at is not None else None
+        if fin is not None:                                # HD's own mark, as seconds after the openDocument call
+            hd["hd_finished_at"] = round(fin - t0, 3)
+        res["hd_refine"] = hd
+    return doc, rd, res
 
 
 def orbit(rd, steps=24, warm=3):
@@ -60,22 +98,66 @@ def _grid(rd, nx=16, ny=9):
     return [(int(w * (i + 0.5) / nx), int(h * (j + 0.5) / ny)) for j in range(ny) for i in range(nx)]
 
 
-def hover(doc, rd, heavy_object=None):
-    view = Gui.ActiveDocument.ActiveView
-    times, heavy = [], []
-    for (x, y) in _grid(rd):
-        info = view.getObjectInfo((x, y))
-        t = time.perf_counter()
-        rd.hover(x, y)
-        rd.frame(clip=False)
-        ms = (time.perf_counter() - t) * 1000.0
-        times.append(ms)
-        if heavy_object and info and heavy_object in (info.get("Object"), info.get("SubName") or ""):
-            heavy.append(ms)
+def _hover_ms(rd, x, y):
+    t = time.perf_counter()
+    rd.hover(x, y)
+    rd.frame(clip=False)
+    return (time.perf_counter() - t) * 1000.0
+
+
+def drawn_triangles(obj):
+    """Triangles the object's view provider draws now: Coin's primitive count over its root node. The count follows
+    the display-mode switch, so only the mode on screen counts (edges and vertices are not triangles), and with HD it
+    is the mesh HD has put in, coarse or exact."""
+    vp = getattr(obj, "ViewObject", None)
+    node = getattr(vp, "RootNode", None) if vp is not None else None
+    if node is None:
+        return None
+    act = coin.SoGetPrimitiveCountAction()
+    act.apply(node)
+    return int(act.getTriangleCount())
+
+
+def hover(doc, rd):
+    """Preselection response + highlighted frame at each point of the 16 x 9 grid over the isometric view ("all").
+
+    "heavy" is the same timing on the grid points that land on the heavy part: the part with the most drawn
+    triangles (drawn_triangles) among the parts the grid hits. A fixed name cannot serve: VR6's ball screw lies
+    under the top plate in this view, and denser grids than this one never reached it (0 of 1536 points in
+    hybriddesign-render/phase1/out/hoverspike_vr6.json, 0 of 200 in proof_vr6_ON.json). The grid is timed first,
+    as the owner moves the cursor over a model he has just opened; what each point hit is asked afterwards
+    (getObjectInfo, not timed).
+    hit_parts lists every part the grid hit with its points and triangles. A grid that hits no part at all gives
+    heavy None and heavy_error, which the driver records as errors.hover_heavy: the metric must not vanish."""
+    pts = _grid(rd)
+    times = [_hover_ms(rd, x, y) for (x, y) in pts]
     rd.hover(0, 0)
     Gui.Selection.clearPreselection()
     C.pump(3)
-    return {"all": summary(times), "heavy": summary(heavy) if heavy else None, "points": len(times)}
+    view = Gui.ActiveDocument.ActiveView
+    on = {}                                   # (document, object) -> indices of the grid points on it
+    for i, (x, y) in enumerate(pts):
+        info = view.getObjectInfo((x, y))
+        if info and info.get("Object"):
+            on.setdefault((info.get("Document") or doc.Name, info["Object"]), []).append(i)
+    parts = []
+    for (dname, name), idx in on.items():
+        try:
+            obj = App.getDocument(dname).getObject(name)
+        except Exception:
+            obj = None
+        parts.append({"name": name, "document": dname, "label": getattr(obj, "Label", None),
+                      "triangles": drawn_triangles(obj) if obj is not None else None, "points": len(idx)})
+    parts.sort(key=lambda p: (-(p["triangles"] if p["triangles"] is not None else -1), -p["points"], p["name"]))
+    res = {"all": summary(times), "points": len(times), "hit_points": sum(len(v) for v in on.values()),
+           "hit_parts": parts, "heavy": None, "heavy_object": None, "heavy_label": None, "heavy_triangles": None}
+    if parts:
+        top = parts[0]
+        res["heavy"] = summary([times[i] for i in on[(top["document"], top["name"])]])
+        res.update(heavy_object=top["name"], heavy_label=top["label"], heavy_triangles=top["triangles"])
+    else:
+        res["heavy_error"] = "the %d-point hover grid hit no part: there is no heavy part to time" % len(pts)
+    return res
 
 
 def select(doc, rd, n=20):
@@ -99,7 +181,7 @@ def select(doc, rd, n=20):
     return {"select": summary(times), "targets": len(targets)}
 
 
-def _edit(doc, rd, setter, reps):
+def _edit(doc, rd, setter, reps, refine_max_s=300.0):
     """Edit -> recompute -> event loop busy until quiet -> frame. The quiet window wait_idle waits out to know the
     loop is done (200 ms) is the harness's wait and is not counted: measured in probe 1 it was 200 of the pad's
     ~360 ms per edit. The parts are kept next to the total ("recompute" includes setting the property)."""
@@ -117,6 +199,17 @@ def _edit(doc, rd, setter, reps):
         parts["frame"].append(fr)
     res = {"edit": summary(times), "reps": reps}
     res.update({k: summary(v) for k, v in parts.items()})
+    # With HD an edited part can be drawn coarse and handed to HD's mesh worker: the timed frame is HD's first
+    # picture, as the owner sees it, and the worker goes on after wait_idle returns (fix round 3, vr6cur hd: after
+    # every edit of BenchCut fc.log says "its shape changed while it was being refined", and at the save one part
+    # was still owed). The edits' own timing stays as it is; what HD needed after the last one to bring the picture
+    # to the file's quality is waited for here (not timed in "edit") and recorded, and the later actions run on it.
+    after = C.hd_refinement(doc.Name, refine_max_s)
+    if after is not None:
+        after.pop("empty_at", None)                # clock marks of this process mean nothing in the file: dropped
+        after.pop("hd_finished_at", None)
+        after.pop("report", None)                  # open's hd_refine keeps HD's report per part
+        res["hd_refine_after"] = after
     return res
 
 
@@ -130,7 +223,7 @@ def edit_body(doc, rd, obj_name="Pad", prop="Length", delta=0.3, reps=6):
     return res
 
 
-def edit_cut(doc, rd, base_name, reps=6):
+def edit_cut(doc, rd, base_name, reps=6, refine_max_s=300.0):
     """Part::Cut of a STEP body by a cylinder through its bounding-box centre; the timed edit changes the
     cylinder radius by +-5 % (setup is not timed)."""
     base = doc.getObject(base_name)
@@ -145,10 +238,16 @@ def edit_cut(doc, rd, base_name, reps=6):
     cut.Tool = cyl
     doc.recompute()
     C.wait_idle()
-    res = _edit(doc, rd, lambda k: setattr(cyl, "Radius", r0 * (1.05 if k % 2 == 0 else 1.0)), reps)
+    # with HD, a new part may be drawn coarse and refined by HD's worker: the timed edits start after that pass
+    setup_hd = C.hd_refinement(doc.Name, refine_max_s)
+    res = _edit(doc, rd, lambda k: setattr(cyl, "Radius", r0 * (1.05 if k % 2 == 0 else 1.0)), reps, refine_max_s)
     res["base"] = base_name
     res["faces"] = len(base.Shape.Faces)
     res["cut_valid"] = cut.Shape.isValid()
+    if setup_hd is not None:                     # clock marks of this process mean nothing in the file: dropped
+        setup_hd.pop("empty_at", None)
+        setup_hd.pop("hd_finished_at", None)
+        res["hd_refine_setup"] = setup_hd
     return res
 
 
