@@ -4,23 +4,30 @@ fixture:pad is small and is built into the run directory each time. fixture:hole
 bench/files/fixture_holes1024-<md5 of this file, 10 hex>.FCStd (tools/build_fixture.sh) and every run opens that same
 file, so stock and patched runs open the identical document, as with the owner's files. Why (measured 22.09.2026):
 - in the GUI every recompute of the plate meshes the top face with its 1025 wires: 75-82 s per recompute in
-  FreeCAD.exe against 4-5 s in FreeCADCmd (runs/t3-gprobe/gprobe.json, runs/t3-probe/probe.json); built inside the
-  timed run it took 287 of the run's 600 s (runs/t3-holes, first attempt) and left no time for the fillet edits;
+  FreeCAD.exe against 4-5 s in FreeCADCmd (runs/t3-gprobe/gprobe.json, runs/t3-probe/probe.json), and opening the
+  file meshes it once more (open_s 78.5 s, runs/t3-holes/result.json): a build inside the timed run leaves no room
+  for the fillet edits in the 600 s ceiling;
 - it must be built in the GUI (FreeCAD.exe, offscreen): a file saved by FreeCADCmd has no GuiDocument.xml and opens
   with every object hidden - 0 triangles drawn and a 4 s "edit" that meshes nothing (runs/t3-vprobe/vprobe.json).
-If the file is missing, build() makes it (inside a GUI run too), which costs that run the build time."""
+A timed run passes build_missing=False: a missing file raises FixtureMissing (driver: errors.fixture) instead of
+being built inside the run."""
 import hashlib
 import json
 import os
+import shutil
 
 import FreeCAD as App
 
 
-def build(name, out_dir):
+class FixtureMissing(Exception):
+    pass
+
+
+def build(name, out_dir, build_missing=True):
     if name == "pad":
         return _pad(out_dir)
     if name == "holes1024":
-        return _cached("holes1024", lambda d: _holes(d, 32))
+        return _cached("holes1024", lambda d: _holes(d, 32), build_missing)
     raise ValueError("unknown fixture " + name)
 
 
@@ -33,17 +40,23 @@ def cache_path(name):
     return os.path.join(os.path.dirname(here), "files", "fixture_%s-%s.FCStd" % (name, key))
 
 
-def _cached(name, make):
+def _cached(name, make, build_missing=True):
     path = cache_path(name)
     if os.path.isfile(path):
         return path
+    if not build_missing:
+        raise FixtureMissing(path)
     if not App.GuiUp:
         raise RuntimeError("fixture %s must be built in FreeCAD.exe (offscreen), not FreeCADCmd: without "
                            "GuiDocument.xml every object opens hidden (tools/build_fixture.sh)" % name)
     tmp = path + ".building-%d" % os.getpid()
     os.makedirs(tmp, exist_ok=True)
-    built = make(tmp)
-    os.replace(built, path)                     # atomic: a concurrent run sees the whole file or none
+    try:
+        built = make(tmp)
+        os.replace(built, path)                 # atomic: a concurrent run sees the whole file or none
+    except BaseException:
+        shutil.rmtree(tmp, ignore_errors=True)  # files/ keeps only the owner's copies and finished fixtures
+        raise
     with open(path, "rb") as f:
         md5 = hashlib.md5(f.read()).hexdigest()
     info = {"fixture": name, "file": os.path.basename(path), "freecad": ".".join(App.Version()[:3]),
@@ -75,6 +88,15 @@ def _pad(out_dir):
     return path
 
 
+def _top_hole_edge(shape):
+    """Name of the first edge that is a top rim (z 10) of a d 3 hole."""
+    for k, e in enumerate(shape.Edges):
+        c = e.Curve
+        if c.__class__.__name__ == "Circle" and abs(c.Radius - 1.5) < 1e-6 and abs(c.Center.z - 10) < 1e-6:
+            return "Edge%d" % (k + 1)
+    return None
+
+
 def _holes(out_dir, n):
     """A 200 x 200 x 10 plate with n x n through holes (d 3) - the top face has n*n inner wires, the case where
     BRepCheck_Face classifies wires pairwise (spec section 8b) - as the BaseFeature of a PartDesign Body, and a
@@ -87,26 +109,24 @@ def _holes(out_dir, n):
              for i in range(n) for j in range(n)]
     shape = plate.cut(Part.makeCompound(tools))
     base = d.addObject("Part::Feature", "HolesPlate")
-    # PartDesign_Body on a selected solid hides it (CommandBody.cpp: hideViewProvider(baseFeature)); a visible copy
-    # would make open mesh the plate twice (runs/t3-holes: open_s 162 s, peak working set 7.1 GB)
+    # PartDesign_Body on a selected solid hides it (CommandBody.cpp: hideViewProvider(baseFeature)); a visible plate
+    # would be a second copy to mesh at every open
     base.Visibility = False
     base.Shape = shape
     body = d.addObject("PartDesign::Body", "Body")
     body.BaseFeature = base
-    d.recompute()
     # Setting Body.BaseFeature makes a PartDesign::FeatureBase inside the body; the fillet references its edges.
     fb = next(o for o in body.Group if o.TypeId == "PartDesign::FeatureBase")
-    edge = None
-    for k, e in enumerate(fb.Shape.Edges):
-        c = e.Curve
-        if c.__class__.__name__ == "Circle" and abs(c.Radius - 1.5) < 1e-6 and abs(c.Center.z - 10) < 1e-6:
-            edge = "Edge%d" % (k + 1)
-            break
+    # One recompute, after the fillet is added: in the GUI a recompute of the body meshes the 1025-wire face even with
+    # the FeatureBase hidden (72 s, runs/t3-gprobe3/gprobe3.json), and the FeatureBase is hidden by the fillet anyway.
+    # The FeatureBase copies the plate's shape, so the edge is looked up on the plate and checked on it after it.
+    edge = _top_hole_edge(shape)
     assert edge is not None, "no top hole edge found"
     fil = body.newObject("PartDesign::Fillet", "BenchFillet")
     fil.Base = (fb, [edge])
     fil.Radius = 0.5
     d.recompute()
+    assert _top_hole_edge(fb.Shape) == edge, "FeatureBase edge order differs from the plate's"
     assert fil.Shape.isValid(), "fillet fixture is invalid"
     if App.GuiUp:                               # what the owner sees: the fillet result, the plate and base hidden
         shown = [o.Name for o in d.Objects if o.isDerivedFrom("Part::Feature") and o.ViewObject.Visibility]

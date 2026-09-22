@@ -256,6 +256,10 @@ def fillet_holes(doc, rd, fillet_name="BenchFillet", reps=4):
     r0 = fil.Radius.Value
     res = _edit(doc, rd, lambda k: setattr(fil, "Radius", r0 * (1.2 if k % 2 == 0 else 1.0)), reps)
     res["valid"] = fil.Shape.isValid()
+    if fil.Radius.Value != r0:                   # odd reps end on 1.2 r0: back to the file's value, as edit_body does
+        fil.Radius = r0                          # (an even count already ends on r0 and costs no extra recompute)
+        doc.recompute()
+        C.wait_idle()
     return res
 
 

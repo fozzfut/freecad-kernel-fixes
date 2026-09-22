@@ -62,7 +62,13 @@ def run():
     size = (int(E.get("BENCH_W", "1920")), int(E.get("BENCH_H", "1080")))
     make_rd = lambda: C.Renderer(Gui.ActiveDocument.ActiveView, size)  # noqa: E731
     if R["file"].startswith("fixture:"):
-        path = F.build(R["file"][len("fixture:"):], OUT)
+        try:                                     # a timed run never builds a cached fixture itself
+            path = F.build(R["file"][len("fixture:"):], OUT, build_missing=False)
+        except F.FixtureMissing as e:
+            R["errors"]["fixture"] = "run tools/build_fixture.sh first: %s is missing" % e
+            R["cpu_load_pct"] = load.stop()
+            _step("end")
+            return
     else:
         path = R["file"]
     if E.get("BENCH_HEAVY"):
