@@ -3,7 +3,7 @@
 # One offscreen FreeCAD run of the action benchmark. Fresh copies of the owner's cfg per run; profile fc = no
 # add-ons (user data holds only BenchNoPyc, see below), hd = + HybridDesign loaded read-only from its installed repo
 # via -M.
-# Extra env passed through: BENCH_CUT_BASE, BENCH_BODY_OBJ, BENCH_W, BENCH_H, BENCH_TO (s, 600 and at
+# Extra env passed through: BENCH_CUT_BASE, BENCH_FILLET_REPS, BENCH_BODY_OBJ, BENCH_W, BENCH_H, BENCH_TO (s, 600 and at
 # most 600: the owner's ceiling for one FreeCAD run, C:/dev/tools/fcslot.sh, 22.09.2026), BENCH_REFINE_TO (s, 300),
 # BENCH_MIN_FREE_MB (4096: FreeCAD starts only with that much free RAM, checked inside the slot by tools/ramgate.sh;
 # 0 for a run known to stay under 1 GB, such as fixture:pad).

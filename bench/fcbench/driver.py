@@ -2,7 +2,8 @@
 Qt timer so the GUI is up (the pattern of C:/dev/hybriddesign-render/phase1/scripts/bench.py).
 
 Env: BENCH_FILE (path | fixture:holes1024), BENCH_LABEL, BENCH_VARIANT, BENCH_PROFILE, BENCH_ACTIONS,
-     BENCH_OUT (dir), BENCH_CUT_BASE (object name for edit_cut), BENCH_BODY_OBJ (default Pad),
+     BENCH_OUT (dir), BENCH_CUT_BASE (object name for edit_cut), BENCH_FILLET_REPS (fillet_holes edits, default 4),
+     BENCH_BODY_OBJ (default Pad),
      BENCH_W/BENCH_H (1920x1080), BENCH_REFINE_TO (s, 300: how long open waits for HybridDesign's stage-2
      refinement; VR6 took 111.5 s in C:/dev/hybriddesign-rework/progressive/NOTES.md, and the whole run has the
      owner's 600 s ceiling).
@@ -94,7 +95,7 @@ def run():
                 if setup and setup["state"] not in ("done", "no-session"):
                     R["errors"]["edit_cut_hd_refine"] = "before the timed edits: " + _refine_error(setup)
             elif name == "fillet_holes":
-                R["actions"][name] = A.fillet_holes(doc, rd)
+                R["actions"][name] = A.fillet_holes(doc, rd, reps=int(E.get("BENCH_FILLET_REPS", "4")))
             elif name == "save":
                 R["actions"][name] = A.save(doc, OUT)
             else:
