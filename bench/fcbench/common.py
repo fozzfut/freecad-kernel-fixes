@@ -19,6 +19,8 @@ import numpy as np
 from pivy import coin
 from PySide import QtWidgets
 
+from .stats import median
+
 GL = ctypes.WinDLL("opengl32")
 GL.glGetString.restype = ctypes.c_char_p
 
@@ -191,8 +193,8 @@ class Renderer(object):
                 times.append(ms)
         cam.position.setValue(pos0)
         cam.orientation.setValue(rot0)
-        s = sorted(times)
-        return {"median_ms": round(s[len(s) // 2], 2), "p90_ms": round(s[int(len(s) * 0.9)], 2),
+        s = sorted(times)      # one median rule for every number of the bench (stats.median, final review m3)
+        return {"median_ms": round(median(s), 2), "p90_ms": round(s[int(len(s) * 0.9)], 2),
                 "min_ms": round(s[0], 2), "max_ms": round(s[-1], 2), "steps": steps}
 
     def hover(self, x, y):

@@ -1,7 +1,7 @@
 """In-FreeCAD entry of the action benchmark. Run as a script argument of FreeCAD.exe (offscreen); starts from a
 Qt timer so the GUI is up (the pattern of C:/dev/hybriddesign-render/phase1/scripts/bench.py).
 
-Env: BENCH_FILE (path | fixture:holes1024), BENCH_LABEL, BENCH_VARIANT, BENCH_PROFILE, BENCH_ACTIONS,
+Env: BENCH_FILE (path | fixture:holes1024), BENCH_LABEL, BENCH_VARIANT, BENCH_SERIES, BENCH_PROFILE, BENCH_ACTIONS,
      BENCH_OUT (dir), BENCH_CUT_BASE (object name for edit_cut), BENCH_FILLET_REPS (fillet_holes edits, default 4),
      BENCH_BODY_OBJ (default Pad),
      BENCH_W/BENCH_H (1920x1080), BENCH_REFINE_TO (s, 300: how long open waits for HybridDesign's stage-2
@@ -11,7 +11,9 @@ The heavy part of hover is chosen by the run itself (actions.hover); BENCH_HEAVY
 still sets, is not read, and a run that has it says so in "notes".
 Writes driver.pid first (run_bench.sh stops a child of a FreeCAD that was killed by the timeout), progress.log and
 result.partial.json as each action ends (a run killed by the owner's 600 s ceiling still says how far it got), and
-result.json last.
+result.json last, through result.json.writing + os.replace as _step does (final review I6: a run killed while writing
+must not leave a result.json cut short). file_md5 is the md5 of the file the run opened (final review I2: report.py
+checks both sides of a comparison opened the same file).
 """
 import json
 import os
@@ -26,22 +28,28 @@ from fcbench import actions as A, common as C, fixtures as F  # noqa: E402
 
 E = os.environ
 OUT = E["BENCH_OUT"]
-R = {"variant": E.get("BENCH_VARIANT", "stock"), "profile": E.get("BENCH_PROFILE", "fc"),
-     "file": E["BENCH_FILE"], "file_label": E.get("BENCH_LABEL", "x"), "actions": {}, "errors": {}}
+R = {"variant": E.get("BENCH_VARIANT", "stock"), "series": E.get("BENCH_SERIES"),
+     "profile": E.get("BENCH_PROFILE", "fc"), "file": E["BENCH_FILE"], "file_label": E.get("BENCH_LABEL", "x"),
+     "actions": {}, "errors": {}}
 REFINE_TO = float(E.get("BENCH_REFINE_TO", "300"))
 with open(os.path.join(OUT, "driver.pid"), "w") as _f:
     _f.write(str(os.getpid()))
 T0 = time.perf_counter()
 
 
+def _write(name):
+    """R into OUT/name, atomically: a reader sees the previous file or the whole new one, never a part."""
+    tmp = os.path.join(OUT, name + ".writing")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(R, f, indent=1, default=str)
+    os.replace(tmp, os.path.join(OUT, name))
+
+
 def _step(what):
     """One line of progress.log (seconds since the driver started) and the result so far in result.partial.json."""
     with open(os.path.join(OUT, "progress.log"), "a", encoding="utf-8") as f:
         f.write("%8.1f %s\n" % (time.perf_counter() - T0, what))
-    tmp = os.path.join(OUT, "result.partial.json.writing")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(R, f, indent=1, default=str)
-    os.replace(tmp, os.path.join(OUT, "result.partial.json"))
+    _write("result.partial.json")
 
 
 def _refine_error(hd):
@@ -71,6 +79,7 @@ def run():
             return
     else:
         path = R["file"]
+    R["file_md5"] = C._md5(path)              # not timed; open_doc reads the file into the disk cache anyway
     if E.get("BENCH_HEAVY"):
         R["notes"] = ["BENCH_HEAVY=%s is not read: hover.heavy is the part with the most drawn triangles among the "
                       "parts the hover grid hits (hover.heavy_object)" % E["BENCH_HEAVY"]]
@@ -126,8 +135,7 @@ def main():
         R["children_at_exit"] = C.end_children()     # HD's mesh worker must not outlive this process
     except Exception:
         R["errors"]["_children"] = traceback.format_exc()
-    with open(os.path.join(OUT, "result.json"), "w", encoding="utf-8") as f:
-        json.dump(R, f, indent=1, default=str)
+    _write("result.json")
     try:
         os.remove(os.path.join(OUT, "result.partial.json"))
     except OSError:
