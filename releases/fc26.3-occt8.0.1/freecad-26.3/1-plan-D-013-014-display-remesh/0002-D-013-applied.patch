@@ -1,0 +1,699 @@
+From c16ab217618a3a99eadf6b976bf14c7c31a7c083 Mon Sep 17 00:00:00 2001
+From: mig <mig@local>
+Date: Fri, 25 Sep 2026 22:14:00 +0700
+Subject: [PATCH 2/5] D-013 applied
+
+---
+ src/Mod/Part/Gui/CMakeLists.txt       |   2 +
+ src/Mod/Part/Gui/DisplayMeshReuse.cpp | 472 ++++++++++++++++++++++++++
+ src/Mod/Part/Gui/DisplayMeshReuse.h   | 115 +++++++
+ src/Mod/Part/Gui/ViewProviderExt.cpp  |  47 ++-
+ 4 files changed, 632 insertions(+), 4 deletions(-)
+ create mode 100644 src/Mod/Part/Gui/DisplayMeshReuse.cpp
+ create mode 100644 src/Mod/Part/Gui/DisplayMeshReuse.h
+
+diff --git a/src/Mod/Part/Gui/CMakeLists.txt b/src/Mod/Part/Gui/CMakeLists.txt
+index 160463c..a35fab6 100644
+--- a/src/Mod/Part/Gui/CMakeLists.txt
++++ b/src/Mod/Part/Gui/CMakeLists.txt
+@@ -188,6 +188,8 @@ SET(PartGui_SRCS
+     ViewProviderDatum.h
+     ViewProviderExt.cpp
+     ViewProviderExt.h
++    DisplayMeshReuse.cpp
++    DisplayMeshReuse.h
+     ViewProviderReference.cpp
+     ViewProviderReference.h
+     ViewProviderBox.cpp
+diff --git a/src/Mod/Part/Gui/DisplayMeshReuse.cpp b/src/Mod/Part/Gui/DisplayMeshReuse.cpp
+new file mode 100644
+index 0000000..4d7fc24
+--- /dev/null
++++ b/src/Mod/Part/Gui/DisplayMeshReuse.cpp
+@@ -0,0 +1,472 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++
++/***************************************************************************
++ *   Copyright (c) 2026 freecad-kernel-fixes, defect 013                   *
++ *                                                                         *
++ *   This file is part of the FreeCAD CAx development system.              *
++ *                                                                         *
++ *   This library is free software; you can redistribute it and/or         *
++ *   modify it under the terms of the GNU Library General Public           *
++ *   License as published by the Free Software Foundation; either          *
++ *   version 2 of the License, or (at your option) any later version.      *
++ *                                                                         *
++ *   This library  is distributed in the hope that it will be useful,      *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU Library General Public License for more details.                  *
++ *                                                                         *
++ ***************************************************************************/
++
++#include "DisplayMeshReuse.h"
++
++#include <BRep_Builder.hxx>
++#include <BRep_CurveRepresentation.hxx>
++#include <BRep_GCurve.hxx>
++#include <BRep_ListIteratorOfListOfCurveRepresentation.hxx>
++#include <BRep_ListOfCurveRepresentation.hxx>
++#include <BRep_TEdge.hxx>
++#include <BRep_TVertex.hxx>
++#include <BRep_Tool.hxx>
++#include <Poly_Polygon3D.hxx>
++#include <Poly_PolygonOnTriangulation.hxx>
++#include <Poly_Triangulation.hxx>
++#include <TopExp.hxx>
++#include <TopExp_Explorer.hxx>
++#include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
++#include <TopTools_ListOfShape.hxx>
++#include <TopoDS.hxx>
++#include <TopoDS_Compound.hxx>
++#include <TopoDS_Edge.hxx>
++#include <TopoDS_Face.hxx>
++#include <TopoDS_TShape.hxx>
++#include <TopoDS_Vertex.hxx>
++
++#include <cstdint>
++#include <initializer_list>
++#include <mutex>
++#include <system_error>
++#include <utility>
++#include <unordered_map>
++#include <unordered_set>
++#include <vector>
++
++using namespace PartGui;
++
++namespace
++{
++
++struct ReuseEntry
++{
++    Standard_Real lin;
++    Standard_Real ang;
++    bool csd;
++    std::uint64_t fingerprint;
++    Handle(Poly_Triangulation) triangulation;
++};
++
++struct ReuseRegistry
++{
++    std::mutex mutex;
++    std::unordered_map<const TopoDS_TShape*, ReuseEntry> entries;
++    std::size_t cursor = 0;  // the bucket the next sweep starts from
++
++    // Drops entries whose triangulation nobody but the registry holds (face and edges are gone). At most `budget`
++    // entries are looked at per call, resuming where the last call stopped: the cost stays proportional to the faces
++    // just meshed (a full sweep on each of 5000 parts opened would be quadratic).
++    void sweep(std::size_t budget)
++    {
++        const std::size_t buckets = entries.bucket_count();
++        if (entries.empty() || buckets == 0) {
++            return;
++        }
++        std::vector<const TopoDS_TShape*> dead;
++        std::size_t visited = 0;
++        std::size_t bucket = cursor % buckets;
++        for (std::size_t step = 0; step < buckets && visited < budget; ++step) {
++            for (auto it = entries.cbegin(bucket); it != entries.cend(bucket); ++it) {
++                ++visited;
++                if (it->second.triangulation->GetRefCount() == 1) {
++                    dead.push_back(it->first);
++                }
++            }
++            bucket = (bucket + 1) % buckets;
++        }
++        cursor = bucket;
++        for (const TopoDS_TShape* key : dead) {
++            entries.erase(key);
++        }
++    }
++};
++
++ReuseRegistry& reuseRegistry()
++{
++    // Never destroyed: at exit it may still hold triangulations; the process returns the memory, and no OCCT object
++    // is released during the static destruction of PartGui.
++    static ReuseRegistry* instance = new ReuseRegistry();
++    return *instance;
++}
++
++class FingerprintHash
++{
++public:
++    template<class T>
++    void add(const T& value)
++    {
++        const unsigned char* bytes = reinterpret_cast<const unsigned char*>(&value);
++        for (std::size_t i = 0; i < sizeof(T); ++i) {
++            hash ^= bytes[i];
++            hash *= 1099511628211ULL;
++        }
++    }
++    std::uint64_t hash = 1469598103934665603ULL;
++};
++
++// What BRepMesh reads from a face and can change while the face keeps its TShape: the surface, its location and the
++// face tolerance; for every edge its orientation, location, tolerance, flags and geometric representations (3D curve,
++// pcurves, ranges); the points and tolerances of the vertices. Geometry objects by address, values by their bits.
++// Location-free: the same TShape placed twice has one fingerprint.
++std::uint64_t fingerprint(const TopoDS_Face& located)
++{
++    const TopoDS_Face face = TopoDS::Face(located.Located(TopLoc_Location()));
++    FingerprintHash h;
++    TopLoc_Location surfaceLocation;
++    h.add(static_cast<const void*>(BRep_Tool::Surface(face, surfaceLocation).get()));
++    h.add(surfaceLocation.HashCode());
++    h.add(BRep_Tool::Tolerance(face));
++    h.add(BRep_Tool::NaturalRestriction(face));
++    for (TopExp_Explorer xe(face, TopAbs_EDGE); xe.More(); xe.Next()) {
++        const TopoDS_Edge& edge = TopoDS::Edge(xe.Current());
++        const auto* tedge = static_cast<const BRep_TEdge*>(edge.TShape().get());
++        h.add(static_cast<const void*>(tedge));
++        h.add(static_cast<int>(edge.Orientation()));
++        h.add(edge.Location().HashCode());
++        h.add(tedge->Tolerance());
++        h.add(tedge->SameParameter());
++        h.add(tedge->SameRange());
++        h.add(tedge->Degenerated());
++        for (BRep_ListIteratorOfListOfCurveRepresentation it(tedge->Curves()); it.More(); it.Next()) {
++            const Handle(BRep_CurveRepresentation)& cr = it.Value();
++            if (!cr->IsCurve3D() && !cr->IsCurveOnSurface()) {
++                continue;  // polygons are the mesher's own output; regularity does not reach the mesh
++            }
++            h.add(cr->Location().HashCode());
++            if (cr->IsCurve3D()) {
++                h.add(static_cast<const void*>(cr->Curve3D().get()));
++            }
++            else {
++                h.add(static_cast<const void*>(cr->Surface().get()));
++                h.add(static_cast<const void*>(cr->PCurve().get()));
++                if (cr->IsCurveOnClosedSurface()) {
++                    h.add(static_cast<const void*>(cr->PCurve2().get()));
++                }
++            }
++            const Handle(BRep_GCurve) gc = Handle(BRep_GCurve)::DownCast(cr);
++            if (!gc.IsNull()) {
++                h.add(gc->First());
++                h.add(gc->Last());
++            }
++        }
++        TopoDS_Vertex first, last;
++        TopExp::Vertices(edge, first, last);
++        for (const TopoDS_Vertex& vertex : {first, last}) {
++            if (vertex.IsNull()) {
++                h.add(0);
++                continue;
++            }
++            const auto* tvertex = static_cast<const BRep_TVertex*>(vertex.TShape().get());
++            const gp_Pnt& p = tvertex->Pnt();
++            h.add(p.X());
++            h.add(p.Y());
++            h.add(p.Z());
++            h.add(vertex.Location().HashCode());
++            h.add(tvertex->Tolerance());
++        }
++    }
++    return h.hash;
++}
++
++enum class ReuseVerdict
++{
++    Keep,
++    NoEntry,
++    OtherTriangulation,
++    ParamsDiffer,
++    EdgePolygonsMissing,
++    GeometryChanged
++};
++
++ReuseVerdict judgeFace(const ReuseEntry* entry,
++              const TopoDS_Face& face,
++              const Handle(Poly_Triangulation)& triangulation,
++              const TopLoc_Location& location,
++              const DisplayMeshReuse::Params& params)
++{
++    if (!entry) {
++        return ReuseVerdict::NoEntry;
++    }
++    if (entry->triangulation != triangulation) {
++        return ReuseVerdict::OtherTriangulation;
++    }
++    if (entry->lin != params.lin || entry->ang != params.ang || entry->csd != params.csd) {
++        return ReuseVerdict::ParamsDiffer;
++    }
++    for (TopExp_Explorer xe(face, TopAbs_EDGE); xe.More(); xe.Next()) {
++        if (BRep_Tool::PolygonOnTriangulation(TopoDS::Edge(xe.Current()), triangulation, location).IsNull()) {
++            return ReuseVerdict::EdgePolygonsMissing;
++        }
++    }
++    if (entry->fingerprint != fingerprint(face)) {
++        return ReuseVerdict::GeometryChanged;
++    }
++    return ReuseVerdict::Keep;
++}
++
++void tally(DisplayMeshReuse::Stats& stats, ReuseVerdict verdict)
++{
++    switch (verdict) {
++        case ReuseVerdict::NoEntry:
++            ++stats.noEntry;
++            break;
++        case ReuseVerdict::OtherTriangulation:
++            ++stats.otherTriangulation;
++            break;
++        case ReuseVerdict::ParamsDiffer:
++            ++stats.paramsDiffer;
++            break;
++        case ReuseVerdict::EdgePolygonsMissing:
++            ++stats.edgePolygonsMissing;
++            break;
++        case ReuseVerdict::GeometryChanged:
++            ++stats.geometryChanged;
++            break;
++        case ReuseVerdict::Keep:
++            ++stats.kept;
++            break;
++    }
++}
++
++}  // namespace
++
++DisplayMeshReuse::Stats DisplayMeshReuse::prepare(const TopoDS_Shape& shape, const Params& params)
++{
++    Stats stats;
++    ReuseRegistry& reg = reuseRegistry();
++    std::lock_guard<std::mutex> lock(reg.mutex);
++    const BRep_Builder builder;
++    const Handle(Poly_Triangulation) noTriangulation;
++    const Handle(Poly_PolygonOnTriangulation) noPolygon;
++    const Handle(Poly_Polygon3D) noPolygon3D;
++    std::unordered_set<const TopoDS_TShape*> seenFaces;
++    std::unordered_set<const Poly_Triangulation*> kept;
++
++    // Faces: BRepTools::Clean (BRepTools.cxx:770-809, OCCT 7.8.1) for each face, except the ones judged Keep.
++    for (TopExp_Explorer xp(shape, TopAbs_FACE); xp.More(); xp.Next()) {
++        const TopoDS_Face& face = TopoDS::Face(xp.Current());
++        if (!seenFaces.insert(face.TShape().get()).second) {
++            continue;
++        }
++        ++stats.faces;
++        if (!BRep_Tool::IsGeometric(face)) {
++            ++stats.noSurface;
++            continue;
++        }
++        TopLoc_Location location;
++        const Handle(Poly_Triangulation)& triangulation = BRep_Tool::Triangulation(face, location);
++        if (triangulation.IsNull()) {
++            ++stats.fresh;
++            continue;
++        }
++        const auto entry = reg.entries.find(face.TShape().get());
++        const ReuseVerdict verdict =
++            judgeFace(entry == reg.entries.end() ? nullptr : &entry->second, face, triangulation, location, params);
++        tally(stats, verdict);
++        if (verdict == ReuseVerdict::Keep) {
++            kept.insert(triangulation.get());
++            continue;
++        }
++        for (TopExp_Explorer xe(face, TopAbs_EDGE); xe.More(); xe.Next()) {
++            builder.UpdateEdge(TopoDS::Edge(xe.Current()), noPolygon, triangulation, location);
++        }
++        builder.UpdateFace(face, noTriangulation);
++        if (entry != reg.entries.end()) {
++            reg.entries.erase(entry);
++        }
++    }
++
++    // Edges: BRepTools::Clean (BRepTools.cxx:811-860) with theForce, except the polygons on kept triangulations.
++    std::unordered_set<const TopoDS_TShape*> seenEdges;
++    for (TopExp_Explorer xp(shape, TopAbs_EDGE); xp.More(); xp.Next()) {
++        TopoDS_Edge edge = TopoDS::Edge(xp.Current());
++        edge.Location(TopLoc_Location());
++        if (!seenEdges.insert(edge.TShape().get()).second) {
++            continue;
++        }
++        if (!BRep_Tool::IsGeometric(edge)) {
++            continue;
++        }
++        TopLoc_Location location;
++        if (!BRep_Tool::Polygon3D(edge, location).IsNull()) {
++            builder.UpdateEdge(edge, noPolygon3D);
++        }
++        auto* tedge = static_cast<BRep_TEdge*>(edge.TShape().get());
++        BRep_ListOfCurveRepresentation& representations = tedge->ChangeCurves();
++        BRep_ListIteratorOfListOfCurveRepresentation it(representations);
++        while (it.More()) {
++            const Handle(BRep_CurveRepresentation)& cr = it.Value();
++            if (cr->IsPolygonOnTriangulation() && kept.count(cr->Triangulation().get()) == 0) {
++                representations.Remove(it);
++            }
++            else {
++                it.Next();
++            }
++        }
++        tedge->Modified(Standard_True);
++    }
++    return stats;
++}
++
++void DisplayMeshReuse::record(const TopoDS_Shape& shape, const Params& params)
++{
++    ReuseRegistry& reg = reuseRegistry();
++    std::lock_guard<std::mutex> lock(reg.mutex);
++    std::unordered_set<const TopoDS_TShape*> seen;
++    for (TopExp_Explorer xp(shape, TopAbs_FACE); xp.More(); xp.Next()) {
++        const TopoDS_Face& face = TopoDS::Face(xp.Current());
++        const TopoDS_TShape* key = face.TShape().get();
++        if (!seen.insert(key).second) {
++            continue;
++        }
++        TopLoc_Location location;
++        const Handle(Poly_Triangulation)& triangulation = BRep_Tool::Triangulation(face, location);
++        if (triangulation.IsNull() || !BRep_Tool::IsGeometric(face)) {
++            reg.entries.erase(key);
++            continue;
++        }
++        const auto it = reg.entries.find(key);
++        if (it != reg.entries.end() && it->second.triangulation == triangulation && it->second.lin == params.lin
++            && it->second.ang == params.ang && it->second.csd == params.csd) {
++            continue;  // kept by prepare(): its fingerprint was just verified
++        }
++        reg.entries[key] = ReuseEntry {params.lin, params.ang, params.csd, fingerprint(face), triangulation};
++    }
++    reg.sweep(2 * seen.size() + 64);
++}
++
++DisplayMeshReuse::PendingRecord::PendingRecord(std::future<void>&& worker)
++    : worker(std::move(worker))
++{}
++
++DisplayMeshReuse::PendingRecord::~PendingRecord()
++{
++    wait();
++}
++
++void DisplayMeshReuse::PendingRecord::wait()
++{
++    if (!worker.valid()) {
++        return;
++    }
++    try {
++        worker.get();
++    }
++    catch (...) {
++        // record() stopped part way (out of memory): the entries it made are complete, the faces it did not reach
++        // have no entry and are cleaned by the next prepare() exactly as by BRepTools::Clean
++    }
++}
++
++DisplayMeshReuse::PendingRecord DisplayMeshReuse::recordAsync(const TopoDS_Shape& shape, const Params& params)
++{
++    if (!TopExp_Explorer(shape, TopAbs_FACE).More()) {
++        record(shape, params);  // nothing to fingerprint: only a portion of the sweep
++        return PendingRecord();
++    }
++    try {
++        return PendingRecord(std::async(std::launch::async, [shape, params] { record(shape, params); }));
++    }
++    catch (const std::system_error&) {
++        record(shape, params);  // no thread available: the same work on the caller's thread
++        return PendingRecord();
++    }
++}
++
++TopoDS_Shape DisplayMeshReuse::meshingScope(const TopoDS_Shape& shape)
++{
++    std::unordered_set<const TopoDS_TShape*> toMesh;
++    std::unordered_set<const TopoDS_TShape*> all;
++    for (TopExp_Explorer xp(shape, TopAbs_FACE); xp.More(); xp.Next()) {
++        const TopoDS_Face& face = TopoDS::Face(xp.Current());
++        if (!all.insert(face.TShape().get()).second) {
++            continue;
++        }
++        TopLoc_Location location;
++        if (BRep_Tool::Triangulation(face, location).IsNull()) {
++            toMesh.insert(face.TShape().get());
++        }
++    }
++    if (toMesh.empty() || toMesh.size() == all.size()) {
++        return shape;
++    }
++    std::unordered_set<const TopoDS_TShape*> scope = toMesh;
++    TopTools_IndexedDataMapOfShapeListOfShape edgeFaces;
++    TopExp::MapShapesAndUniqueAncestors(shape, TopAbs_EDGE, TopAbs_FACE, edgeFaces);
++    for (Standard_Integer i = 1; i <= edgeFaces.Extent(); ++i) {
++        const TopTools_ListOfShape& faces = edgeFaces(i);
++        bool touches = false;
++        for (TopTools_ListOfShape::Iterator it(faces); it.More() && !touches; it.Next()) {
++            touches = toMesh.count(it.Value().TShape().get()) != 0;
++        }
++        if (!touches) {
++            continue;
++        }
++        for (TopTools_ListOfShape::Iterator it(faces); it.More(); it.Next()) {
++            scope.insert(it.Value().TShape().get());
++        }
++    }
++    if (scope.size() == all.size()) {
++        return shape;
++    }
++    const BRep_Builder builder;
++    TopoDS_Compound compound;
++    builder.MakeCompound(compound);
++    for (TopExp_Explorer xp(shape, TopAbs_FACE); xp.More(); xp.Next()) {
++        if (scope.count(xp.Current().TShape().get()) != 0) {
++            builder.Add(compound, xp.Current());  // every occurrence, as BRepMesh sees them in the whole shape
++        }
++    }
++    for (TopExp_Explorer xp(shape, TopAbs_EDGE, TopAbs_FACE); xp.More(); xp.Next()) {
++        builder.Add(compound, xp.Current());  // free edges: their 3D polygons were removed, as by the stock
++    }
++    return compound;
++}
++
++std::size_t DisplayMeshReuse::sweepAll()
++{
++    ReuseRegistry& reg = reuseRegistry();
++    std::lock_guard<std::mutex> lock(reg.mutex);
++    const std::size_t before = reg.entries.size();
++    for (auto it = reg.entries.begin(); it != reg.entries.end();) {
++        if (it->second.triangulation->GetRefCount() == 1) {
++            it = reg.entries.erase(it);
++        }
++        else {
++            ++it;
++        }
++    }
++    reg.cursor = 0;
++    return before - reg.entries.size();
++}
++
++std::size_t DisplayMeshReuse::size()
++{
++    ReuseRegistry& reg = reuseRegistry();
++    std::lock_guard<std::mutex> lock(reg.mutex);
++    return reg.entries.size();
++}
++
++void DisplayMeshReuse::clear()
++{
++    ReuseRegistry& reg = reuseRegistry();
++    std::lock_guard<std::mutex> lock(reg.mutex);
++    reg.entries.clear();
++}
+diff --git a/src/Mod/Part/Gui/DisplayMeshReuse.h b/src/Mod/Part/Gui/DisplayMeshReuse.h
+new file mode 100644
+index 0000000..a3a5180
+--- /dev/null
++++ b/src/Mod/Part/Gui/DisplayMeshReuse.h
+@@ -0,0 +1,115 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++
++/***************************************************************************
++ *   Copyright (c) 2026 freecad-kernel-fixes, defect 013                   *
++ *                                                                         *
++ *   This file is part of the FreeCAD CAx development system.              *
++ *                                                                         *
++ *   This library is free software; you can redistribute it and/or         *
++ *   modify it under the terms of the GNU Library General Public           *
++ *   License as published by the Free Software Foundation; either          *
++ *   version 2 of the License, or (at your option) any later version.      *
++ *                                                                         *
++ *   This library  is distributed in the hope that it will be useful,      *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU Library General Public License for more details.                  *
++ *                                                                         *
++ ***************************************************************************/
++
++#ifndef PARTGUI_DISPLAYMESHREUSE_H
++#define PARTGUI_DISPLAYMESHREUSE_H
++
++#include <Standard_TypeDef.hxx>
++#include <TopoDS_Shape.hxx>
++
++#include <cstddef>
++#include <future>
++
++namespace PartGui
++{
++
++/** Display meshes that survive an edit (freecad-kernel-fixes, defect 013).
++ *
++ * FreeCAD 1.1.1 cleaned every face before meshing a shape for display (BRepTools::Clean in
++ * ViewProviderPartExt::setupCoinGeometry), so an edit that changed 4 faces of 174 meshed all 174 again.
++ * This registry keeps, per face (its TopoDS_TShape), the triangulation the display mesher made, the
++ * parameters it was made with and a fingerprint of the face's geometry. Before meshing, a face keeps its
++ * triangulation only if it still holds exactly that triangulation, the parameters are equal, every edge of
++ * the face still carries its polygon on it and the geometry is unchanged; every other face is cleaned the
++ * way BRepTools::Clean cleans it, and so are the edges, except for the polygons on kept triangulations.
++ * BRepMesh_IncrementalMesh then meshes the cleaned faces, reuses the kept ones and takes the edges they
++ * share from the kept faces' polygons, so the display mesh has no cracks. Internal to PartGui, not exported.
++ */
++class DisplayMeshReuse
++{
++public:
++    struct Params
++    {
++        Standard_Real lin;  ///< IMeshTools_Parameters::Deflection
++        Standard_Real ang;  ///< IMeshTools_Parameters::Angle, radians
++        bool csd;           ///< IMeshTools_Parameters::ControlSurfaceDeflection
++    };
++
++    struct Stats
++    {
++        int faces = 0;                ///< distinct faces (TShapes) of the shape
++        int kept = 0;                 ///< keep their triangulation
++        int fresh = 0;                ///< had no triangulation
++        int noSurface = 0;            ///< no surface: left as they are, as BRepTools::Clean does
++        int noEntry = 0;              ///< cleaned: the triangulation was not made by this mesher
++        int otherTriangulation = 0;   ///< cleaned: holds another triangulation than the registered one
++        int paramsDiffer = 0;         ///< cleaned: registered with other parameters
++        int edgePolygonsMissing = 0;  ///< cleaned: an edge lost its polygon on the triangulation
++        int geometryChanged = 0;      ///< cleaned: face, edge or vertex data changed in place
++        int cleaned() const
++        {
++            return noEntry + otherTriangulation + paramsDiffer + edgePolygonsMissing + geometryChanged;
++        }
++    };
++
++    /// Replaces BRepTools::Clean(shape, Standard_True) before BRepMesh_IncrementalMesh.
++    static Stats prepare(const TopoDS_Shape& shape, const Params& params);
++    /// Registers the triangulations the mesher left on the faces of shape.
++    static void record(const TopoDS_Shape& shape, const Params& params);
++
++    /// record() running on a worker thread; waits for it when destroyed (or at wait()). Owns no shape data.
++    class PendingRecord
++    {
++    public:
++        PendingRecord() = default;
++        explicit PendingRecord(std::future<void>&& worker);
++        PendingRecord(PendingRecord&&) = default;
++        PendingRecord(const PendingRecord&) = delete;
++        PendingRecord& operator=(const PendingRecord&) = delete;
++        PendingRecord& operator=(PendingRecord&&) = default;  // the old worker, if any, is waited for (std::async)
++        ~PendingRecord();
++        /// Blocks until record() is done. An exception of record() (only std::bad_alloc is possible) is swallowed:
++        /// the faces it did not reach stay unregistered and are cleaned by the next prepare(), as FreeCAD 1.1.1 does.
++        void wait();
++
++    private:
++        std::future<void> worker;
++    };
++
++    /// Task 8 of the plan (the cost of record() on a first display, review of Task 7, C1): record() on a worker
++    /// thread, so that the fingerprints of the new faces are computed while the caller builds its Coin arrays from the
++    /// same shape. Both only read the faces, edges and vertices of the shape (the caller writes normals into the
++    /// triangulations, which record() does not read). The caller must keep the result alive only while nothing writes
++    /// into the shape: setupCoinGeometry destroys it before it returns. A shape without faces is recorded at once.
++    static PendingRecord recordAsync(const TopoDS_Shape& shape, const Params& params);
++    /// After prepare(): the faces without triangulation, every face sharing an edge with one of them and the
++    /// free edges, as a compound; the shape itself when that would be every face.
++    static TopoDS_Shape meshingScope(const TopoDS_Shape& shape);
++    /// Drops every entry whose triangulation nobody but the registry holds (a closed document's faces); returns how
++    /// many. O(entries): run once per closed document, not per meshing (record() sweeps in bounded portions).
++    static std::size_t sweepAll();
++    /// Registered faces (measurements and tests).
++    static std::size_t size();
++    /// Forgets every registered face (measurements and tests).
++    static void clear();
++};
++
++}  // namespace PartGui
++
++#endif  // PARTGUI_DISPLAYMESHREUSE_H
+diff --git a/src/Mod/Part/Gui/ViewProviderExt.cpp b/src/Mod/Part/Gui/ViewProviderExt.cpp
+index 2f58ce3..69cb9b1 100644
+--- a/src/Mod/Part/Gui/ViewProviderExt.cpp
++++ b/src/Mod/Part/Gui/ViewProviderExt.cpp
+@@ -92,6 +92,8 @@
+ #include "SoBrepFaceSet.h"
+ #include "SoBrepPointSet.h"
+ #include "TaskFaceAppearances.h"
++#include "DisplayMeshReuse.h"
++#include <QTimer>
+ 
+ 
+ FC_LOG_LEVEL_INIT("Part", true, true)
+@@ -1122,15 +1124,52 @@ void ViewProviderPartExt::setupCoinGeometry(
+     // defect 014: the surface-deflection control is a preference (default measured, see above)
+     meshParams.ControlSurfaceDeflection = meshControlSurfaceDeflection() ? Standard_True : Standard_False;
+ 
+-    // Clear triangulation and PCurves from geometry which can slow down the process
+ #if OCC_VERSION_HEX < 0x070600
++    // Clear triangulation and PCurves from geometry which can slow down the process
+     BRepTools::Clean(shape);
++    BRepMesh_IncrementalMesh(shape, meshParams);
+ #else
+-    BRepTools::Clean(shape, Standard_True);
++    // defect 013 (freecad-kernel-fixes): only the faces that do not hold the triangulation this mesher made with
++    // these parameters from this geometry are cleaned (FreeCAD 1.1.1 cleaned every face with
++    // BRepTools::Clean(shape, Standard_True)), so after a local edit BRepMesh meshes the changed faces and reuses the
++    // others, taking the edges they share from the kept faces' polygons.
++    // Once a document is closed, the triangulations of its faces are held by the registry alone: they are dropped
++    // right after the deletion, on the event loop (App::Application emits signalDeletedDocument while the document
++    // object still lives, Application.cpp:531-542). Connected once; the connection is never torn down (it must not
++    // outlive App::Application in static destruction).
++    static const bool sweepAfterDocumentClose = [] {
++        App::GetApplication().signalDeletedDocument.connect([] {
++            QTimer::singleShot(0, [] {
++                const std::size_t dropped = DisplayMeshReuse::sweepAll();
++                FC_LOG("display mesh reuse: document closed, dropped " << dropped << " left "
++                       << DisplayMeshReuse::size());
++            });
++        });
++        return true;
++    }();
++    (void)sweepAfterDocumentClose;
++    const DisplayMeshReuse::Params reuseParams {
++        meshParams.Deflection,
++        meshParams.Angle,
++        meshParams.ControlSurfaceDeflection == Standard_True
++    };
++    const DisplayMeshReuse::Stats reuse = DisplayMeshReuse::prepare(shape, reuseParams);
++    FC_LOG(
++        "display mesh reuse: faces " << reuse.faces << " kept " << reuse.kept << " new " << reuse.fresh
++        << " cleaned " << reuse.cleaned() << " (no entry " << reuse.noEntry << ", parameters "
++        << reuse.paramsDiffer << ", other triangulation " << reuse.otherTriangulation << ", edge polygons "
++        << reuse.edgePolygonsMissing << ", geometry " << reuse.geometryChanged << ")"
++    );
++    // decision D2 (plan D, Task 7; A45 of its ledger): BRepMesh gets only the ring around the faces to mesh
++    // (DisplayMeshReuse::meshingScope) when the registry kept a face - then the whole-shape pass costs more than the
++    // meshing itself; when nothing is kept the ring would be the whole shape, so the shape goes as it is.
++    BRepMesh_IncrementalMesh(reuse.kept > 0 ? DisplayMeshReuse::meshingScope(shape) : shape, meshParams);
++    // The new faces are registered on a worker thread while the Coin arrays below are built from the same shape (both
++    // only read it; the fingerprints of the new faces are not paid on the display path); waited for when this
++    // function returns, before anything can write into the shape again.
++    DisplayMeshReuse::PendingRecord pendingRecord = DisplayMeshReuse::recordAsync(shape, reuseParams);
+ #endif
+ 
+-    BRepMesh_IncrementalMesh(shape, meshParams);
+-
+     // We must reset the location here because the transformation data
+     // are set in the placement property
+     TopLoc_Location aLoc;
+-- 
+2.52.0.windows.1
+

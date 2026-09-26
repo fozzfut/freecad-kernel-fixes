@@ -7,6 +7,8 @@ Documents are in Russian; code, patches and scripts are in English.
 Дефекты геометрического ядра под FreeCAD — в самом Open CASCADE Technology и в слое Part/PartDesign
 FreeCAD. Каждый измерен, воспроизводится скриптом и исправлен там, где исправление доказано.
 
+> **Релиз для FreeCAD 26.3dev / OCCT 8.0.1:** [releases/fc26.3-occt8.0.1](releases/fc26.3-occt8.0.1) — патчи 001, 009, 012, 018, 020 и модуль PartGui (D, G), готовые файлы в разделе Releases.
+
 ## Каталог
 
 | № | Дефект | Чей | Статус |

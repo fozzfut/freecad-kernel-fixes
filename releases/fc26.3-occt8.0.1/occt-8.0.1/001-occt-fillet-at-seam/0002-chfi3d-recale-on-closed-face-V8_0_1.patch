@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fozzfut <14357576+fozzfut@users.noreply.github.com>
+Date: Sat, 26 Sep 2026 00:47:43 +0700
+Subject: [PATCH] =?UTF-8?q?001=20(TKFillet):=20ChFi3d=5FRecale=20=D0=B8=20?=
+ =?UTF-8?q?=D0=BD=D0=B0=20=D0=B7=D0=B0=D0=BC=D0=BA=D0=BD=D1=83=D1=82=D0=BE?=
+ =?UTF-8?q?=D0=B9=20=D0=B3=D1=80=D0=B0=D0=BD=D0=B8,=20=D0=BD=D0=B5=20?=
+ =?UTF-8?q?=D1=82=D0=BE=D0=BB=D1=8C=D0=BA=D0=BE=20=D0=B2=20=D1=81=D0=BE?=
+ =?UTF-8?q?=D1=81=D1=82=D0=BE=D1=8F=D0=BD=D0=B8=D0=B8=20OnSame?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Перенос patches/0002-chfi3d-recale-on-closed-face.patch (freecad-kernel-fixes,
+дефект 001) с OCCT 7.8.1 на 8.0.1. PerformOneCorner сводил две 2D-точки угла
+скругления на одну ветвь шва только при onsame; скругление ребра, упирающегося
+в шов цилиндра, давало невалидное тело с ростом объёма. Условие стало
+onsame || Bs.IsUClosed() || Bs.IsVClosed(); ветка onsame осталась первой.
+На 8.0.1 тот же код (ChFi3d_Builder_C1.cxx:988), конфликт при переносе один,
+только скобки.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../TKFillet/ChFi3d/ChFi3d_Builder_C1.cxx     | 31 ++++++++++++++++++-
+ 1 file changed, 30 insertions(+), 1 deletion(-)
+
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_C1.cxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_C1.cxx
+index d7195c79..5604cbc5 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_C1.cxx
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_C1.cxx
+@@ -985,7 +985,36 @@ void ChFi3d_Builder::PerformOneCorner(const int Index, const bool thePrepareOnSa
+     {
+       pfil2 = Fi2.PCurveOnSurf()->Value(Fi2.Parameter(!isfirst));
+     }
+-    if (onsame)
++    // pfac1 and pfac2 are two 2d points on the same face Bs at the end of the
++    // fillet. When that face carries a seam they can be returned on the two
++    // different branches of the seam pcurve - u and u + period are the same 3d
++    // point, so no check downstream notices - and the trim window built from
++    // them below (ChFi3d_Boite/ChFi3d_BoundFac) then does not contain the corner
++    // vertex. ChFi3d_Recale is the helper that brings them back to one branch.
++    //
++    // onsame: the state in which ChFi3d_Recale was called until now. Kept first
++    // so that the OnSame path, where Bs is loaded without restriction
++    // (Bs.Initialize(Fv,false) above) and its IsUClosed would not be
++    // the face's own answer, keeps its old behaviour exactly.
++    //
++    // IsUClosed/IsVClosed: the adaptor's test for "the face trim spans the whole
++    // period", which is what having a seam edge means. It is needed because
++    // ChFi3d_Recale looks at the periodicity of the BASIS surface, after the
++    // trim is discarded, and its "more than half a period apart" test is then
++    // met by two perfectly legal points on a face that is periodic but not
++    // closed. Measured at this line, stock 7.8.1, three corners:
++    //   cylindrical face with a seam on the corner vertex (the reported defect):
++    //     face U range [0, 6.283185307] = UPeriod, IsUClosed True, 2 seam edges,
++    //     pfac1.X 6.176614355, pfac2.X 0.106570952, |du| 6.070043402;
++    //     ChFi3d_Recale moves pfac2.X to 6.389756260, i.e. onto the branch of
++    //     pfac1, and the corner is then found.
++    //   270 degree surface of revolution (tests blend/simple/H4 and
++    //   blend/buildevol/D6): face U range [0, 4.712388980] = 3/4 of UPeriod,
++    //     IsUClosed False, no seam edge, pfac1.X 0, pfac2.X 4.712388980,
++    //     |du| 4.712388980 > 0.5*UPeriod; calling ChFi3d_Recale here moves
++    //     pfac2.X to -1.570796327, a whole period outside the face, and the
++    //     resulting shell is unorientable and not closed.
++    if (onsame || Bs.IsUClosed() || Bs.IsVClosed())
+     {
+       ChFi3d_Recale(Bs, pfac1, pfac2, (IFadArc == 1));
+     }
+-- 
+2.52.0.windows.1
+

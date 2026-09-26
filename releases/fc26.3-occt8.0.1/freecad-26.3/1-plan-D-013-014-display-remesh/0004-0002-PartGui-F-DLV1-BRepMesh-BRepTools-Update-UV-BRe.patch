@@ -1,0 +1,135 @@
+From aa236141a610692a068c69269169434d9f9c8f93 Mon Sep 17 00:00:00 2001
+From: mig <mig@local>
+Date: Fri, 25 Sep 2026 22:14:03 +0700
+Subject: [PATCH 4/5] 
+ 0002-PartGui-F-DLV1-BRepMesh-BRepTools-Update-UV-BRepMesh.patch
+
+---
+ src/Mod/Part/Gui/DisplayMeshReuse.cpp | 33 +++++++++++++++++++++++++--
+ src/Mod/Part/Gui/DisplayMeshReuse.h   | 11 +++++++++
+ src/Mod/Part/Gui/ViewProviderExt.cpp  |  3 +++
+ 3 files changed, 45 insertions(+), 2 deletions(-)
+
+diff --git a/src/Mod/Part/Gui/DisplayMeshReuse.cpp b/src/Mod/Part/Gui/DisplayMeshReuse.cpp
+index 1823448..9b0deab 100644
+--- a/src/Mod/Part/Gui/DisplayMeshReuse.cpp
++++ b/src/Mod/Part/Gui/DisplayMeshReuse.cpp
+@@ -27,9 +27,11 @@
+ #include <BRep_TEdge.hxx>
+ #include <BRep_TVertex.hxx>
+ #include <BRep_Tool.hxx>
++#include <BRepTools.hxx>
+ #include <Poly_Polygon3D.hxx>
+ #include <Poly_PolygonOnTriangulation.hxx>
+ #include <Poly_Triangulation.hxx>
++#include <Standard_Failure.hxx>
+ #include <TopExp.hxx>
+ #include <TopExp_Explorer.hxx>
+ #include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
+@@ -286,8 +288,9 @@ DisplayMeshReuse::Stats DisplayMeshReuse::prepare(const TopoDS_Shape& shape, con
+             // BRepTools::Clean would have done to it (finding F-DLV1): BRep_Builder::UpdateEdge on each edge (a polygon
+             // on this triangulation is removed: the edge is checked for a lock, then Modified) and
+             // BRep_Builder::UpdateFace (lock check, then Modified). Modified(Standard_True) also resets the Checked flag
+-            // (TopoDS_TShape.hxx), so the face reads, is saved and is later treated (BRepTools::Update(face) looks at
+-            // Checked) exactly as after the stock clean. judgeFace(), fingerprint() and BRepMesh read neither flag.
++            // (TopoDS_TShape.hxx), so BRepMesh's shape visitor runs BRepTools::Update(face) (UV points of the edges,
++            // then Checked) on it as on a cleaned face; afterMeshing() adds what storing a new triangulation would do.
++            // judgeFace(), fingerprint() and BRepMesh read neither flag.
+             for (TopExp_Explorer xe(face, TopAbs_EDGE); xe.More(); xe.Next()) {
+                 const Handle(TopoDS_TShape)& tedge = xe.Current().TShape();
+                 if (tedge->Locked()) {
+@@ -300,6 +303,7 @@ DisplayMeshReuse::Stats DisplayMeshReuse::prepare(const TopoDS_Shape& shape, con
+             }
+             face.TShape()->Modified(Standard_True);
+             kept.insert(triangulation.get());
++            stats.keptFaces.emplace_back(face, triangulation);
+             continue;
+         }
+         for (TopExp_Explorer xe(face, TopAbs_EDGE); xe.More(); xe.Next()) {
+@@ -343,6 +347,31 @@ DisplayMeshReuse::Stats DisplayMeshReuse::prepare(const TopoDS_Shape& shape, con
+     return stats;
+ }
+ 
++void DisplayMeshReuse::afterMeshing(const Stats& stats)
++{
++    // Stock FreeCAD meshes every face anew: BRepMesh_ShapeVisitor::Visit calls BRepTools::Update(face) (the UV points
++    // of its edges, then Checked), and BRepMesh_ShapeTool::AddInFace stores the triangulation with
++    // BRep_Builder::UpdateFace, which marks the face Modified and so resets Checked. A kept face gets the same two
++    // steps here: Update is a no-op when BRepMesh visited the face (it is Checked since that visit) and does the
++    // visitor's work when the face was outside the meshing scope. A face whose triangulation BRepMesh replaced got both
++    // from BRepMesh itself.
++    for (const auto& [face, triangulation] : stats.keptFaces) {
++        TopLoc_Location location;
++        if (BRep_Tool::Triangulation(face, location) != triangulation) {
++            continue;
++        }
++        try {
++            BRepTools::Update(face);
++        }
++        catch (const Standard_Failure&) {
++            // not expected: the same Update ran without error when this face was first meshed, with the geometry the
++            // fingerprint still holds. In stock the failure would stay inside BRepMesh (IMeshTools_ModelBuilder
++            // catches Standard_Failure), so it must not leave setupCoinGeometry here either.
++        }
++        face.TShape()->Modified(Standard_True);
++    }
++}
++
+ void DisplayMeshReuse::record(const TopoDS_Shape& shape, const Params& params)
+ {
+     ReuseRegistry& reg = reuseRegistry();
+diff --git a/src/Mod/Part/Gui/DisplayMeshReuse.h b/src/Mod/Part/Gui/DisplayMeshReuse.h
+index a3a5180..b69718d 100644
+--- a/src/Mod/Part/Gui/DisplayMeshReuse.h
++++ b/src/Mod/Part/Gui/DisplayMeshReuse.h
+@@ -20,11 +20,15 @@
+ #ifndef PARTGUI_DISPLAYMESHREUSE_H
+ #define PARTGUI_DISPLAYMESHREUSE_H
+ 
++#include <Poly_Triangulation.hxx>
+ #include <Standard_TypeDef.hxx>
++#include <TopoDS_Face.hxx>
+ #include <TopoDS_Shape.hxx>
+ 
+ #include <cstddef>
+ #include <future>
++#include <utility>
++#include <vector>
+ 
+ namespace PartGui
+ {
+@@ -66,10 +70,17 @@ public:
+         {
+             return noEntry + otherTriangulation + paramsDiffer + edgePolygonsMissing + geometryChanged;
+         }
++        /// the kept faces (one per TShape) with the triangulation they kept - for afterMeshing()
++        std::vector<std::pair<TopoDS_Face, Handle(Poly_Triangulation)>> keptFaces;
+     };
+ 
+     /// Replaces BRepTools::Clean(shape, Standard_True) before BRepMesh_IncrementalMesh.
+     static Stats prepare(const TopoDS_Shape& shape, const Params& params);
++    /// Right after BRepMesh_IncrementalMesh: gives each kept face what meshing it anew would have given it in stock
++    /// FreeCAD (finding F-DLV1): BRepTools::Update(face) as BRepMesh's shape visitor does, then the Modified mark
++    /// of BRep_Builder::UpdateFace storing the new triangulation (it also resets Checked). Faces BRepMesh did mesh
++    /// again (their triangulation changed) already have both and are left alone.
++    static void afterMeshing(const Stats& stats);
+     /// Registers the triangulations the mesher left on the faces of shape.
+     static void record(const TopoDS_Shape& shape, const Params& params);
+ 
+diff --git a/src/Mod/Part/Gui/ViewProviderExt.cpp b/src/Mod/Part/Gui/ViewProviderExt.cpp
+index 69cb9b1..12afd2f 100644
+--- a/src/Mod/Part/Gui/ViewProviderExt.cpp
++++ b/src/Mod/Part/Gui/ViewProviderExt.cpp
+@@ -1164,6 +1164,9 @@ void ViewProviderPartExt::setupCoinGeometry(
+     // (DisplayMeshReuse::meshingScope) when the registry kept a face - then the whole-shape pass costs more than the
+     // meshing itself; when nothing is kept the ring would be the whole shape, so the shape goes as it is.
+     BRepMesh_IncrementalMesh(reuse.kept > 0 ? DisplayMeshReuse::meshingScope(shape) : shape, meshParams);
++    // F-DLV1: the kept faces get what BRepMesh does to a face it meshes anew (UV points, Modified), before the worker
++    // below starts reading the shape
++    DisplayMeshReuse::afterMeshing(reuse);
+     // The new faces are registered on a worker thread while the Coin arrays below are built from the same shape (both
+     // only read it; the fingerprints of the new faces are not paid on the display path); waited for when this
+     // function returns, before anything can write into the shape again.
+-- 
+2.52.0.windows.1
+

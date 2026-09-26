@@ -1,0 +1,7 @@
+6c6be47d107ffd0f3375547f169eaaa0 *bin/TKFillet.dll
+7bd2e88d6fbd935f61c608d4ece7b40d *bin/TKBO.dll
+abaef4e3b1490f485fec26dba728d9dc *bin/TKMesh.dll
+2a68043ffb51816e1f6776c4a5d97595 *bin/TKTopAlgo.dll
+49f771488e0a9643459a9b4c395b83a9 *bin/TKShHealing.dll
+3f815463669328424b7e489cefe7d37c *lib/Part.pyd
+e5b8412a1df82151a8453080ff022e9a *lib/PartGui.pyd

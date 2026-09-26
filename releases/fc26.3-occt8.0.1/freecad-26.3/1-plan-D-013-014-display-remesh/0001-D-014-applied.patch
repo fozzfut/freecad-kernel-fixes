@@ -1,0 +1,48 @@
+From 3f0d9bb1a4b237e494f015aacf2e5462e4a1fe01 Mon Sep 17 00:00:00 2001
+From: mig <mig@local>
+Date: Fri, 25 Sep 2026 22:13:57 +0700
+Subject: [PATCH 1/5] D-014 applied
+
+---
+ src/Mod/Part/Gui/ViewProviderExt.cpp | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/src/Mod/Part/Gui/ViewProviderExt.cpp b/src/Mod/Part/Gui/ViewProviderExt.cpp
+index f6f3b40..2f58ce3 100644
+--- a/src/Mod/Part/Gui/ViewProviderExt.cpp
++++ b/src/Mod/Part/Gui/ViewProviderExt.cpp
+@@ -98,6 +98,22 @@ FC_LOG_LEVEL_INIT("Part", true, true)
+ 
+ using namespace PartGui;
+ 
++namespace
++{
++// Defect 014 (freecad-kernel-fixes, issues/014-freecad-display-mesh-control-surface-deflection):
++// IMeshTools_Parameters::ControlSurfaceDeflection - BRepMesh checks the triangles inside a face against the surface
++// and inserts nodes where they deviate - is the preference Mod/Part/MeshControlSurfaceDeflection. Its default is the
++// one the measurement of the defect chose (README, section "Умолчание"); OCCT's own default is true.
++constexpr bool meshControlSurfaceDeflectionDefault = true;
++
++bool meshControlSurfaceDeflection()
++{
++    return App::GetApplication()
++        .GetParameterGroupByPath("User parameter:BaseApp/Preferences/Mod/Part")
++        ->GetBool("MeshControlSurfaceDeflection", meshControlSurfaceDeflectionDefault);
++}
++}  // namespace
++
+ PROPERTY_SOURCE(PartGui::ViewProviderPartExt, Gui::ViewProviderGeometryObject)
+ 
+ 
+@@ -1103,6 +1119,8 @@ void ViewProviderPartExt::setupCoinGeometry(
+     meshParams.Angle = AngDeflectionRads;
+     meshParams.InParallel = Standard_True;
+     meshParams.AllowQualityDecrease = Standard_True;
++    // defect 014: the surface-deflection control is a preference (default measured, see above)
++    meshParams.ControlSurfaceDeflection = meshControlSurfaceDeflection() ? Standard_True : Standard_False;
+ 
+     // Clear triangulation and PCurves from geometry which can slow down the process
+ #if OCC_VERSION_HEX < 0x070600
+-- 
+2.52.0.windows.1
+

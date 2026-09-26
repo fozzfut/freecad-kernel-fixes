@@ -1,0 +1,52 @@
+From 946127ca29d70903e762f2b85196932d28544c25 Mon Sep 17 00:00:00 2001
+From: mig <mig@local>
+Date: Sat, 26 Sep 2026 06:44:15 +0700
+Subject: [PATCH 2/2] =?UTF-8?q?PartGui:=20=D1=82=D0=B0=D0=B1=D0=BB=D0=B8?=
+ =?UTF-8?q?=D1=86=D0=B0=20=D0=B8=D0=BD=D0=B4=D0=B5=D0=BA=D1=81=D0=BE=D0=B2?=
+ =?UTF-8?q?=20=D0=B2=D1=8B=D0=B1=D0=BE=D1=80=D0=B0=20=D0=BB=D1=83=D1=87?=
+ =?UTF-8?q?=D0=BE=D0=BC=20=D0=BD=D0=B5=20=D1=80=D0=B0=D0=B7=D1=80=D1=83?=
+ =?UTF-8?q?=D1=88=D0=B0=D0=B5=D1=82=D1=81=D1=8F=20=D0=BF=D1=80=D0=B8=20?=
+ =?UTF-8?q?=D0=B2=D1=8B=D1=85=D0=BE=D0=B4=D0=B5?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Таблица узлов и её мьютекс созданы через new и не освобождаются: при
+завершении процесса деструкторы записей не отсоединяют датчики полей от
+узлов, которые Coin к этому моменту мог уже разобрать.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/Part/Gui/SoBrepPickAccel.cpp | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/src/Mod/Part/Gui/SoBrepPickAccel.cpp b/src/Mod/Part/Gui/SoBrepPickAccel.cpp
+index 15c5b5e..4c5421a 100644
+--- a/src/Mod/Part/Gui/SoBrepPickAccel.cpp
++++ b/src/Mod/Part/Gui/SoBrepPickAccel.cpp
+@@ -68,16 +68,18 @@ namespace
+ {
+ constexpr uint32_t LeafSize = 8;
+ 
++// Never destroyed: at process exit the entries' field sensors must not detach from nodes that
++// Coin may already have torn down (no static destructor runs for these).
+ std::mutex& tableMutex()
+ {
+-    static std::mutex m;
+-    return m;
++    static std::mutex* m = new std::mutex;
++    return *m;
+ }
+ 
+ std::unordered_map<const SoNode*, std::unique_ptr<Entry>>& table()
+ {
+-    static std::unordered_map<const SoNode*, std::unique_ptr<Entry>> t;
+-    return t;
++    static auto* t = new std::unordered_map<const SoNode*, std::unique_ptr<Entry>>;
++    return *t;
+ }
+ 
+ void sensorCB(void* data, SoSensor* /*sensor*/)
+-- 
+2.52.0.windows.1
+

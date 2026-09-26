@@ -1,0 +1,415 @@
+From 17ad47e8c81298f96c450ef9bed9910c404e7fac Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 04:13:42 +0700
+Subject: [PATCH 1/2] =?UTF-8?q?020=20(TKShHealing):=20ShapeFix=5FIntersect?=
+ =?UTF-8?q?ionTool=20=D0=B1=D0=B5=D0=B7=20=D0=BA=D0=B2=D0=B0=D0=B4=D1=80?=
+ =?UTF-8?q?=D0=B0=D1=82=D0=B8=D1=87=D0=BD=D1=8B=D1=85=20=D0=BC=D0=B5=D1=81?=
+ =?UTF-8?q?=D1=82=20=E2=80=94=20=D0=B3=D1=80=D0=B0=D0=BD=D1=8C=20=D0=BD?=
+ =?UTF-8?q?=D0=B5=20=D0=BF=D0=B5=D1=80=D0=B5=D1=81=D1=82=D1=80=D0=B0=D0=B8?=
+ =?UTF-8?q?=D0=B2=D0=B0=D0=B5=D1=82=D1=81=D1=8F=20=D0=BD=D0=B0=20=D0=BA?=
+ =?UTF-8?q?=D0=B0=D0=B6=D0=B4=D0=BE=D0=BC=20=D0=BF=D1=80=D0=BE=D0=B2=D0=BE?=
+ =?UTF-8?q?=D0=B4=D0=B5,=20=D0=BF=D0=B0=D1=80=D1=8B=20=D0=BF=D1=80=D0=BE?=
+ =?UTF-8?q?=D0=B2=D0=BE=D0=B4=D0=BE=D0=B2=20=D1=80=D0=B0=D0=B7=D0=B2=D1=91?=
+ =?UTF-8?q?=D1=80=D1=82=D0=BA=D0=BE=D0=B9=20=D0=B1=D0=BE=D0=BA=D1=81=D0=BE?=
+ =?UTF-8?q?=D0=B2?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Перенос строк 1 и 15 дефекта 020 с 7.8.1 (38be7766, 2acf64a1, e78aad68) на V8_0_1 с двумя правками под 8.0.1:
+- FixSelfIntersectWire: быстрый путь не берёт цепочку замен, где TShape встречается повторно или есть не грань
+  (8.0.1 applyImpl держит такие TShape "in flight" и возвращает Value() без обхода) — там решает стоковый Apply.
+- FixIntersectingWires: 8.0.1 Bnd_Box2d::IsOut сравнивает Xmin - Other.Xmax > Gap + Other.Gap на хранимых значениях,
+  а не диапазоны Get(); развёртка берёт диапазоны Get(), расширенные на 1e-9 модуля и зазора, и каждая пара,
+  которую стоковый тест не отбрасывает, остаётся кандидатом (сам тест по-прежнему решает). Без расширения
+  нерасширенная развёртка 7.8.1 теряла пары на 8.0.1 (sweeptest: 81/67/88 пропусков на 3000 наборов; с
+  расширением 0).
+Результаты и сообщения как у стокового 8.0.1 (k020: корпус ShapeFix/Refine/STEP 42/42, консоль побайтно).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../ShapeFix/ShapeFix_IntersectionTool.cxx    | 317 +++++++++++++++++-
+ 1 file changed, 309 insertions(+), 8 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_IntersectionTool.cxx b/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_IntersectionTool.cxx
+index ab216499..897251a2 100644
+--- a/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_IntersectionTool.cxx
++++ b/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_IntersectionTool.cxx
+@@ -44,6 +44,17 @@
+ #include <TopoDS_Vertex.hxx>
+ #include <TopoDS_Wire.hxx>
+ #include <TopoDS_Shape.hxx>
++#include <algorithm>
++#include <array>
++#include <cmath>
++#include <limits>
++#include <iterator>
++#include <new>
++#include <typeinfo>
++#include <vector>
++#include <Bnd_Box2d.hxx>
++#include <NCollection_DataMap.hxx>
++#include <TopTools_ShapeMapHasher.hxx>
+ 
+ // gka 06.09.04 BUG 6555 shape is modified always independently either intersection was fixed or not
+ //=================================================================================================
+@@ -1024,6 +1035,121 @@ bool ShapeFix_IntersectionTool::FindVertAndSplitEdge(
+   return false;
+ }
+ 
++//=======================================================================
++// defect 020: SF = Context()->Apply (face) and the maximum vertex tolerance of SF
++// (FixSelfIntersectWire below) without copying the face when that Apply would rebuild nothing.
++// ShapeBuild_ReShape::Apply copies the shape and each of its sub-shapes (EmptyCopied,
++// ShapeBuild_ReShape.cxx:184) before it knows whether anything changed; FixSelfIntersectWire runs
++// it for every wire of the face - quadratic on a face with many holes.
++//=======================================================================
++namespace
++{
++//! The parent / child types TopoDS_Builder::Add accepts that occur under a face. Any other pair:
++//! the stock Apply runs (it rebuilds, or throws TopoDS_UnCompatibleShapes in B.Add there).
++static bool isFaceChild(const TopAbs_ShapeEnum theParent, const TopAbs_ShapeEnum theChild)
++{
++  switch (theParent)
++  {
++    case TopAbs_FACE:
++      return theChild == TopAbs_WIRE || theChild == TopAbs_VERTEX;
++    case TopAbs_WIRE:
++      return theChild == TopAbs_EDGE;
++    case TopAbs_EDGE:
++      return theChild == TopAbs_VERTEX;
++    default:
++      return false;
++  }
++}
++
++//! Walks theShape as ShapeBuild_ReShape::Apply (theShape) walks a shape in which nothing is
++//! recorded: the same children (TopoDS_Iterator (shape, false), ShapeBuild_ReShape.cxx:191), the
++//! same test of Value() (:158-169), and the Free (false) that B.Add (result, child) sets on every
++//! child it keeps (:205, TopoDS_Builder.cxx:49) - here set on a child only after its whole subtree
++//! passed, so when the walk stops the stock Apply sets the same flags again and the others. Reads
++//! the vertex tolerances in the order TopExp_Explorer (SF, TopAbs_VERTEX) meets them (children are
++//! never null: BRep_Tool::Tolerance cannot throw). False at the first sub-shape Apply would replace
++//! or remove, or at a parent / child pair the fast path does not take.
++static bool walkUnrecorded(const occ::handle<ShapeBuild_ReShape>& theCtx,
++                           const bool                             theConsLoc,
++                           const TopoDS_Shape&                    theShape,
++                           double&                                theMaxTolVert)
++{
++  const TopAbs_ShapeEnum aType = theShape.ShapeType();
++  for (TopoDS_Iterator anIt(theShape, false); anIt.More(); anIt.Next())
++  {
++    const TopoDS_Shape&    aSub     = anIt.Value();
++    const TopAbs_ShapeEnum aSubType = aSub.ShapeType();
++    if (!isFaceChild(aType, aSubType))
++      return false;
++    const TopoDS_Shape aVal = theCtx->Value(aSub);
++    if (aVal.IsNull() || (theConsLoc ? !aVal.IsPartner(aSub) : !aVal.IsSame(aSub)))
++      return false;
++    if (aSubType == TopAbs_VERTEX)
++      theMaxTolVert = Max(theMaxTolVert, BRep_Tool::Tolerance(TopoDS::Vertex(aSub)));
++    else if (!walkUnrecorded(theCtx, theConsLoc, aSub, theMaxTolVert))
++      return false;
++    aSub.TShape()->Free(false);
++  }
++  return true;
++}
++
++//! True when nothing in the face is recorded: then theSF and theMaxTolVert are what the stock code
++//! computes, and the context is left as the stock Apply leaves it - no record (it writes only when
++//! it rebuilds, :228), the same Status (OK, or DONE1 after a chain of replacements of the face),
++//! the same Free flags. Apply (face, TopAbs_FACE) follows the same chain (:157-174) and stops
++//! before copying (:176-177). False (the caller runs the stock code): the context is not exactly a
++//! ShapeBuild_ReShape (a derived class may override Apply or Value), the face or a sub-shape is
++//! removed or replaced, the chain ends at a non-face or at a shape recorded as itself in another
++//! orientation (there Apply (face, TopAbs_FACE) would return the record, the full Apply the shape).
++static bool applyFaceUnrecorded(const occ::handle<ShapeBuild_ReShape>& theCtx,
++                                const TopoDS_Face&                     theFace,
++                                TopoDS_Shape&                          theSF,
++                                double&                                theMaxTolVert)
++{
++  if (typeid(*theCtx) != typeid(ShapeBuild_ReShape))
++    return false;
++  const bool   aConsLoc = theCtx->ModeConsiderLocation();
++  TopoDS_Shape aCur     = theFace;
++  // OCCT 8.0.1 applyImpl keeps the TShapes of the chain "in flight" and returns Value() of a shape
++  // met again without walking it (ShapeBuild_ReShape.cxx:219-227): the stock code decides such a
++  // chain, and any chain through a non-face (an in-flight wire, edge or vertex could be met again
++  // under the face).
++  NCollection_Sequence<const TopoDS_TShape*> aChain;
++  for (int aStep = 0;; aStep++)
++  {
++    if (aStep > 1000 || aCur.ShapeType() != TopAbs_FACE)
++      return false;
++    for (NCollection_Sequence<const TopoDS_TShape*>::Iterator anIt(aChain); anIt.More(); anIt.Next())
++    {
++      if (anIt.Value() == aCur.TShape().get())
++        return false;
++    }
++    aChain.Append(aCur.TShape().get());
++    const TopoDS_Shape aVal = theCtx->Value(aCur);
++    if (aVal.IsNull())
++      return false;
++    if (aConsLoc ? !aVal.IsPartner(aCur) : !aVal.IsSame(aCur))
++    {
++      aCur = aVal;
++      continue;
++    }
++    if (!aVal.IsEqual(aCur))
++      return false;
++    break;
++  }
++  if (aCur.ShapeType() != TopAbs_FACE)
++    return false;
++  double aMaxTolVert = 0.0;
++  if (!walkUnrecorded(theCtx, aConsLoc, aCur, aMaxTolVert))
++    return false;
++  theSF = theCtx->Apply(theFace, TopAbs_FACE);
++  if (!theSF.IsEqual(aCur))
++    return false; // not reached (see above); the stock Apply then decides and sets the status
++  theMaxTolVert = aMaxTolVert;
++  return true;
++}
++} // namespace
++
+ //=================================================================================================
+ 
+ bool ShapeFix_IntersectionTool::FixSelfIntersectWire(occ::handle<ShapeExtend_WireData>& sewd,
+@@ -1041,12 +1167,20 @@ bool ShapeFix_IntersectionTool::FixSelfIntersectWire(occ::handle<ShapeExtend_Wir
+   // if(area2d<Precision::PConfusion()*Precision::PConfusion()) return false; //gka
+   // 06.09.04 BUG 6555
+ 
+-  TopoDS_Shape SF         = Context()->Apply(face);
++  TopoDS_Shape SF;
+   double       MaxTolVert = 0.0;
+-  for (TopExp_Explorer exp(SF, TopAbs_VERTEX); exp.More(); exp.Next())
++  // defect 020: the same SF, context and MaxTolVert without rebuilding the face when nothing in it
++  // is recorded. The maximum is still taken for every wire: this function raises tolerances of the
++  // face's vertices in place (B.UpdateVertex below) between the wires of one face.
++  if (!applyFaceUnrecorded(myContext, face, SF, MaxTolVert))
+   {
+-    double tolV = BRep_Tool::Tolerance(TopoDS::Vertex(exp.Current()));
+-    MaxTolVert  = std::max(MaxTolVert, tolV);
++    SF         = Context()->Apply(face);
++    MaxTolVert = 0.0;
++    for (TopExp_Explorer exp(SF, TopAbs_VERTEX); exp.More(); exp.Next())
++    {
++      double tolV = BRep_Tool::Tolerance(TopoDS::Vertex(exp.Current()));
++      MaxTolVert  = std::max(MaxTolVert, tolV);
++    }
+   }
+   MaxTolVert = std::min(MaxTolVert, myMaxTol);
+   ShapeAnalysis_Edge sae;
+@@ -1830,6 +1964,114 @@ bool ShapeFix_IntersectionTool::FixSelfIntersectWire(occ::handle<ShapeExtend_Wir
+   return isDone;
+ }
+ 
++//=======================================================================
++// defect 020: pairs of wires for FixIntersectingWires found by a sweep of the wire boxes instead of
++// all pairs. OCCT 8.0.1 Bnd_Box2d::IsOut (Bnd_Box2d.cxx:456-479) of two boxes without flags (not
++// void, no open side) tests Xmin - Other.Xmax > Gap + Other.Gap (and the three other sides) on the
++// stored values; it is symmetric, and apart from rounding it is "the Get() ranges are apart in x or
++// in y". The sweep takes the Get() ranges widened by 1e-9 of their magnitude and the gap - far more
++// than the rounding of either form - so a pair the stock test does not reject always intersects in
++// both x and y and is found; the stock test is still applied to every candidate pair. Boxes of
++// other kinds (void, open, not finite) and boxes recomputed after a pair was fixed are tested with
++// every wire, as before.
++//=======================================================================
++namespace
++{
++//! Widened Get() ranges (xmin, ymin, xmax, ymax) of a box for the sweep; false for a box the sweep
++//! does not take.
++static bool sweepRange(const Bnd_Box2d& theBox, double theR[4])
++{
++  if (theBox.IsVoid() || theBox.IsOpenXmin() || theBox.IsOpenXmax() || theBox.IsOpenYmin()
++      || theBox.IsOpenYmax())
++    return false;
++  theBox.Get(theR[0], theR[1], theR[2], theR[3]);
++  const double aGap = theBox.GetGap();
++  const double aMag =
++    std::abs(theR[0]) + std::abs(theR[1]) + std::abs(theR[2]) + std::abs(theR[3]) + 4.0 * std::abs(aGap);
++  if (!std::isfinite(aMag) || !(theR[0] <= theR[2] && theR[1] <= theR[3])) // not finite, NaN
++    return false;
++  const double aWiden = 1.0e-9 * aMag + std::numeric_limits<double>::min();
++  theR[0] -= aWiden;
++  theR[1] -= aWiden;
++  theR[2] += aWiden;
++  theR[3] += aWiden;
++  return true;
++}
++
++//! theSwept[n] = 1 for the boxes the sweep takes; theCand[n1] = sorted n2 > n1 whose ranges
++//! intersect those of n1.
++static void sweepWireBoxes(const NCollection_Sequence<Bnd_Box2d>& theBoxes,
++                           std::vector<char>&                     theSwept,
++                           std::vector<std::vector<int>>&         theCand)
++{
++  const int                          aNb = theBoxes.Length();
++  std::vector<std::array<double, 4>> aR(aNb + 1);
++  std::vector<int>                   anOrder;
++  int                                n = 1;
++  for (NCollection_Sequence<Bnd_Box2d>::Iterator anIt(theBoxes); anIt.More(); anIt.Next(), n++)
++  {
++    if (sweepRange(anIt.Value(), aR[n].data()))
++    {
++      theSwept[n] = 1;
++      anOrder.push_back(n);
++    }
++  }
++  std::sort(anOrder.begin(), anOrder.end(), [&aR](const int a, const int b) {
++    return aR[a][0] < aR[b][0] || (aR[a][0] == aR[b][0] && a < b);
++  });
++  std::vector<int> anActive;
++  for (const int aCur : anOrder)
++  {
++    std::size_t aKeep = 0;
++    for (std::size_t k = 0; k < anActive.size(); k++)
++    {
++      const int a = anActive[k];
++      if (aR[a][2] < aR[aCur][0])
++        continue; // ends before aCur starts: before every later box too
++      anActive[aKeep++] = a;
++      if (!(aR[a][3] < aR[aCur][1] || aR[a][1] > aR[aCur][3]))
++        theCand[(std::min)(a, aCur)].push_back((std::max)(a, aCur));
++    }
++    anActive.resize(aKeep);
++    anActive.push_back(aCur);
++  }
++  for (std::vector<int>& aList : theCand)
++    std::sort(aList.begin(), aList.end());
++}
++
++//! The second wires n2 > n1 the stock loop has to test, in increasing order: all of them when the
++//! box of n1 is not swept (or was recomputed), else the swept candidates of n1 and every not swept
++//! wire above n1.
++static void secondWires(const int               n1,
++                        const int               theNb,
++                        const bool              theSwept1,
++                        const std::vector<int>& theCand1,
++                        const std::vector<int>& theNotSwept,
++                        std::vector<int>&       theOut)
++{
++  theOut.clear();
++  if (!theSwept1)
++  {
++    for (int n2 = n1 + 1; n2 <= theNb; n2++)
++      theOut.push_back(n2);
++    return;
++  }
++  const std::vector<int>::const_iterator anUp =
++    std::upper_bound(theNotSwept.begin(), theNotSwept.end(), n1);
++  std::merge(theCand1.begin(), theCand1.end(), anUp, theNotSwept.end(), std::back_inserter(theOut));
++  theOut.erase(std::unique(theOut.begin(), theOut.end()), theOut.end());
++}
++
++//! The box of wire n was recomputed: from now on the wire is tested with every other wire.
++static void unsweepWire(const int n, std::vector<char>& theSwept, std::vector<int>& theNotSwept)
++{
++  if (!theSwept[n])
++    return;
++  theSwept[n] = 0;
++  theNotSwept.insert(std::upper_bound(theNotSwept.begin(), theNotSwept.end(), n), n);
++}
++} // namespace
++
+ //=================================================================================================
+ 
+ bool ShapeFix_IntersectionTool::FixIntersectingWires(TopoDS_Face& face) const
+@@ -1885,17 +2127,58 @@ bool ShapeFix_IntersectionTool::FixIntersectingWires(TopoDS_Face& face) const
+     aSeqWirBoxes.Append(aTotalBox);
+   }
+ 
++  // defect 020: the second wires that can pass the box test below, from a sweep of the boxes (see
++  // sweepWireBoxes). aBox1 is the box of n1 at the start of its loop (not updated inside it, as
++  // before), aBox2 the current box of n2. std::bad_alloc from these vectors (here, in secondWires
++  // or in unsweepWire; a few bytes per wire and per candidate pair, while the loop allocates a
++  // ShapeExtend_WireData per tested pair): the sweep is dropped and from there on every n1 tests
++  // all n2 > n1, as the stock loop does - the same pairs reach the box test, nothing is thrown that
++  // the stock code would not throw (review M1).
++  const int                     aNbWir = SeqWir.Length();
++  std::vector<char>             aSwept;
++  std::vector<std::vector<int>> aCandWir;
++  std::vector<int>              aNotSwept, aSecond;
++  bool                          aUseSweep = true;
++  try
++  {
++    aSwept.assign(aNbWir + 1, 0);
++    aCandWir.resize(aNbWir + 1);
++    sweepWireBoxes(aSeqWirBoxes, aSwept, aCandWir);
++    for (int n = 1; n <= aNbWir; n++)
++    {
++      if (!aSwept[n])
++        aNotSwept.push_back(n);
++    }
++  }
++  catch (const std::bad_alloc&)
++  {
++    aUseSweep = false;
++  }
++
+   for (int n1 = 1; n1 <= SeqWir.Length() - 1; n1++)
+   {
+     TopoDS_Wire                       wire1 = TopoDS::Wire(SeqWir.Value(n1));
+     occ::handle<ShapeExtend_WireData> sewd1 = new ShapeExtend_WireData(wire1);
+     NCollection_DataMap<TopoDS_Shape, Bnd_Box2d, TopTools_ShapeMapHasher>& boxes1 =
+       aSeqWirEdgeBoxes.ChangeValue(n1);
+-    Bnd_Box2d aBox1 = aSeqWirBoxes(n1);
+-    for (int n2 = n1 + 1; n2 <= SeqWir.Length(); n2++)
++    Bnd_Box2d aBox1   = aSeqWirBoxes(n1);
++    bool      aSweep1 = aUseSweep;
++    if (aSweep1)
+     {
+-      TopoDS_Wire                       wire2 = TopoDS::Wire(SeqWir.Value(n2));
+-      occ::handle<ShapeExtend_WireData> sewd2 = new ShapeExtend_WireData(wire2);
++      try
++      {
++        secondWires(n1, aNbWir, aSwept[n1] != 0, aCandWir[n1], aNotSwept, aSecond);
++      }
++      catch (const std::bad_alloc&)
++      {
++        aUseSweep = aSweep1 = false;
++      }
++    }
++    const std::size_t aNbSecond = aSweep1 ? aSecond.size() : (std::size_t)(aNbWir - n1);
++    for (std::size_t aK = 0; aK < aNbSecond; aK++)
++    {
++      const int   n2    = aSweep1 ? aSecond[aK] : n1 + 1 + (int)aK;
++      TopoDS_Wire wire2 = TopoDS::Wire(SeqWir.Value(n2));
+       NCollection_DataMap<TopoDS_Shape, Bnd_Box2d, TopTools_ShapeMapHasher>& boxes2 =
+         aSeqWirEdgeBoxes.ChangeValue(n2);
+       Bnd_Box2d aBox2 = aSeqWirBoxes(n2);
+@@ -1903,6 +2186,9 @@ bool ShapeFix_IntersectionTool::FixIntersectingWires(TopoDS_Face& face) const
+       {
+         continue;
+       }
++      // defect 020: created after the box test (the stock created it before); the constructor only
++      // reads wire2
++      occ::handle<ShapeExtend_WireData> sewd2 = new ShapeExtend_WireData(wire2);
+       // detect possible intersections:
+       int  NbModif      = 0;
+       int  nbReplaced   = 0;     // gka 06.09.04
+@@ -2500,6 +2786,21 @@ bool ShapeFix_IntersectionTool::FixIntersectingWires(TopoDS_Face& face) const
+         boxes2.Clear();
+         Bnd_Box2d aNewBox2 = CreateBoxes2d(sewd2, face, boxes2);
+         aSeqWirBoxes.SetValue(n2, aNewBox2);
++        // defect 020: both boxes were recomputed - from now on these wires are tested with every
++        // other wire
++        if (aUseSweep)
++        {
++          try
++          {
++            unsweepWire(n1, aSwept, aNotSwept);
++            unsweepWire(n2, aSwept, aNotSwept);
++          }
++          catch (const std::bad_alloc&)
++          {
++            aUseSweep =
++              false; // the list of n2 of this n1 stays right: the loop changes no box of a later n2
++          }
++        }
+       }
+     }
+   }
+-- 
+2.52.0.windows.1
+
