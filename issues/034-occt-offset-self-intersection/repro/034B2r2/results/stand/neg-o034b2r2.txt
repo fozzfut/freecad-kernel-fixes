@@ -1,0 +1,4 @@
+NEG_vbox_r1_d1.5_ref_shifted_0.05            WRONG   valid=True bop=clean nsol=1 nf=6 vol=1309.00000 ms=19 ref=1305.15000 sd=3.85 rel=0.00295 exc=-
+CTL_vbox_r1_d1.5_ref_exact                   EXACT   valid=True bop=clean nsol=1 nf=6 vol=1309.00000 ms=20 ref=1309.00000 sd=0 rel=0 exc=-
+    NEG oracle on a shifted copy: oracle n=54 bad=18 worst=0.05
+RV-DONE

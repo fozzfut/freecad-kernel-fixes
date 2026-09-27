@@ -1,0 +1,6 @@
+pd_can_r1_t0.5_bottom CHECK valid=True bop=clean vol=499.31283 ref=496.14806 sd=3.16 0.09s
+pd_can_r1_t1.5_bottom EXACT valid=True bop=clean vol=1373.43781 ref=1373.43781 sd=0 0.04s
+pd_can_r1_t3_bottom EXACT valid=True bop=clean vol=2371.28618 ref=2371.28618 sd=0 0.04s
+pd_lhousing_r1_t0.5_top nedges=5 CHECK valid=True bop=clean vol=413.80863 ref=- sd=-1 0.09s
+pd_lhousing_r1_t1.5_top nedges=5 CHECK valid=True bop=clean vol=1096.66565 ref=- sd=-1 0.07s
+PD-DONE

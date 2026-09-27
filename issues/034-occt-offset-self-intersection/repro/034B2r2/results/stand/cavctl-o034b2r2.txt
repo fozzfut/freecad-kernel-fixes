@@ -1,0 +1,4 @@
+CTL_cav_sharp_d1.5_outoff                    ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+CTL_cav_r1_d0.5_outoff_NOVANISH              ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+cavsolid_r1_d1.5_inoff                       EXACT   valid=True bop=clean nsol=1 nf=6 vol=385.00000 ms=21 ref=385.00000 sd=0 rel=0 exc=-
+RV-DONE

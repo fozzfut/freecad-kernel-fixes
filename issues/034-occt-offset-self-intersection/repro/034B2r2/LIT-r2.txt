@@ -1,0 +1,60 @@
+Issue 034 lane B2, round 2 (28.09.2026) - literature and provenance of the round-2 design elements.
+(Venue rule: specialist CAD/CAGD journals count as full sources. OA = open access read; ABS = abstract/known result only.)
+
+A. Proven vanishing decision (review finding 4)
+ 1. T. Maekawa, "An overview of offset curves and surfaces", Computer-Aided Design 31(3) 1999, 165-173,
+    doi 10.1016/S0010-4485(99)00013-5 (CAD). Offset factors 1 - d*k_i; local self-intersection iff a factor <= 0.
+    APPLIED: the vanishing condition (every factor pair has a non-positive member) and the fold/cusp vocabulary.
+ 2. T. Maekawa, N.M. Patrikalakis et al., "Self-intersections of offsets of polynomial / rational surfaces"
+    (Maekawa, Cho, Patrikalakis, IJSM 1999 / CAGD line of work; interval projected polyhedron). ABS.
+    APPLIED: the idea that offset-singularity questions are decided robustly by Bernstein-form interval bounds with
+    subdivision (our test is a bound, not a root finder).
+ 3. T.W. Sederberg, R.J. Meyers, "Loop detection in surface patch intersections", CAGD 5(2) 1988 161-171 (CAGD).
+    ABS. APPLIED: convex hull of hodograph nets bounds every derivative over a Bezier patch.
+ 4. C.-Y. Hu, T. Maekawa, N.M. Patrikalakis, X. Ye, "Robust interval algorithm for surface intersections",
+    CAD 29(9) 1997 617-627 (CAD). ABS. APPLIED: interval arithmetic on Bezier data with subdivision; rounding margin.
+ 5. Lane R-034g (own, 27.09): trace/determinant conditions C1 = 2 s|N|^3 - dJ, C2 = s^2|N|^4 - s d|N|J + d^2 Q for
+    "both eigenvalues of s I - d W positive" (reviewed as correct in Review R-034g r1). APPLIED in the opposite
+    direction: a patch is proven vanishing when the upper bound of C1 or of C2 is negative. Own derivation of the
+    Leibniz interval form for rational patches (S_s = (P_s - w_s S)/w, S_ss, S_st, S_tt) and of the rotation step
+    (the factors are invariant under rigid motions; bounds are taken in the patch's own chord frame).
+ 6. OCCT GeomConvert_SurfToAnaSurf (canonical recognition within a tolerance; OCCT's own conversion tool) + the
+    analytic offset rule of BRepOffset::Surface (radius + d within Precision::Confusion -> Degenerated). APPLIED to
+    the degenerate case d = r only, where no interval bound can prove a factor of exactly 0 (tolerance decision,
+    the same one the analytic twin gets).
+
+B. Cap and rim sections (review finding 2) - own derivation on top of round 1's rim lemma
+ 7. Rim lemma (round 1, LIT-r1c (4)): two rim offsets of a vanishing set meet inside their own domains
+    (inside for d > r, at the ends for d = r). Consequence used now: the stock section of a rim face on a removed
+    face (the offset of its edge, extended to the removed face) already carries the corner with the other rim faces;
+    its OTHER end is the stock end at a non-vanishing neighbour (tube, surviving blend, second removed face) and is
+    kept (the round-1 replacement by a whole enlarged-copy section lost that end: L housings, mixed radii).
+ 8. Own derivation: a removed face is not offset, so the corner of two rim offsets with a removed face that the set
+    reaches lies BEYOND the stock end (distance <= size of the set + |d|): the stock sections (rim x removed face,
+    rim x rim across a sharp edge) are prolonged by that reach at their vanishing ends only (two removed faces,
+    removed face tangent to the set).
+ 9. M. Forsyth, "Shelling and offsetting bodies", ACM Solid Modeling (SMA) 1995, doi 10.1145/218013.218088 (as cited in round 1) and
+    J.R. Rossignac, A.A.G. Requicha, "Offsetting operations in solid modelling", CAGD 3 1986 129-148 (CAGD):
+    faces may vanish and the surviving neighbours are extended and intersected (kept from round 1). The references
+    of the test stand (erosion/dilation by primitives + Booleans) follow Rossignac-Requicha.
+
+C. Partial folds (review finding 1) - studied, NOT implemented in round 2
+ 10. J. Park, Q Youn Hong, M.-S. Kim, G. Elber, "Self-intersection computation for freeform surfaces based on a
+     regional representation scheme for miter points", CAGD 2021 (S0167839621000248) (CAGD). ABS.
+ 11. "Fast Determination and Computation of Self-intersections for NURBS Surfaces", ACM TOG 2025,
+     doi 10.1145/3727620 (TOG/SIGGRAPH). ABS: osculating toroidal patches bound the surface; miter points detected.
+ 12. A. Pekerman, G. Elber, M.-S. Kim, "Self-intersection detection and elimination in freeform curves and
+     surfaces", CAD 40(2) 2008 150-159 (CAD). ABS.
+ 13. J.-K. Seong, G. Elber, M.-S. Kim, "Trimming local and global self-intersections in offset curves/surfaces
+     using distance maps", CAD 38 2006 183-193 (CAD). ABS. NOT applied (distance-map region finding is the
+     EP4530910A1 red flag; only curvature/fold-curve based trimming is allowed, IP.txt).
+ 14. Q Youn Hong et al., C&G 2019 (support). ABS.
+     Design recorded for round 3 (not code): split the face along its traced fold curve (predictor-corrector on
+     1 - d k = 0), prove the negative part vanishing with a regional (miter-point) certificate - the interval test of
+     A cannot certify a region whose boundary has factor exactly 0 -, and join the positive parts through the rim
+     machinery; swallowtail folds (cusp edges, the owner cube Face26, 5829 corner lobes) additionally need the
+     self-intersection curve with miter end points (10, 11).
+
+D. Patent position (EP4530910A1 design-around, IP.txt of issue 034): round 2 adds no distance evaluation to the
+   kernel; decisions use curvature bounds (A), the analytic rule (A6) and topology/section geometry (B). The stand's
+   distance oracle stays a test-side, error-raising control only.

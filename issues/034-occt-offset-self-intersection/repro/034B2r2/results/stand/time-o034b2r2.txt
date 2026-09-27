@@ -1,0 +1,3 @@
+T_5829_local_thk-1                           ERR     ms=6088 exc=BRep_API:_command_not_done
+T_owner031_off-1                             ERR     ms=11960 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+RV-DONE

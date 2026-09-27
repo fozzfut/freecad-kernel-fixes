@@ -1,0 +1,1501 @@
+
+Dump of file C:\dev\occt8-mig\offset-034b2\r2\final\TKOffset.dll
+
+File Type: DLL
+
+  Section contains the following imports:
+
+    TKFillet.dll
+             18014DD00 Import Address Table
+             1801A7D30 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         268 ?IsTangentFaces@ChFi3d@@SA_NAEBVTopoDS_Edge@@AEBVTopoDS_Face@@1W4GeomAbs_Shape@@@Z
+                         112 ?DefineConnectType@ChFi3d@@SA?AW4ChFiDS_TypeOfConcavity@@AEBVTopoDS_Edge@@AEBVTopoDS_Face@@1N_N@Z
+
+    TKBRep.dll
+             18014D460 Import Address Table
+             1801A7490 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         256 ?EvalAndUpdateTol@BRepTools@@SANAEBVTopoDS_Edge@@AEBV?$handle@VGeom_Curve@@@opencascade@@AEBV?$handle@VGeom2d_Curve@@@4@AEBV?$handle@VGeom_Surface@@@4@NN@Z
+                         1CF ?DetectClosedness@BRepTools@@SAXAEBVTopoDS_Face@@AEA_N1@Z
+                         2F7 ?Initialize@BRepAdaptor_Surface@@QEAAXAEBVTopoDS_Face@@_N@Z
+                         60C ?Trim@BRepAdaptor_Curve@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@NNN@Z
+                         5B9 ?ShallowCopy@BRepAdaptor_Curve@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@XZ
+                         200 ?DynamicType@BRepAdaptor_Curve@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         6B0 ?get_type_descriptor@BRepTools_Modification@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         41F ?NewPolygonOnTriangulation@BRepTools_Modification@@UEAA_NAEBVTopoDS_Edge@@AEBVTopoDS_Face@@AEAV?$handle@VPoly_PolygonOnTriangulation@@@opencascade@@@Z
+                         41A ?NewPolygon@BRepTools_Modification@@UEAA_NAEBVTopoDS_Edge@@AEAV?$handle@VPoly_Polygon3D@@@opencascade@@@Z
+                         428 ?NewTriangulation@BRepTools_Modification@@UEAA_NAEBVTopoDS_Face@@AEAV?$handle@VPoly_Triangulation@@@opencascade@@@Z
+                         5BA ?ShallowCopy@BRepAdaptor_Surface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@XZ
+                         201 ?DynamicType@BRepAdaptor_Surface@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         393 ?MaxTolerance@BRep_Tool@@SANAEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@@Z
+                         481 ?Perform@BRepTools_Modifier@@QEAAXAEBV?$handle@VBRepTools_Modification@@@opencascade@@AEBVMessage_ProgressRange@@@Z
+                         2ED ?Init@BRepTools_Modifier@@QEAAXAEBVTopoDS_Shape@@@Z
+                         35E ?IsRemoved@BRepTools_History@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         38A ?MapShapes@TopExp@@SAXAEBVTopoDS_Shape@@AEAV?$NCollection_Map@VTopoDS_Shape@@VTopTools_ShapeMapHasher@@@@_N2@Z
+                         168 ?Copy@BRepTools_Quilt@@QEBAAEBVTopoDS_Shape@@AEBV2@@Z
+                         30F ?IsCopied@BRepTools_Quilt@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         60F ?UVBounds@BRepTools@@SAXAEBVTopoDS_Face@@AEAN111@Z
+                         475 ?Parameters@BRep_Tool@@SA?AVgp_Pnt2d@@AEBVTopoDS_Vertex@@AEBVTopoDS_Face@@@Z
+                         1A7 ?CurveOnSurface@BRep_Tool@@SAXAEBVTopoDS_Edge@@AEAV?$handle@VGeom2d_Curve@@@opencascade@@AEAV?$handle@VGeom_Surface@@@4@AEAVTopLoc_Location@@AEAN4@Z
+                         1A5 ?CurveOnSurface@BRep_Tool@@SA?AV?$handle@VGeom2d_Curve@@@opencascade@@AEBVTopoDS_Edge@@AEBV?$handle@VGeom_Surface@@@3@AEBVTopLoc_Location@@AEAN3PEA_N@Z
+                         22D ?DynamicType@TopoDS_TShape@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          AB ?Add@TopoDS_Builder@@QEBAXAEAVTopoDS_Shape@@AEBV2@@Z
+                         387 ?MakeShape@TopoDS_Builder@@IEBAXAEAVTopoDS_Shape@@AEBV?$handle@VTopoDS_TShape@@@opencascade@@@Z
+                         244 ?EmptyCopy@TopoDS_TWire@@UEBA?AV?$handle@VTopoDS_TShape@@@opencascade@@XZ
+                         231 ?DynamicType@TopoDS_TWire@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         23F ?EmptyCopy@TopoDS_TCompound@@UEBA?AV?$handle@VTopoDS_TShape@@@opencascade@@XZ
+                         22A ?DynamicType@TopoDS_TCompound@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         638 ?UpdateFace@BRep_Builder@@QEBAXAEBVTopoDS_Face@@AEBV?$handle@VGeom_Surface@@@opencascade@@AEBVTopLoc_Location@@N@Z
+                         382 ?MakeEdge@BRep_Builder@@QEBAXAEAVTopoDS_Edge@@@Z
+                         62F ?UpdateEdge@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@AEBV?$handle@VGeom_Curve@@@opencascade@@AEBVTopLoc_Location@@N@Z
+                         62D ?UpdateEdge@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@AEBV?$handle@VGeom2d_Curve@@@opencascade@@AEBV?$handle@VGeom_Surface@@@4@AEBVTopLoc_Location@@N@Z
+                         62B ?UpdateEdge@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@AEBV?$handle@VGeom2d_Curve@@@opencascade@@1AEBV?$handle@VGeom_Surface@@@4@AEBVTopLoc_Location@@N@Z
+                         1BB ?Degenerated@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@_N@Z
+                         4BB ?Range@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@NN_N@Z
+                         63D ?UpdateVertex@BRep_Builder@@QEBAXAEBVTopoDS_Vertex@@AEBVgp_Pnt@@N@Z
+                         640 ?UpdateVertex@BRep_Builder@@QEBAXAEBVTopoDS_Vertex@@NAEBVTopoDS_Edge@@N@Z
+                         63E ?UpdateVertex@BRep_Builder@@QEBAXAEBVTopoDS_Vertex@@N@Z
+                          4B ??0BRep_TFace@@QEAA@XZ
+                          4C ??0BRep_TVertex@@QEAA@XZ
+                         5E0 ?Surface@BRep_Tool@@SAAEBV?$handle@VGeom_Surface@@@opencascade@@AEBVTopoDS_Face@@AEAVTopLoc_Location@@@Z
+                         5DF ?Surface@BRep_Tool@@SA?AV?$handle@VGeom_Surface@@@opencascade@@AEBVTopoDS_Face@@@Z
+                         5F3 ?Tolerance@BRep_Tool@@SANAEBVTopoDS_Face@@@Z
+                         19E ?Curve@BRep_Tool@@SAAEBV?$handle@VGeom_Curve@@@opencascade@@AEBVTopoDS_Edge@@AEAVTopLoc_Location@@AEAN2@Z
+                         19D ?Curve@BRep_Tool@@SA?AV?$handle@VGeom_Curve@@@opencascade@@AEBVTopoDS_Edge@@AEAN1@Z
+                         1A6 ?CurveOnSurface@BRep_Tool@@SA?AV?$handle@VGeom2d_Curve@@@opencascade@@AEBVTopoDS_Edge@@AEBVTopoDS_Face@@AEAN2PEA_N@Z
+                         5F2 ?Tolerance@BRep_Tool@@SANAEBVTopoDS_Edge@@@Z
+                         1BE ?Degenerated@BRep_Tool@@SA_NAEBVTopoDS_Edge@@@Z
+                         484 ?Pnt@BRep_Tool@@SA?AVgp_Pnt@@AEBVTopoDS_Vertex@@@Z
+                         5F4 ?Tolerance@BRep_Tool@@SANAEBVTopoDS_Vertex@@@Z
+                         473 ?Parameter@BRep_Tool@@SANAEBVTopoDS_Vertex@@AEBVTopoDS_Edge@@AEBVTopoDS_Face@@@Z
+                         622 ?Update@BRepTools@@SAXAEBVTopoDS_Face@@@Z
+                          31 ??0BRepTools_Quilt@@QEAA@XZ
+                          95 ?Add@BRepTools_Quilt@@QEAAXAEBVTopoDS_Shape@@@Z
+                         5C4 ?Shells@BRepTools_Quilt@@QEBA?AVTopoDS_Shape@@XZ
+                         38C ?MapShapesAndAncestors@TopExp@@SAXAEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@1AEAV?$NCollection_IndexedDataMap@VTopoDS_Shape@@V?$NCollection_List@VTopoDS_Shape@@@@VTopTools_ShapeMapHasher@@@@@Z
+                         64F ?Vertices@TopExp@@SAXAEBVTopoDS_Edge@@AEAVTopoDS_Vertex@@1_N@Z
+                          59 ??0TopExp_Explorer@@QEAA@AEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@1@Z
+                         2F1 ?Init@TopExp_Explorer@@QEAAXAEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@1@Z
+                         42E ?Next@TopExp_Explorer@@QEAAXXZ
+                         189 ?Current@TopExp_Explorer@@QEBAAEBVTopoDS_Shape@@XZ
+                         309 ?IsClosed@BRep_Tool@@SA_NAEBVTopoDS_Shape@@@Z
+                          67 ??1TopExp_Explorer@@QEAA@XZ
+                         4BC ?Range@BRep_Tool@@SAXAEBVTopoDS_Edge@@AEAN1@Z
+                         51F ?Remove@TopoDS_Builder@@QEBAXAEAVTopoDS_Shape@@AEBV2@@Z
+                         613 ?UVPoints@BRep_Tool@@SAXAEBVTopoDS_Edge@@AEBVTopoDS_Face@@AEAVgp_Pnt2d@@2@Z
+                           5 ??0BRepAdaptor_Curve@@QEAA@AEBVTopoDS_Edge@@@Z
+                           3 ??0BRepAdaptor_Curve2d@@QEAA@AEBVTopoDS_Edge@@AEBVTopoDS_Face@@@Z
+                          2E ??0BRepTools_Modifier@@QEAA@_N@Z
+                          32 ??0BRepTools_ReShape@@QEAA@XZ
+                         352 ?IsReallyClosed@BRepTools@@SA_NAEBVTopoDS_Edge@@AEBVTopoDS_Face@@@Z
+                          35 ??0BRepTools_Substitution@@QEAA@XZ
+                         5D2 ?Substitute@BRepTools_Substitution@@QEAAXAEBVTopoDS_Shape@@AEBV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                          F8 ?Build@BRepTools_Substitution@@QEAAXAEBVTopoDS_Shape@@@Z
+                         310 ?IsCopied@BRepTools_Substitution@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         169 ?Copy@BRepTools_Substitution@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         2F8 ?Initialize@TopoDS_Iterator@@QEAAXAEBVTopoDS_Shape@@_N1@Z
+                         42F ?Next@TopoDS_Iterator@@QEAAXXZ
+                           8 ??0BRepAdaptor_Surface@@QEAA@AEBVTopoDS_Face@@_N@Z
+                         650 ?Vertices@TopExp@@SAXAEBVTopoDS_Wire@@AEAVTopoDS_Vertex@@1@Z
+                          5A ??0TopExp_Explorer@@QEAA@XZ
+                         389 ?MapShapes@TopExp@@SAXAEBVTopoDS_Shape@@AEAV?$NCollection_IndexedMap@VTopoDS_Shape@@VTopTools_ShapeMapHasher@@@@_N2@Z
+                         45A ?OuterWire@BRepTools@@SA?AVTopoDS_Wire@@AEBVTopoDS_Face@@@Z
+                          37 ??0BRepTools_WireExplorer@@QEAA@AEBVTopoDS_Wire@@@Z
+                         2EE ?Init@BRepTools_WireExplorer@@QEAAXAEBVTopoDS_Wire@@@Z
+                         39A ?More@BRepTools_WireExplorer@@QEBA_NXZ
+                         42D ?Next@BRepTools_WireExplorer@@QEAAXXZ
+                         188 ?Current@BRepTools_WireExplorer@@QEBAAEBVTopoDS_Edge@@XZ
+                         191 ?CurrentVertex@BRepTools_WireExplorer@@QEBAAEBVTopoDS_Vertex@@XZ
+                         38B ?MapShapes@TopExp@@SAXAEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@AEAV?$NCollection_IndexedMap@VTopoDS_Shape@@VTopTools_ShapeMapHasher@@@@@Z
+                         291 ?FirstVertex@TopExp@@SA?AVTopoDS_Vertex@@AEBVTopoDS_Edge@@_N@Z
+                         36F ?LastVertex@TopExp@@SA?AVTopoDS_Vertex@@AEBVTopoDS_Edge@@_N@Z
+                         399 ?Modified@BRepTools_History@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         242 ?EmptyCopy@TopoDS_TShell@@UEBA?AV?$handle@VTopoDS_TShape@@@opencascade@@XZ
+                         22E ?DynamicType@TopoDS_TShell@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         243 ?EmptyCopy@TopoDS_TSolid@@UEBA?AV?$handle@VTopoDS_TShape@@@opencascade@@XZ
+                         22F ?DynamicType@TopoDS_TSolid@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         385 ?MakeFace@BRep_Builder@@QEBAXAEAVTopoDS_Face@@AEBV?$handle@VGeom_Surface@@@opencascade@@N@Z
+                         550 ?SameParameter@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@_N@Z
+                         556 ?SameRange@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@_N@Z
+                         4BA ?Range@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@AEBV?$handle@VGeom_Surface@@@opencascade@@AEBVTopLoc_Location@@NN@Z
+                          D2 ?Apply@BRepTools_ReShape@@UEAA?AVTopoDS_Shape@@AEBV2@W4TopAbs_ShapeEnum@@@Z
+                          39 ??0BRepTools_WireExplorer@@QEAA@XZ
+                           7 ??0BRepAdaptor_Curve@@QEAA@XZ
+                         308 ?IsClosed@BRep_Tool@@SA_NAEBVTopoDS_Edge@@AEBVTopoDS_Face@@@Z
+                         4BE ?Range@BRep_Tool@@SAXAEBVTopoDS_Edge@@AEBVTopoDS_Face@@AEAN2@Z
+                         167 ?Continuity@BRep_Tool@@SA?AW4GeomAbs_Shape@@AEBVTopoDS_Edge@@AEBVTopoDS_Face@@1@Z
+                         471 ?Parameter@BRep_Tool@@SANAEBVTopoDS_Vertex@@AEBVTopoDS_Edge@@@Z
+                         38D ?MapShapesAndUniqueAncestors@TopExp@@SAXAEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@1AEAV?$NCollection_IndexedDataMap@VTopoDS_Shape@@V?$NCollection_List@VTopoDS_Shape@@@@VTopTools_ShapeMapHasher@@@@_N@Z
+                         474 ?Parameter@BRep_Tool@@SA_NAEBVTopoDS_Vertex@@AEBVTopoDS_Edge@@AEAN@Z
+                           6 ??0BRepAdaptor_Curve@@QEAA@AEBVTopoDS_Edge@@AEBVTopoDS_Face@@@Z
+                         2EF ?Init@BRepTools_WireExplorer@@QEAAXAEBVTopoDS_Wire@@AEBVTopoDS_Face@@@Z
+                         14C ?CommonVertex@TopExp@@SA_NAEBVTopoDS_Edge@@0AEAVTopoDS_Vertex@@@Z
+                         637 ?UpdateEdge@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@N@Z
+                         1FA ?DumpJson@TopoDS_TShape@@UEBAXAEAV?$basic_ostream@DU?$char_traits@D@std@@@std@@H@Z
+                         15F ?Continuity@BRep_Builder@@QEBAXAEBVTopoDS_Edge@@AEBVTopoDS_Face@@1W4GeomAbs_Shape@@@Z
+
+    TKTopAlgo.dll
+             18014F400 Import Address Table
+             1801A9430 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         6A6 ?SupportOnShape2@BRepExtrema_DistShapeShape@@QEBA?AVTopoDS_Shape@@H@Z
+                         6F8 ?Value@BRepExtrema_DistShapeShape@@QEBANXZ
+                          CE ??0BRepExtrema_DistShapeShape@@QEAA@AEBVTopoDS_Shape@@0W4Extrema_ExtFlag@@W4Extrema_ExtAlgo@@AEBVMessage_ProgressRange@@@Z
+                         29C ?Destroy@BRepTopAdaptor_FClass2d@@QEAAXXZ
+                         5C5 ?Perform@BRepTopAdaptor_FClass2d@@QEBA?AW4TopAbs_State@@AEBVgp_Pnt2d@@_N@Z
+                         179 ??0BRepTopAdaptor_FClass2d@@QEAA@AEBVTopoDS_Face@@N@Z
+                         45C ?IsEqual@MAT2d_BiInt@@QEBA_NAEBV1@@Z
+                         64B ?SecondIndex@MAT2d_BiInt@@QEBAHXZ
+                         354 ?FirstIndex@MAT2d_BiInt@@QEBAHXZ
+                         1B1 ??BBRepBuilderAPI_MakeFace@@QEBA?AVTopoDS_Face@@XZ
+                         32D ?Face@BRepBuilderAPI_MakeFace@@QEBAAEBVTopoDS_Face@@XZ
+                         30A ?Error@BRepBuilderAPI_MakeFace@@QEBA?AW4BRepBuilderAPI_FaceError@@XZ
+                          7C ??0BRepBuilderAPI_MakeFace@@QEAA@AEBVTopoDS_Wire@@_N@Z
+                         37A ?Generated@BRepBuilderAPI_MakeShape@@UEAAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                          94 ??0BRepBuilderAPI_MakeShape@@IEAA@XZ
+                         4E4 ?Modified@BRepBuilderAPI_MakeShape@@UEAAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         21D ?Build@BRepBuilderAPI_MakeShape@@UEAAXAEBVMessage_ProgressRange@@@Z
+                         2B5 ?Done@BRepBuilderAPI_Command@@IEAAXXZ
+                         2BD ?Dump@BRepBuilderAPI_Sewing@@QEBAXXZ
+                         43F ?IsDegenerated@BRepBuilderAPI_Sewing@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         28F ?DegeneratedShape@BRepBuilderAPI_Sewing@@QEBAAEBVTopoDS_Shape@@H@Z
+                         504 ?NbDegeneratedShapes@BRepBuilderAPI_Sewing@@QEBAHXZ
+                         651 ?SectionToBoundary@BRepBuilderAPI_Sewing@@QEBAAEBVTopoDS_Edge@@AEBV2@@Z
+                         471 ?IsSectionBound@BRepBuilderAPI_Sewing@@QEBA_NAEBVTopoDS_Edge@@@Z
+                         26C ?ContigousEdgeCouple@BRepBuilderAPI_Sewing@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@H@Z
+                         26B ?ContigousEdge@BRepBuilderAPI_Sewing@@QEBAAEBVTopoDS_Edge@@H@Z
+                         502 ?NbContigousEdges@BRepBuilderAPI_Sewing@@QEBAHXZ
+                         3DE ?Init@BRepBuilderAPI_Sewing@@QEAAXN_N000@Z
+                         2B2 ?DoModif@BRepBuilderAPI_ModifyShape@@IEAAXAEBVTopoDS_Shape@@@Z
+                          AA ??0BRepBuilderAPI_ModifyShape@@IEAA@XZ
+                         441 ?IsDeleted@BRepBuilderAPI_MakeShape@@UEAA_NAEBVTopoDS_Shape@@@Z
+                         68E ?Shape@BRepBuilderAPI_MakeShape@@UEAAAEBVTopoDS_Shape@@XZ
+                         53E ?NotDone@BRepBuilderAPI_Command@@IEAAXXZ
+                         44C ?IsDone@BRepBuilderAPI_Command@@UEBA_NXZ
+                         1A4 ??1BRepBuilderAPI_Command@@UEAA@XZ
+                         1C1 ??BBRepLib_MakeVertex@@QEAA?AVTopoDS_Vertex@@XZ
+                         16A ??0BRepLib_MakeVertex@@QEAA@AEBVgp_Pnt@@@Z
+                         1BA ??BBRepLib_MakeEdge@@QEAA?AVTopoDS_Edge@@XZ
+                         2EB ?Edge@BRepLib_MakeEdge@@QEAAAEBVTopoDS_Edge@@XZ
+                          AD ??0BRepBuilderAPI_Sewing@@QEAA@N_N000@Z
+                         121 ??0BRepLib_MakeEdge@@QEAA@AEBV?$handle@VGeom2d_Curve@@@opencascade@@AEBV?$handle@VGeom_Surface@@@2@AEBVTopoDS_Vertex@@2NN@Z
+                         126 ??0BRepLib_MakeEdge@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@AEBVTopoDS_Vertex@@1@Z
+                         454 ?IsDone@BRepLib_Command@@QEBA_NXZ
+                         1A8 ??1BRepLib_Command@@UEAA@XZ
+                         632 ?SameParameter@BRepLib@@SAXAEBVTopoDS_Edge@@N@Z
+                         221 ?BuildCurves3d@BRepLib@@SA_NAEBVTopoDS_Shape@@@Z
+                         222 ?BuildCurves3d@BRepLib@@SA_NAEBVTopoDS_Shape@@NW4GeomAbs_Shape@@HH@Z
+                         4E7 ?Modified@BRepBuilderAPI_Sewing@@QEBAAEBVTopoDS_Shape@@AEBV2@@Z
+                         466 ?IsModified@BRepBuilderAPI_Sewing@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         68D ?SewedShape@BRepBuilderAPI_Sewing@@QEBAAEBVTopoDS_Shape@@XZ
+                         592 ?Perform@BRepBuilderAPI_Sewing@@QEAAXAEBVMessage_ProgressRange@@@Z
+                         1E3 ?Add@BRepBuilderAPI_Sewing@@QEAAXAEBVTopoDS_Shape@@@Z
+                         1D8 ?Add@BRepBndLib@@SAXAEBVTopoDS_Shape@@AEAVBnd_Box@@_N@Z
+                         4A1 ?LinearProperties@BRepGProp@@SAXAEBVTopoDS_Shape@@AEAVGProp_GProps@@_N2@Z
+                         6A9 ?SurfaceProperties@BRepGProp@@SAXAEBVTopoDS_Shape@@AEAVGProp_GProps@@_N2@Z
+                         127 ??0BRepLib_MakeEdge@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@AEBVTopoDS_Vertex@@1NN@Z
+                         394 ?GetMaxDistance@BRepLib_ValidateEdge@@QEAANXZ
+                         610 ?Process@BRepLib_ValidateEdge@@QEAAXXZ
+                         173 ??0BRepLib_ValidateEdge@@QEAA@V?$handle@VAdaptor3d_Curve@@@opencascade@@V?$handle@VAdaptor3d_CurveOnSurface@@@2@_N@Z
+                         2E6 ?Edge@BRepBuilderAPI_MakeEdge@@QEAAAEBVTopoDS_Edge@@XZ
+                          59 ??0BRepBuilderAPI_MakeEdge@@QEAA@AEBV?$handle@VGeom2d_Curve@@@opencascade@@AEBV?$handle@VGeom_Surface@@@2@NN@Z
+                         1E9 ?Add@BRepLib_MakeWire@@QEAAXAEBV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         143 ??0BRepLib_MakeFace@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@N@Z
+                         639 ?SameRange@BRepLib@@SAXAEBVTopoDS_Edge@@N@Z
+                         226 ?BuildPCurveForEdgeOnPlane@BRepLib@@SAXAEBVTopoDS_Edge@@AEBVTopoDS_Face@@@Z
+                         71B ?Vertex@BRepLib_MakeVertex@@QEAAAEBVTopoDS_Vertex@@XZ
+                         1BB ??BBRepLib_MakeFace@@QEBA?AVTopoDS_Face@@XZ
+                         142 ??0BRepLib_MakeFace@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@AEBVTopoDS_Wire@@_N@Z
+                         14F ??0BRepLib_MakeFace@@QEAA@AEBVgp_Pln@@AEBVTopoDS_Wire@@_N@Z
+                         144 ??0BRepLib_MakeFace@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@NNNNN@Z
+                         6CA ?ToleranceReached@BRepLib_FindSurface@@QEBANXZ
+                         6A7 ?Surface@BRepLib_FindSurface@@QEBA?AV?$handle@VGeom_Surface@@@opencascade@@XZ
+                         36D ?Found@BRepLib_FindSurface@@QEBA_NXZ
+                         100 ??0BRepLib_FindSurface@@QEAA@AEBVTopoDS_Shape@@N_N1@Z
+                         69B ?SortFaces@BRepLib@@SAXAEBVTopoDS_Shape@@AEAV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         6E5 ?UpdateTolerances@BRepLib@@SAXAEBVTopoDS_Shape@@_N@Z
+                         720 ?VolumeProperties@BRepGProp@@SAXAEBVTopoDS_Shape@@AEAVGProp_GProps@@_N22@Z
+                         597 ?Perform@BRepClass3d_SolidClassifier@@QEAAXAEBVgp_Pnt@@N@Z
+                         6C7 ?Tolerance@BRepCheck_Vertex@@QEAANXZ
+                          B6 ??0BRepCheck_Vertex@@QEAA@AEBVTopoDS_Vertex@@@Z
+                         6C6 ?Tolerance@BRepCheck_Edge@@QEAANXZ
+                          B0 ??0BRepCheck_Edge@@QEAA@AEBVTopoDS_Edge@@@Z
+                         47F ?IsValid@BRepCheck_Analyzer@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         3DF ?Init@BRepCheck_Analyzer@@QEAAXAEBVTopoDS_Shape@@_N@Z
+                         634 ?SameParameter@BRepLib@@SAXAEBVTopoDS_Shape@@N_N@Z
+                         2F7 ?EncodeRegularity@BRepLib@@SAXAEBVTopoDS_Shape@@N@Z
+                         631 ?SameParameter@BRepLib@@SA?AVTopoDS_Edge@@AEBV2@NAEAN_N@Z
+                         29A ?Destroy@BRepClass3d_SolidClassifier@@QEAAXXZ
+                         5DC ?PerformInfinitePoint@BRepClass3d_SolidClassifier@@QEAAXN@Z
+                          BB ??0BRepClass3d_SolidClassifier@@QEAA@AEBVTopoDS_Shape@@@Z
+                         6A1 ?State@BRepClass3d_SClassifier@@QEBA?AW4TopAbs_State@@XZ
+                         1A6 ??1BRepClass3d_SolidExplorer@@UEAA@XZ
+                         44F ?IsDone@BRepBuilderAPI_MakeFace@@UEBA_NXZ
+                          77 ??0BRepBuilderAPI_MakeFace@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@AEBVTopoDS_Wire@@_N@Z
+                         5E3 ?Plane@BRepBuilderAPI_FindPlane@@QEBA?AV?$handle@VGeom_Plane@@@opencascade@@XZ
+                         36C ?Found@BRepBuilderAPI_FindPlane@@QEBA_NXZ
+                          34 ??0BRepBuilderAPI_FindPlane@@QEAA@AEBVTopoDS_Shape@@N@Z
+                         72A ?Wire@BRepLib_MakeWire@@QEAAAEBVTopoDS_Wire@@XZ
+                         1EA ?Add@BRepLib_MakeWire@@QEAAXAEBVTopoDS_Edge@@@Z
+                         171 ??0BRepLib_MakeWire@@QEAA@XZ
+                         330 ?Face@BRepLib_MakeFace@@QEBAAEBVTopoDS_Face@@XZ
+                         147 ??0BRepLib_MakeFace@@QEAA@AEBVTopoDS_Wire@@_N@Z
+                         12A ??0BRepLib_MakeEdge@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@NN@Z
+                         125 ??0BRepLib_MakeEdge@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@@Z
+                         140 ??0BRepLib_MakeEdge@@QEAA@AEBVgp_Pnt@@0@Z
+                         12B ??0BRepLib_MakeEdge@@QEAA@AEBVTopoDS_Vertex@@0@Z
+                         1BE ??BBRepLib_MakeShape@@QEAA?AVTopoDS_Shape@@XZ
+                         690 ?Shape@BRepLib_MakeShape@@QEAAAEBVTopoDS_Shape@@XZ
+                         21F ?Build@BRepLib_MakeShape@@QEAAXXZ
+                         220 ?BuildCurve3d@BRepLib@@SA_NAEBVTopoDS_Edge@@NW4GeomAbs_Shape@@HH@Z
+
+    TKMath.dll
+             18014F160 Import Address Table
+             1801A9190 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         16E ?DX2d@gp@@SAAEBVgp_Dir2d@@XZ
+                         47F ?TorusValue@ElSLib@@SA?AVgp_Pnt@@NNAEBVgp_Ax3@@NN@Z
+                         3A7 ?PlaneParameters@ElSLib@@SAXAEBVgp_Ax3@@AEBVgp_Pnt@@AEAN2@Z
+                         129 ?CylinderParameters@ElSLib@@SAXAEBVgp_Ax3@@NAEBVgp_Pnt@@AEAN2@Z
+                         47C ?TorusParameters@ElSLib@@SAXAEBVgp_Ax3@@NNAEBVgp_Pnt@@AEAN2@Z
+                          6A ??0math_FunctionRoots@@QEAA@AEAVmath_FunctionWithDerivative@@NNHNNNN@Z
+                         114 ?ConeD1@ElSLib@@SAXNNAEBVgp_Ax3@@NNAEAVgp_Pnt@@AEAVgp_Vec@@2@Z
+                         2AA ?LineParameter@ElCLib@@SANAEBVgp_Ax1@@AEBVgp_Pnt@@@Z
+                          F7 ?CircleParameter@ElCLib@@SANAEBVgp_Ax2@@AEBVgp_Pnt@@@Z
+                         1DA ?EllipseParameter@ElCLib@@SANAEBVgp_Ax2@@NNAEBVgp_Pnt@@@Z
+                         237 ?HyperbolaParameter@ElCLib@@SANAEBVgp_Ax2@@NNAEBVgp_Pnt@@@Z
+                         389 ?ParabolaParameter@ElCLib@@SANAEBVgp_Ax2@@AEBVgp_Pnt@@@Z
+                         170 ?DY2d@gp@@SAAEBVgp_Dir2d@@XZ
+                         483 ?Transform@gp_Pnt@@QEAAXAEBVgp_Trsf@@@Z
+                         42B ?SetRotation@gp_Trsf@@QEAAXAEBVgp_Ax1@@N@Z
+                          B9 ?Angle@gp_Dir2d@@QEBANAEBV1@@Z
+                          BA ?Angle@gp_Dir@@QEBANAEBV1@@Z
+                          C1 ?Assign@TopLoc_SListOfItemLocation@@QEAAAEAV1@AEBV1@@Z
+                         4B1 ?Value@TopLoc_SListOfItemLocation@@QEBAAEBVTopLoc_ItemLocation@@XZ
+                         469 ?Tail@TopLoc_SListOfItemLocation@@QEBAAEBV1@XZ
+                         486 ?Transformation@TopLoc_Location@@QEBAAEBVgp_Trsf@@XZ
+                         27C ?IsOut@Bnd_Box@@QEBA_NAEBV1@@Z
+                         3E8 ?Reparametrize@BSplCLib@@SAXNNAEAV?$NCollection_Array1@N@@@Z
+                         23C ?IncreaseDegree@BSplCLib@@SAXHAEBV?$NCollection_Array1@Vgp_Pnt@@@@PEBV?$NCollection_Array1@N@@AEAV2@PEAV3@@Z
+                           E ??0Convert_CompBezierCurvesToBSplineCurve@@QEAA@N@Z
+                         12A ?CylinderUIso@ElSLib@@SA?AVgp_Lin@@AEBVgp_Ax3@@NN@Z
+                         119 ?ConeUIso@ElSLib@@SA?AVgp_Lin@@AEBVgp_Ax3@@NNN@Z
+                         45E ?SphereUIso@ElSLib@@SA?AVgp_Circ@@AEBVgp_Ax3@@NN@Z
+                         12B ?CylinderVIso@ElSLib@@SA?AVgp_Circ@@AEBVgp_Ax3@@NN@Z
+                         11A ?ConeVIso@ElSLib@@SA?AVgp_Circ@@AEBVgp_Ax3@@NNN@Z
+                         45F ?SphereVIso@ElSLib@@SA?AVgp_Circ@@AEBVgp_Ax3@@NN@Z
+                         47E ?TorusVIso@ElSLib@@SA?AVgp_Circ@@AEBVgp_Ax3@@NNN@Z
+                          97 ??1math_FunctionWithDerivative@@UEAA@XZ
+                         26C ?IsCoaxial@gp_Ax1@@QEBA_NAEBV1@NN@Z
+                         37F ?Origin@gp@@SAAEBVgp_Pnt@@XZ
+                         16F ?DX@gp@@SAAEBVgp_Dir@@XZ
+                         172 ?DZ@gp@@SAAEBVgp_Dir@@XZ
+                          BC ?AngleWithRef@gp_Dir@@QEBANAEBV1@0@Z
+                         353 ?Multiplied@TopLoc_Location@@QEBA?AV1@AEBV1@@Z
+                         203 ?Get@Bnd_Box@@QEBAXAEAN00000@Z
+                         1A5 ?DumpJson@Bnd_Box@@QEBAXAEAV?$basic_ostream@DU?$char_traits@D@std@@@std@@H@Z
+                         125 ?CylinderD1@ElSLib@@SAXNNAEBVgp_Ax3@@NAEAVgp_Pnt@@AEAVgp_Vec@@2@Z
+                         460 ?SphereValue@ElSLib@@SA?AVgp_Pnt@@NNAEBVgp_Ax3@@N@Z
+                         11B ?ConeValue@ElSLib@@SA?AVgp_Pnt@@NNAEBVgp_Ax3@@NN@Z
+                         12C ?CylinderValue@ElSLib@@SA?AVgp_Pnt@@NNAEBVgp_Ax3@@N@Z
+                         1C4 ?DynamicType@BVH_TreeBaseTransient@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         1C2 ?DynamicType@BVH_ObjectTransient@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         1C1 ?DynamicType@BVH_BuilderTransient@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         123 ?CornerMin@Bnd_Box@@QEBA?AVgp_Pnt@@XZ
+                         122 ?CornerMax@Bnd_Box@@QEBA?AVgp_Pnt@@XZ
+                         3C6 ?Predivided@TopLoc_Location@@QEBA?AV1@AEBV1@@Z
+                         45D ?SphereParameters@ElSLib@@SAXAEBVgp_Ax3@@NAEBVgp_Pnt@@AEAN2@Z
+                         218 ?GetStateNumber@math_Function@@UEAAHXZ
+                         118 ?ConeParameters@ElSLib@@SAXAEBVgp_Ax3@@NNAEBVgp_Pnt@@AEAN2@Z
+                         47D ?TorusUIso@ElSLib@@SA?AVgp_Circ@@AEBVgp_Ax3@@NNN@Z
+                          9D ??BTopLoc_Location@@QEBA?AVgp_Trsf@@XZ
+                         4BF ?XOY@gp@@SAAEBVgp_Ax2@@XZ
+                         485 ?Transform@gp_Vec@@QEAAXAEBVgp_Trsf@@@Z
+                         4A3 ?Update@Bnd_Box2d@@QEAAXNN@Z
+                         201 ?Get@Bnd_Box2d@@QEBAXAEAN000@Z
+                         23A ?InPeriod@ElCLib@@SANNNN@Z
+                         2AB ?LineParameter@ElCLib@@SANAEBVgp_Ax2d@@AEBVgp_Pnt2d@@@Z
+                          F6 ?CircleParameter@ElCLib@@SANAEBVgp_Ax22d@@AEBVgp_Pnt2d@@@Z
+                         1D9 ?EllipseParameter@ElCLib@@SANAEBVgp_Ax22d@@NNAEBVgp_Pnt2d@@@Z
+                         236 ?HyperbolaParameter@ElCLib@@SANAEBVgp_Ax22d@@NNAEBVgp_Pnt2d@@@Z
+                         388 ?ParabolaParameter@ElCLib@@SANAEBVgp_Ax22d@@AEBVgp_Pnt2d@@@Z
+                         3AA ?PlaneValue@ElSLib@@SA?AVgp_Pnt@@NNAEBVgp_Ax3@@@Z
+
+    TKernel.dll
+             18014F778 Import Address Table
+             1801A97A8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         11D ?Allocate@Standard@@SAPEAX_K@Z
+                         122 ?AllocateOptimal@Standard@@SAPEAX_K@Z
+                         2CD ?Free@Standard@@SAXQEAX@Z
+                         46E ?Reallocate@Standard@@SAPEAXQEAX_K@Z
+                         611 ?get_type_descriptor@Standard_Transient@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         24C ?DynamicType@Standard_Transient@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          4D ??0Standard_Failure@@QEAA@AEBV0@@Z
+                          4E ??0Standard_Failure@@QEAA@PEBD@Z
+                          BC ??1Standard_Failure@@UEAA@XZ
+                         644 ?what@Standard_Failure@@UEBAPEBDXZ
+                         474 ?Register@Standard_Type@@SAPEAV1@AEBVtype_info@@PEBD_KAEBV?$handle@VStandard_Type@@@opencascade@@@Z
+                         1B0 ?CommonBaseAllocator@NCollection_BaseAllocator@@SAAEBV?$handle@VNCollection_BaseAllocator@@@opencascade@@XZ
+                         156 ?BeginResize@NCollection_BaseMap@@IEBA_N_KAEA_KAEAPEAPEAVNCollection_ListNode@@2@Z
+                         27E ?EndResize@NCollection_BaseMap@@IEAAX_K0PEAPEAVNCollection_ListNode@@1@Z
+                         1ED ?Destroy@NCollection_BaseMap@@IEAAXP6AXPEAVNCollection_ListNode@@AEAV?$handle@VNCollection_BaseAllocator@@@opencascade@@@Z_N@Z
+                         3F3 ?PClear@NCollection_BaseList@@IEAAXP6AXPEAVNCollection_ListNode@@AEAV?$handle@VNCollection_BaseAllocator@@@opencascade@@@Z@Z
+                         3F0 ?PAppend@NCollection_BaseList@@IEAAXPEAVNCollection_ListNode@@@Z
+                          55 ??0Standard_OutOfMemory@@QEAA@QEBD@Z
+                         1A5 ?ClearSeq@NCollection_BaseSequence@@IEAAXP6AXPEAVNCollection_SeqNode@@AEAV?$handle@VNCollection_BaseAllocator@@@opencascade@@@Z@Z
+                         3F2 ?PAppend@NCollection_BaseSequence@@IEAAXPEAVNCollection_SeqNode@@@Z
+                         2B5 ?Find@NCollection_BaseSequence@@IEBAPEAVNCollection_SeqNode@@_K@Z
+                          30 ??0OSD_MemInfo@@QEAA@_N@Z
+                         400 ?PRemove@NCollection_BaseList@@IEAAXAEAVIterator@1@P6AXPEAVNCollection_ListNode@@AEAV?$handle@VNCollection_BaseAllocator@@@opencascade@@@Z@Z
+                         492 ?RemoveSeq@NCollection_BaseSequence@@IEAAX_KP6AXPEAVNCollection_SeqNode@@AEAV?$handle@VNCollection_BaseAllocator@@@opencascade@@@Z@Z
+                         3EF ?PAppend@NCollection_BaseList@@IEAAXAEAV1@@Z
+                         355 ?IsInstance@Standard_Transient@@QEBA_NAEBV?$handle@VStandard_Type@@@opencascade@@@Z
+                         35A ?IsKind@Standard_Transient@@QEBA_NAEBV?$handle@VStandard_Type@@@opencascade@@@Z
+                         3F9 ?PInsertAfter@NCollection_BaseSequence@@IEAAX_KPEAVNCollection_SeqNode@@@Z
+                         3FD ?PPrepend@NCollection_BaseList@@IEAAXPEAVNCollection_ListNode@@@Z
+                          6E ??0TCollection_AsciiString@@QEAA@QEBDH@Z
+                          C2 ??1TCollection_AsciiString@@QEAA@XZ
+                          C6 ??6@YAAEAV?$basic_ostream@DU?$char_traits@D@std@@@std@@AEAV01@AEBVTCollection_AsciiString@@@Z
+                         57C ?Text@Standard_Dump@@SA?AVTCollection_AsciiString@@AEBV?$basic_stringstream@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z
+                         115 ?AddValuesSeparator@Standard_Dump@@SAXAEAV?$basic_ostream@DU?$char_traits@D@std@@@std@@@Z
+                         229 ?DumpKeyToClass@Standard_Dump@@SAXAEAV?$basic_ostream@DU?$char_traits@D@std@@@std@@AEBVTCollection_AsciiString@@1@Z
+                         21D ?DumpFieldToName@Standard_Dump@@SA?AVTCollection_AsciiString@@AEBV2@@Z
+                          B8 ??1OSD_Thread@@QEAA@XZ
+                         1E5 ?DefaultPool@OSD_ThreadPool@@SAAEBV?$handle@VOSD_ThreadPool@@@opencascade@@H@Z
+                          3E ??0OSD_ThreadPool@@QEAA@H@Z
+                           4 ??0Launcher@OSD_ThreadPool@@QEAA@AEAV1@H@Z
+                         62E ?perform@Launcher@OSD_ThreadPool@@IEAAXAEAVJobInterface@2@@Z
+                         5F0 ?forEachOcct@OSD_Parallel@@CAXAEAVUniversalIterator@1@0AEBVFunctorInterface@1@H@Z
+                         5EF ?forEachExternal@OSD_Parallel@@CAXAEAVUniversalIterator@1@0AEBVFunctorInterface@1@H@Z
+                         589 ?ToUseOcctThreads@OSD_Parallel@@SA_NXZ
+                         401 ?PRemoveFirst@NCollection_BaseList@@IEAAXP6AXPEAVNCollection_ListNode@@AEAV?$handle@VNCollection_BaseAllocator@@@opencascade@@@Z@Z
+                         268 ?EmptyString@TCollection_AsciiString@@SAAEBV1@XZ
+                          19 ??0NCollection_IncAllocator@@QEAA@_K@Z
+                         494 ?Reset@NCollection_IncAllocator@@QEAAX_N@Z
+                           A ??0Message_Level@@QEAA@AEBVTCollection_AsciiString@@@Z
+                         2D4 ?GetAlerts@Message_Report@@QEBAAEBV?$NCollection_List@V?$handle@VMessage_Alert@@@opencascade@@@@W4Message_Gravity@@@Z
+                         1CA ?Copy@TCollection_AsciiString@@QEAAXQEBDH@Z
+                         3FF ?PPrepend@NCollection_BaseSequence@@IEAAXPEAVNCollection_SeqNode@@@Z
+                         476 ?Release@Launcher@OSD_ThreadPool@@QEAAXXZ
+
+    TKGeomBase.dll
+             18014ED78 Import Address Table
+             1801A8DA8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         6C4 ?NbExt@Extrema_ExtPElC2d@@QEBAHXZ
+                         8FE ?SquareDistance@Extrema_ExtPElC2d@@QEBANH@Z
+                         5F6 ?IsMin@Extrema_ExtPElC2d@@QEBA_NH@Z
+                         7CD ?Point@Extrema_ExtPElC2d@@QEBAAEBVExtrema_POnCurv2d@@H@Z
+                         645 ?Length@GCPnts_AbscissaPoint@@SANAEBVAdaptor3d_Curve@@@Z
+                         116 ??0GCPnts_QuasiUniformDeflection@@QEAA@AEBVAdaptor2d_Curve2d@@NW4GeomAbs_Shape@@@Z
+                         1C5 ??0Geom2dConvert_ApproxCurve@@QEAA@AEBV?$handle@VGeom2d_Curve@@@opencascade@@NW4GeomAbs_Shape@@HH@Z
+                         41A ?Curve@Geom2dConvert_ApproxCurve@@QEBA?AV?$handle@VGeom2d_BSplineCurve@@@opencascade@@XZ
+                         533 ?HasResult@Geom2dConvert_ApproxCurve@@QEBA_NXZ
+                         447 ?DeflCurvIntervals@Extrema_CurveTool@@SA?AV?$handle@V?$NCollection_HArray1@N@@@opencascade@@AEBVAdaptor3d_Curve@@@Z
+                         603 ?IsPeriodic@Extrema_CurveTool@@SA_NAEBVAdaptor3d_Curve@@@Z
+                         774 ?Perform@Extrema_ExtPElC@@QEAAXAEBVgp_Pnt@@AEBVgp_Lin@@NNN@Z
+                         771 ?Perform@Extrema_ExtPElC@@QEAAXAEBVgp_Pnt@@AEBVgp_Circ@@NNN@Z
+                         772 ?Perform@Extrema_ExtPElC@@QEAAXAEBVgp_Pnt@@AEBVgp_Elips@@NNN@Z
+                         773 ?Perform@Extrema_ExtPElC@@QEAAXAEBVgp_Pnt@@AEBVgp_Hypr@@NNN@Z
+                         775 ?Perform@Extrema_ExtPElC@@QEAAXAEBVgp_Pnt@@AEBVgp_Parab@@NNN@Z
+                         5DB ?IsDone@Extrema_ExtPElC@@QEBA_NXZ
+                         6C5 ?NbExt@Extrema_ExtPElC@@QEBAHXZ
+                         8FF ?SquareDistance@Extrema_ExtPElC@@QEBANH@Z
+                         5F7 ?IsMin@Extrema_ExtPElC@@QEBA_NH@Z
+                         7CE ?Point@Extrema_ExtPElC@@QEBAAEBVExtrema_POnCurv@@H@Z
+                         4C1 ?ExtendCurveToPoint@GeomLib@@SAXAEAV?$handle@VGeom_BoundedCurve@@@opencascade@@AEBVgp_Pnt@@H_N@Z
+                         2C4 ??1ProjLib_Projector@@UEAA@XZ
+                         259 ??0ProjLib_ProjectedCurve@@QEAA@AEBV?$handle@VAdaptor3d_Surface@@@opencascade@@AEBV?$handle@VAdaptor3d_Curve@@@2@N@Z
+                         510 ?GetType@ProjLib_ProjectedCurve@@UEBA?AW4GeomAbs_CurveType@@XZ
+                         64C ?Line@ProjLib_ProjectedCurve@@UEBA?AVgp_Lin2d@@XZ
+                         4C2 ?ExtendSurfByLength@GeomLib@@SAXAEAV?$handle@VGeom_BoundedSurface@@@opencascade@@NH_N1@Z
+                         3BE ?Circle@ProjLib_ProjectedCurve@@UEBA?AVgp_Circ2d@@XZ
+                         497 ?Ellipse@ProjLib_ProjectedCurve@@UEBA?AVgp_Elips2d@@XZ
+                         540 ?Hyperbola@ProjLib_ProjectedCurve@@UEBA?AVgp_Hypr2d@@XZ
+                         71B ?Parabola@ProjLib_ProjectedCurve@@UEBA?AVgp_Parab2d@@XZ
+                         34E ?Bezier@ProjLib_ProjectedCurve@@UEBA?AV?$handle@VGeom2d_BezierCurve@@@opencascade@@XZ
+                         33B ?BSpline@ProjLib_ProjectedCurve@@UEBA?AV?$handle@VGeom2d_BSplineCurve@@@opencascade@@XZ
+                         40F ?Curve2d@GeomProjLib@@SA?AV?$handle@VGeom2d_Curve@@@opencascade@@AEBV?$handle@VGeom_Curve@@@3@NNAEBV?$handle@VGeom_Surface@@@3@AEAN@Z
+                          62 ??0Approx_CurveOnSurface@@QEAA@AEBV?$handle@VAdaptor2d_Curve2d@@@opencascade@@AEBV?$handle@VAdaptor3d_Surface@@@2@NNN@Z
+                         414 ?Curve3d@Approx_CurveOnSurface@@QEBA?AV?$handle@VGeom_BSplineCurve@@@opencascade@@XZ
+                         407 ?Curve2d@Approx_CurveOnSurface@@QEBA?AV?$handle@VGeom2d_BSplineCurve@@@opencascade@@XZ
+                         74A ?Perform@Approx_CurveOnSurface@@QEAAXHHW4GeomAbs_Shape@@_N1@Z
+                          91 ??0Extrema_ExtCS@@QEAA@AEBVAdaptor3d_Curve@@AEBVAdaptor3d_Surface@@NN@Z
+                         5D5 ?IsDone@Extrema_ExtCS@@QEBA_NXZ
+                         6BF ?NbExt@Extrema_ExtCS@@QEBAHXZ
+                         7EE ?Points@Extrema_ExtCS@@QEBAXHAEAVExtrema_POnCurv@@AEAVExtrema_POnSurf@@@Z
+                         421 ?CurveToBSplineCurve@Geom2dConvert@@SA?AV?$handle@VGeom2d_BSplineCurve@@@opencascade@@AEBV?$handle@VGeom2d_Curve@@@3@W4Convert_ParameterisationType@@@Z
+                         217 ??0IntAna_IntConicQuad@@QEAA@AEBVgp_Lin@@AEBVgp_Pln@@NNN@Z
+                         22F ??0IntAna_QuadQuadGeo@@QEAA@XZ
+                         226 ??0IntAna_QuadQuadGeo@@QEAA@AEBVgp_Pln@@0NN@Z
+                         7B2 ?Perform@IntAna_QuadQuadGeo@@QEAAXAEBVgp_Pln@@AEBVgp_Cylinder@@NNN@Z
+                         7B1 ?Perform@IntAna_QuadQuadGeo@@QEAAXAEBVgp_Pln@@AEBVgp_Cone@@NN@Z
+                         64A ?Line@IntAna_QuadQuadGeo@@QEBA?AVgp_Lin@@H@Z
+                         3BC ?Circle@IntAna_QuadQuadGeo@@QEBA?AVgp_Circ@@H@Z
+                         495 ?Ellipse@IntAna_QuadQuadGeo@@QEBA?AVgp_Elips@@H@Z
+                         236 ??0ProjLib_CompProjectedCurve@@QEAA@AEBV?$handle@VAdaptor3d_Surface@@@opencascade@@AEBV?$handle@VAdaptor3d_Curve@@@2@NN@Z
+                         355 ?Bounds@ProjLib_CompProjectedCurve@@QEBAXHAEAN0@Z
+                         5DA ?IsDone@Extrema_ExtPElC2d@@QEBA_NXZ
+                         2BE ??1AppParCurves_MultiCurve@@UEAA@XZ
+                         449 ?Degree@AppParCurves_MultiCurve@@UEBAHXZ
+                         417 ?Curve@AppParCurves_MultiCurve@@QEBAXHAEAV?$NCollection_Array1@Vgp_Pnt@@@@@Z
+                          6C ??0Approx_FitAndDivide@@QEAA@AEBVAppCont_Function@@HHNN_NW4AppParCurves_Constraint@@2@Z
+                          6D ??0Approx_FitAndDivide@@QEAA@HHNN_NW4AppParCurves_Constraint@@1@Z
+                         6DB ?NbMultiCurves@Approx_FitAndDivide@@QEBAHXZ
+                         985 ?Value@Approx_FitAndDivide@@QEBA?AVAppParCurves_MultiCurve@@H@Z
+                         2C1 ??1Extrema_GenExtPS@@QEAA@XZ
+                          D1 ??0Extrema_ExtPS@@QEAA@AEBVgp_Pnt@@AEBVAdaptor3d_Surface@@NNW4Extrema_ExtFlag@@W4Extrema_ExtAlgo@@@Z
+                         6C9 ?NbExt@Extrema_ExtPS@@QEBAHXZ
+                         903 ?SquareDistance@Extrema_ExtPS@@QEBANH@Z
+                         7D2 ?Point@Extrema_ExtPS@@QEBAAEBVExtrema_POnSurf@@H@Z
+                         770 ?Perform@Extrema_ExtPElC2d@@QEAAXAEBVgp_Pnt2d@@AEBVgp_Parab2d@@NNN@Z
+                         76E ?Perform@Extrema_ExtPElC2d@@QEAAXAEBVgp_Pnt2d@@AEBVgp_Hypr2d@@NNN@Z
+                         76D ?Perform@Extrema_ExtPElC2d@@QEAAXAEBVgp_Pnt2d@@AEBVgp_Elips2d@@NNN@Z
+                         76C ?Perform@Extrema_ExtPElC2d@@QEAAXAEBVgp_Pnt2d@@AEBVgp_Circ2d@@NNN@Z
+                         76F ?Perform@Extrema_ExtPElC2d@@QEAAXAEBVgp_Pnt2d@@AEBVgp_Lin2d@@NNN@Z
+                          BD ??0Extrema_ExtPElC2d@@QEAA@XZ
+                         446 ?DeflCurvIntervals@Extrema_Curve2dTool@@SA?AV?$handle@V?$NCollection_HArray1@N@@@opencascade@@AEBVAdaptor2d_Curve2d@@@Z
+                         2EF ?Add@BndLib_Add3dCurve@@SAXAEBVAdaptor3d_Curve@@NAEAVBnd_Box@@@Z
+                         40B ?Curve2d@GeomProjLib@@SA?AV?$handle@VGeom2d_Curve@@@opencascade@@AEBV?$handle@VGeom_Curve@@@3@AEBV?$handle@VGeom_Surface@@@3@@Z
+                         5EB ?IsDone@GeomConvert_ApproxSurface@@QEBA_NXZ
+                         913 ?Surface@GeomConvert_ApproxSurface@@QEBA?AV?$handle@VGeom_BSplineSurface@@@opencascade@@XZ
+                         1D7 ??0GeomConvert_ApproxSurface@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@NW4GeomAbs_Shape@@1HHHH@Z
+                          90 ??0Extrema_ExtCC@@QEAA@NN@Z
+                         9DC ?Value@gce_MakePln@@QEBAAEBVgp_Pln@@XZ
+                         2AE ??0gce_MakePln@@QEAA@AEBVgp_Pnt@@00@Z
+                          C3 ??0Extrema_ExtPElC@@QEAA@XZ
+                         3FB ?ConvertToAnalytical@GeomConvert_SurfToAnaSurf@@QEAA?AV?$handle@VGeom_Surface@@@opencascade@@NNNNN@Z
+                         1EB ??0GeomConvert_SurfToAnaSurf@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@@Z
+                         6EB ?NbVPatches@GeomConvert_BSplineSurfaceToBezierSurface@@QEBAHXZ
+                         6E9 ?NbUPatches@GeomConvert_BSplineSurfaceToBezierSurface@@QEBAHXZ
+                         965 ?VKnots@GeomConvert_BSplineSurfaceToBezierSurface@@QEBAXAEAV?$NCollection_Array1@N@@@Z
+                         94C ?UKnots@GeomConvert_BSplineSurfaceToBezierSurface@@QEBAXAEAV?$NCollection_Array1@N@@@Z
+                         72A ?Patch@GeomConvert_BSplineSurfaceToBezierSurface@@QEAA?AV?$handle@VGeom_BezierSurface@@@opencascade@@HH@Z
+                         1DD ??0GeomConvert_BSplineSurfaceToBezierSurface@@QEAA@AEBV?$handle@VGeom_BSplineSurface@@@opencascade@@NNNNN@Z
+                         106 ??0GCPnts_AbscissaPoint@@QEAA@AEBVAdaptor3d_Curve@@NN@Z
+                         66C ?Mass@GProp_GProps@@QEBANXZ
+                         7C8 ?Plan@GeomLib_IsPlanarSurface@@QEBAAEBVgp_Pln@@XZ
+                         607 ?IsPlanar@GeomLib_IsPlanarSurface@@QEBA_NXZ
+                         1F4 ??0GeomLib_IsPlanarSurface@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@N@Z
+                         9AB ?Value@GC_MakeCircle@@QEBAAEBV?$handle@VGeom_Circle@@@opencascade@@XZ
+                         9D1 ?Value@gce_MakeDir@@QEBAAEBVgp_Dir@@XZ
+                         282 ??0gce_MakeDir@@QEAA@AEBVgp_Pnt@@0@Z
+                         9CE ?Value@gce_MakeCone@@QEBAAEBVgp_Cone@@XZ
+                         277 ??0gce_MakeCone@@QEAA@AEBVgp_Pnt@@0NN@Z
+                         9AD ?Value@GC_MakeCylindricalSurface@@QEBAAEBV?$handle@VGeom_CylindricalSurface@@@opencascade@@XZ
+                         15F ??0GC_MakeCylindricalSurface@@QEAA@AEBVgp_Circ@@@Z
+                         40E ?Curve2d@GeomProjLib@@SA?AV?$handle@VGeom2d_Curve@@@opencascade@@AEBV?$handle@VGeom_Curve@@@3@NNAEBV?$handle@VGeom_Surface@@@3@@Z
+                         3A5 ?BuildCurve3d@GeomLib@@SAXNAEAVAdaptor3d_CurveOnSurface@@NNAEAV?$handle@VGeom_Curve@@@opencascade@@AEAN2W4GeomAbs_Shape@@HH@Z
+                         33D ?BSplineCurve@Geom2dConvert_CompCurveToBSplineCurve@@QEBA?AV?$handle@VGeom2d_BSplineCurve@@@opencascade@@XZ
+                         2F5 ?Add@Geom2dConvert_CompCurveToBSplineCurve@@QEAA_NAEBV?$handle@VGeom2d_BoundedCurve@@@opencascade@@N_N@Z
+                         1C9 ??0Geom2dConvert_CompCurveToBSplineCurve@@QEAA@AEBV?$handle@VGeom2d_BoundedCurve@@@opencascade@@W4Convert_ParameterisationType@@@Z
+                         1CA ??0Geom2dConvert_CompCurveToBSplineCurve@@QEAA@W4Convert_ParameterisationType@@@Z
+                         33E ?BSplineCurve@GeomConvert_CompCurveToBSplineCurve@@QEBA?AV?$handle@VGeom_BSplineCurve@@@opencascade@@XZ
+                         2FD ?Add@GeomConvert_CompCurveToBSplineCurve@@QEAA_NAEBV?$handle@VGeom_BoundedCurve@@@opencascade@@N_N1H@Z
+                         1E1 ??0GeomConvert_CompCurveToBSplineCurve@@QEAA@AEBV?$handle@VGeom_BoundedCurve@@@opencascade@@W4Convert_ParameterisationType@@@Z
+                         1E2 ??0GeomConvert_CompCurveToBSplineCurve@@QEAA@W4Convert_ParameterisationType@@@Z
+                         534 ?HasResult@GeomConvert_ApproxCurve@@QEBA_NXZ
+                         41B ?Curve@GeomConvert_ApproxCurve@@QEBA?AV?$handle@VGeom_BSplineCurve@@@opencascade@@XZ
+                         1D5 ??0GeomConvert_ApproxCurve@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@NW4GeomAbs_Shape@@HH@Z
+                         422 ?CurveToBSplineCurve@GeomConvert@@SA?AV?$handle@VGeom_BSplineCurve@@@opencascade@@AEBV?$handle@VGeom_Curve@@@3@W4Convert_ParameterisationType@@@Z
+                         3B2 ?CentreOfMass@GProp_GProps@@QEBA?AVgp_Pnt@@XZ
+                         1B0 ??0GProp_GProps@@QEAA@XZ
+                         548 ?Inertia@GeomLib@@SAXAEBV?$NCollection_Array1@Vgp_Pnt@@@@AEAVgp_Pnt@@AEAVgp_Dir@@2AEAN33@Z
+                         9D7 ?Value@gce_MakeLin@@QEBAAEBVgp_Lin@@XZ
+                         298 ??0gce_MakeLin@@QEAA@AEBVgp_Pnt@@0@Z
+                         9B2 ?Value@GC_MakeLine2d@@QEBAAEBV?$handle@VGeom2d_Line@@@opencascade@@XZ
+                         176 ??0GC_MakeLine2d@@QEAA@AEBVgp_Pnt2d@@0@Z
+                         152 ??0GC_MakeCircle@@QEAA@AEBVgp_Ax2@@N@Z
+
+    TKG2d.dll
+             18014DD18 Import Address Table
+             1801A7D48 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         256 ?Pole@Geom2d_BSplineCurve@@QEBAAEBVgp_Pnt2d@@H@Z
+                          1A ??0Geom2d_BezierCurve@@QEAA@AEBV?$NCollection_Array1@Vgp_Pnt2d@@@@@Z
+                         32E ?get_type_descriptor@Geom2d_Parabola@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         23F ?Parab2d@Geom2d_Parabola@@QEBA?AVgp_Parab2d@@XZ
+                          31 ??0Geom2d_Parabola@@QEAA@AEBVgp_Parab2d@@@Z
+                         1FA ?Lin2d@Geom2d_Line@@QEBA?AVgp_Lin2d@@XZ
+                          2A ??0Geom2d_Line@@QEAA@AEBVgp_Lin2d@@@Z
+                         32B ?get_type_descriptor@Geom2d_Hyperbola@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         191 ?Hypr2d@Geom2d_Hyperbola@@QEBA?AVgp_Hypr2d@@XZ
+                          28 ??0Geom2d_Hyperbola@@QEAA@AEBVgp_Hypr2d@@@Z
+                         329 ?get_type_descriptor@Geom2d_Ellipse@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          E0 ?Elips2d@Geom2d_Ellipse@@QEBA?AVgp_Elips2d@@XZ
+                          25 ??0Geom2d_Ellipse@@QEAA@AEBVgp_Elips2d@@@Z
+                         325 ?get_type_descriptor@Geom2d_Circle@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          53 ?Circ2d@Geom2d_Circle@@QEBA?AVgp_Circ2d@@XZ
+                          20 ??0Geom2d_Circle@@QEAA@AEBVgp_Circ2d@@@Z
+                         326 ?get_type_descriptor@Geom2d_Conic@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         1F9 ?LastUKnotIndex@Geom2d_BSplineCurve@@QEBAHXZ
+                         1E5 ?Knots@Geom2d_BSplineCurve@@QEBAAEBV?$NCollection_Array1@N@@XZ
+                         17D ?FirstUKnotIndex@Geom2d_BSplineCurve@@QEBAHXZ
+                          9A ?Degree@Geom2d_BSplineCurve@@QEBAHXZ
+                         27B ?Reverse@Geom2d_Line@@UEAAXXZ
+                         2FA ?Translate@Geom2d_Geometry@@QEAAXAEBVgp_Vec2d@@@Z
+                         217 ?Mirror@Geom2d_Geometry@@QEAAXAEBVgp_Ax2d@@@Z
+                         331 ?get_type_descriptor@Geom2d_TrimmedCurve@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          4D ?BasisCurve@Geom2d_TrimmedCurve@@QEBA?AV?$handle@VGeom2d_Curve@@@opencascade@@XZ
+                          34 ??0Geom2d_TrimmedCurve@@QEAA@AEBV?$handle@VGeom2d_Curve@@@opencascade@@NN_N1@Z
+                         32C ?get_type_descriptor@Geom2d_Line@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         20D ?Location@Geom2d_Line@@QEBAAEBVgp_Pnt2d@@XZ
+                          9E ?Direction@Geom2d_Line@@QEBAAEBVgp_Dir2d@@XZ
+                         321 ?get_type_descriptor@Geom2d_BSplineCurve@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         25A ?Poles@Geom2d_BSplineCurve@@QEBAAEBV?$NCollection_Array1@Vgp_Pnt2d@@@@XZ
+                         234 ?NbPoles@Geom2d_BSplineCurve@@QEBAHXZ
+                         22D ?NbKnots@Geom2d_BSplineCurve@@QEBAHXZ
+                         322 ?get_type_descriptor@Geom2d_BezierCurve@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         235 ?NbPoles@Geom2d_BezierCurve@@QEBAHXZ
+                         323 ?get_type_descriptor@Geom2d_BoundedCurve@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         12F ?EvalDN@Geom2dAdaptor_Curve@@UEBA?AVgp_Vec2d@@NH@Z
+                         11E ?EvalD3@Geom2dAdaptor_Curve@@UEBA?AUResD3@Geom2d_Curve@@N@Z
+                         10D ?EvalD2@Geom2dAdaptor_Curve@@UEBA?AUResD2@Geom2d_Curve@@N@Z
+                          FC ?EvalD1@Geom2dAdaptor_Curve@@UEBA?AUResD1@Geom2d_Curve@@N@Z
+                          EB ?EvalD0@Geom2dAdaptor_Curve@@UEBA?AVgp_Pnt2d@@N@Z
+                          4B ?BSpline@Geom2dAdaptor_Curve@@UEBA?AV?$handle@VGeom2d_BSplineCurve@@@opencascade@@XZ
+                          52 ?Bezier@Geom2dAdaptor_Curve@@UEBA?AV?$handle@VGeom2d_BezierCurve@@@opencascade@@XZ
+                         238 ?NbSamples@Geom2dAdaptor_Curve@@UEBAHXZ
+                         22C ?NbKnots@Geom2dAdaptor_Curve@@UEBAHXZ
+                         231 ?NbPoles@Geom2dAdaptor_Curve@@UEBAHXZ
+                         1DB ?IsRational@Geom2dAdaptor_Curve@@UEBA_NXZ
+                          99 ?Degree@Geom2dAdaptor_Curve@@UEBAHXZ
+                         243 ?Parabola@Geom2dAdaptor_Curve@@UEBA?AVgp_Parab2d@@XZ
+                         190 ?Hyperbola@Geom2dAdaptor_Curve@@UEBA?AVgp_Hypr2d@@XZ
+                          E4 ?Ellipse@Geom2dAdaptor_Curve@@UEBA?AVgp_Elips2d@@XZ
+                          57 ?Circle@Geom2dAdaptor_Curve@@UEBA?AVgp_Circ2d@@XZ
+                         26E ?Resolution@Geom2dAdaptor_Curve@@UEBANN@Z
+                         306 ?Value@Geom2d_Curve@@QEBA?AVgp_Pnt2d@@N@Z
+                          38 ??1Adaptor2d_Curve2d@@UEAA@XZ
+                           6 ??0Geom2dAdaptor_Curve@@QEAA@AEBV?$handle@VGeom2d_Curve@@@opencascade@@@Z
+                         1FE ?Line@Geom2dAdaptor_Curve@@UEBA?AVgp_Lin2d@@XZ
+                         2FC ?Translated@Geom2d_Geometry@@QEBA?AV?$handle@VGeom2d_Geometry@@@opencascade@@AEBVgp_Vec2d@@@Z
+                         305 ?Value@Geom2dAdaptor_Curve@@UEBA?AVgp_Pnt2d@@N@Z
+                          2B ??0Geom2d_Line@@QEAA@AEBVgp_Pnt2d@@AEBVgp_Dir2d@@@Z
+                          BE ?DynamicType@Adaptor2d_Curve2d@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         2D1 ?ShallowCopy@Adaptor2d_Curve2d@@UEBA?AV?$handle@VAdaptor2d_Curve2d@@@opencascade@@XZ
+                         16C ?FirstParameter@Adaptor2d_Curve2d@@UEBANXZ
+                         1E8 ?LastParameter@Adaptor2d_Curve2d@@UEBANXZ
+                          5A ?Continuity@Adaptor2d_Curve2d@@UEBA?AW4GeomAbs_Shape@@XZ
+                         225 ?NbIntervals@Adaptor2d_Curve2d@@UEBAHW4GeomAbs_Shape@@@Z
+                         19E ?Intervals@Adaptor2d_Curve2d@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         2FD ?Trim@Adaptor2d_Curve2d@@UEBA?AV?$handle@VAdaptor2d_Curve2d@@@opencascade@@NNN@Z
+                         1B0 ?IsClosed@Adaptor2d_Curve2d@@UEBA_NXZ
+                         1C5 ?IsPeriodic@Adaptor2d_Curve2d@@UEBA_NXZ
+                         24C ?Period@Adaptor2d_Curve2d@@UEBANXZ
+                         302 ?Value@Adaptor2d_Curve2d@@UEBA?AVgp_Pnt2d@@N@Z
+                          82 ?D0@Adaptor2d_Curve2d@@UEBAXNAEAVgp_Pnt2d@@@Z
+                          86 ?D1@Adaptor2d_Curve2d@@UEBAXNAEAVgp_Pnt2d@@AEAVgp_Vec2d@@@Z
+                          8A ?D2@Adaptor2d_Curve2d@@UEBAXNAEAVgp_Pnt2d@@AEAVgp_Vec2d@@1@Z
+                          8E ?D3@Adaptor2d_Curve2d@@UEBAXNAEAVgp_Pnt2d@@AEAVgp_Vec2d@@11@Z
+                          92 ?DN@Adaptor2d_Curve2d@@UEBA?AVgp_Vec2d@@NH@Z
+                         26B ?Resolution@Adaptor2d_Curve2d@@UEBANN@Z
+                         188 ?GetType@Adaptor2d_Curve2d@@UEBA?AW4GeomAbs_CurveType@@XZ
+                         1FB ?Line@Adaptor2d_Curve2d@@UEBA?AVgp_Lin2d@@XZ
+                          54 ?Circle@Adaptor2d_Curve2d@@UEBA?AVgp_Circ2d@@XZ
+                          E1 ?Ellipse@Adaptor2d_Curve2d@@UEBA?AVgp_Elips2d@@XZ
+                         18D ?Hyperbola@Adaptor2d_Curve2d@@UEBA?AVgp_Hypr2d@@XZ
+                         240 ?Parabola@Adaptor2d_Curve2d@@UEBA?AVgp_Parab2d@@XZ
+                          96 ?Degree@Adaptor2d_Curve2d@@UEBAHXZ
+                         1D8 ?IsRational@Adaptor2d_Curve2d@@UEBA_NXZ
+                         22E ?NbPoles@Adaptor2d_Curve2d@@UEBAHXZ
+                         229 ?NbKnots@Adaptor2d_Curve2d@@UEBAHXZ
+                         236 ?NbSamples@Adaptor2d_Curve2d@@UEBAHXZ
+                          4F ?Bezier@Adaptor2d_Curve2d@@UEBA?AV?$handle@VGeom2d_BezierCurve@@@opencascade@@XZ
+                          48 ?BSpline@Adaptor2d_Curve2d@@UEBA?AV?$handle@VGeom2d_BSplineCurve@@@opencascade@@XZ
+                          EA ?EvalD0@Adaptor2d_Curve2d@@UEBA?AVgp_Pnt2d@@N@Z
+                          FB ?EvalD1@Adaptor2d_Curve2d@@UEBA?AUResD1@Geom2d_Curve@@N@Z
+                         10C ?EvalD2@Adaptor2d_Curve2d@@UEBA?AUResD2@Geom2d_Curve@@N@Z
+                         11D ?EvalD3@Adaptor2d_Curve2d@@UEBA?AUResD3@Geom2d_Curve@@N@Z
+                         12E ?EvalDN@Adaptor2d_Curve2d@@UEBA?AVgp_Vec2d@@NH@Z
+                          C1 ?DynamicType@Geom2dAdaptor_Curve@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                           7 ??0Geom2dAdaptor_Curve@@QEAA@AEBV?$handle@VGeom2d_Curve@@@opencascade@@NN@Z
+                         2D4 ?ShallowCopy@Geom2dAdaptor_Curve@@UEBA?AV?$handle@VAdaptor2d_Curve2d@@@opencascade@@XZ
+                          5D ?Continuity@Geom2dAdaptor_Curve@@UEBA?AW4GeomAbs_Shape@@XZ
+                         228 ?NbIntervals@Geom2dAdaptor_Curve@@UEBAHW4GeomAbs_Shape@@@Z
+                         1A1 ?Intervals@Geom2dAdaptor_Curve@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         300 ?Trim@Geom2dAdaptor_Curve@@UEBA?AV?$handle@VAdaptor2d_Curve2d@@@opencascade@@NNN@Z
+                         1B3 ?IsClosed@Geom2dAdaptor_Curve@@UEBA_NXZ
+                         1C8 ?IsPeriodic@Geom2dAdaptor_Curve@@UEBA_NXZ
+                         24F ?Period@Geom2dAdaptor_Curve@@UEBANXZ
+                          85 ?D0@Geom2dAdaptor_Curve@@UEBAXNAEAVgp_Pnt2d@@@Z
+                          89 ?D1@Geom2dAdaptor_Curve@@UEBAXNAEAVgp_Pnt2d@@AEAVgp_Vec2d@@@Z
+                          8D ?D2@Geom2dAdaptor_Curve@@UEBAXNAEAVgp_Pnt2d@@AEAVgp_Vec2d@@1@Z
+                          91 ?D3@Geom2dAdaptor_Curve@@UEBAXNAEAVgp_Pnt2d@@AEAVgp_Vec2d@@11@Z
+                          95 ?DN@Geom2dAdaptor_Curve@@UEBA?AVgp_Vec2d@@NH@Z
+
+    TKG3d.dll
+             18014E0A0 Import Address Table
+             1801A80D0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         1D5 ?Ellipse@Adaptor3d_CurveOnSurface@@UEBA?AVgp_Elips@@XZ
+                         338 ?Hyperbola@Adaptor3d_CurveOnSurface@@UEBA?AVgp_Hypr@@XZ
+                         4D4 ?Parabola@Adaptor3d_CurveOnSurface@@UEBA?AVgp_Parab@@XZ
+                         14E ?Degree@Adaptor3d_CurveOnSurface@@UEBAHXZ
+                         3AB ?IsRational@Adaptor3d_CurveOnSurface@@UEBA_NXZ
+                         493 ?NbPoles@Adaptor3d_CurveOnSurface@@UEBAHXZ
+                         48E ?NbKnots@Adaptor3d_CurveOnSurface@@UEBAHXZ
+                          C9 ?Bezier@Adaptor3d_CurveOnSurface@@UEBA?AV?$handle@VGeom_BezierCurve@@@opencascade@@XZ
+                          B0 ?BSpline@Adaptor3d_CurveOnSurface@@UEBA?AV?$handle@VGeom_BSplineCurve@@@opencascade@@XZ
+                          FE ?Cone@Geom_ConicalSurface@@QEBA?AVgp_Cone@@XZ
+                          9B ?Apex@Geom_ConicalSurface@@QEBA?AVgp_Pnt@@XZ
+                         19C ?DynamicType@GeomAdaptor_TransformedCurve@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         5E0 ?ShallowCopy@GeomAdaptor_TransformedCurve@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@XZ
+                         367 ?Intervals@GeomAdaptor_TransformedCurve@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         63B ?Trim@GeomAdaptor_TransformedCurve@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@NNN@Z
+                         1E4 ?EvalD0@GeomAdaptor_TransformedCurve@@UEBA?AVgp_Pnt@@N@Z
+                         20B ?EvalD1@GeomAdaptor_TransformedCurve@@UEBA?AUResD1@Geom_Curve@@N@Z
+                         232 ?EvalD2@GeomAdaptor_TransformedCurve@@UEBA?AUResD2@Geom_Curve@@N@Z
+                         259 ?EvalD3@GeomAdaptor_TransformedCurve@@UEBA?AUResD3@Geom_Curve@@N@Z
+                         280 ?EvalDN@GeomAdaptor_TransformedCurve@@UEBA?AVgp_Vec@@NH@Z
+                         443 ?Line@GeomAdaptor_TransformedCurve@@UEBA?AVgp_Lin@@XZ
+                         1D8 ?Ellipse@GeomAdaptor_TransformedCurve@@UEBA?AVgp_Elips@@XZ
+                         33B ?Hyperbola@GeomAdaptor_TransformedCurve@@UEBA?AVgp_Hypr@@XZ
+                         4D7 ?Parabola@GeomAdaptor_TransformedCurve@@UEBA?AVgp_Parab@@XZ
+                          D0 ?Bezier@GeomAdaptor_TransformedCurve@@UEBA?AV?$handle@VGeom_BezierCurve@@@opencascade@@XZ
+                          B7 ?BSpline@GeomAdaptor_TransformedCurve@@UEBA?AV?$handle@VGeom_BSplineCurve@@@opencascade@@XZ
+                         4C6 ?OffsetCurve@GeomAdaptor_TransformedCurve@@UEBA?AV?$handle@VGeom_OffsetCurve@@@opencascade@@XZ
+                         73F ?get_type_descriptor@Geom_BezierSurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         152 ?Degree@Geom_BSplineCurve@@QEBAHXZ
+                         319 ?FirstUKnotIndex@Geom_BSplineCurve@@QEBAHXZ
+                         435 ?LastUKnotIndex@Geom_BSplineCurve@@QEBAHXZ
+                         749 ?get_type_descriptor@Geom_ElementarySurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         562 ?SetBasisSurface@Geom_OffsetSurface@@QEAAXAEBV?$handle@VGeom_Surface@@@opencascade@@_N@Z
+                         14C ?Cylinder@Geom_CylindricalSurface@@QEBA?AVgp_Cylinder@@XZ
+                         743 ?get_type_descriptor@Geom_Circle@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          BF ?BasisCurve@Geom_SweptSurface@@QEBA?AV?$handle@VGeom_Curve@@@opencascade@@XZ
+                         318 ?FirstParameter@Geom_TrimmedCurve@@UEBANXZ
+                         434 ?LastParameter@Geom_TrimmedCurve@@UEBANXZ
+                         54D ?Rotated@Geom_Geometry@@QEBA?AV?$handle@VGeom_Geometry@@@opencascade@@AEBVgp_Ax1@@N@Z
+                          13 ??0GeomAdaptor_SurfaceOfLinearExtrusion@@QEAA@AEBV?$handle@VAdaptor3d_Curve@@@opencascade@@AEBVgp_Dir@@@Z
+                         334 ?GetType@GeomAdaptor_SurfaceOfLinearExtrusion@@UEBA?AW4GeomAbs_SurfaceType@@XZ
+                         4F9 ?Plane@GeomAdaptor_SurfaceOfLinearExtrusion@@UEBA?AVgp_Pln@@XZ
+                         149 ?Cylinder@GeomAdaptor_SurfaceOfLinearExtrusion@@UEBA?AVgp_Cylinder@@XZ
+                          51 ??0Geom_CylindricalSurface@@QEAA@AEBVgp_Cylinder@@@Z
+                         1D3 ?Elips@Geom_Ellipse@@QEBA?AVgp_Elips@@XZ
+                         74A ?get_type_descriptor@Geom_Ellipse@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         33C ?Hypr@Geom_Hyperbola@@QEBA?AVgp_Hypr@@XZ
+                         74C ?get_type_descriptor@Geom_Hyperbola@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         4D2 ?Parab@Geom_Parabola@@QEBA?AVgp_Parab@@XZ
+                         750 ?get_type_descriptor@Geom_Parabola@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          62 ??0Geom_Plane@@QEAA@AEBVgp_Ax3@@@Z
+                         15D ?Direction@Geom_SweptSurface@@QEBAAEBVgp_Dir@@XZ
+                          6A ??0Geom_SurfaceOfLinearExtrusion@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@AEBVgp_Dir@@@Z
+                          E9 ?Circle@Adaptor3d_CurveOnSurface@@UEBA?AVgp_Circ@@XZ
+                         62D ?Transformed@Geom_Geometry@@QEBA?AV?$handle@VGeom_Geometry@@@opencascade@@AEBVgp_Trsf@@@Z
+                         192 ?DynamicType@Adaptor3d_Curve@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         5D8 ?ShallowCopy@Adaptor3d_Curve@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@XZ
+                         30A ?FirstParameter@Adaptor3d_Curve@@UEBANXZ
+                         426 ?LastParameter@Adaptor3d_Curve@@UEBANXZ
+                         101 ?Continuity@Adaptor3d_Curve@@UEBA?AW4GeomAbs_Shape@@XZ
+                         489 ?NbIntervals@Adaptor3d_Curve@@UEBAHW4GeomAbs_Shape@@@Z
+                         363 ?Intervals@Adaptor3d_Curve@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         637 ?Trim@Adaptor3d_Curve@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@NNN@Z
+                         385 ?IsClosed@Adaptor3d_Curve@@UEBA_NXZ
+                         399 ?IsPeriodic@Adaptor3d_Curve@@UEBA_NXZ
+                         4EB ?Period@Adaptor3d_Curve@@UEBANXZ
+                         527 ?Resolution@Adaptor3d_Curve@@UEBANN@Z
+                         330 ?GetType@Adaptor3d_Curve@@UEBA?AW4GeomAbs_CurveType@@XZ
+                         43F ?Line@Adaptor3d_Curve@@UEBA?AVgp_Lin@@XZ
+                          E8 ?Circle@Adaptor3d_Curve@@UEBA?AVgp_Circ@@XZ
+                         1D4 ?Ellipse@Adaptor3d_Curve@@UEBA?AVgp_Elips@@XZ
+                         337 ?Hyperbola@Adaptor3d_Curve@@UEBA?AVgp_Hypr@@XZ
+                         4D3 ?Parabola@Adaptor3d_Curve@@UEBA?AVgp_Parab@@XZ
+                         14D ?Degree@Adaptor3d_Curve@@UEBAHXZ
+                         3AA ?IsRational@Adaptor3d_Curve@@UEBA_NXZ
+                         492 ?NbPoles@Adaptor3d_Curve@@UEBAHXZ
+                         48D ?NbKnots@Adaptor3d_Curve@@UEBAHXZ
+                          C8 ?Bezier@Adaptor3d_Curve@@UEBA?AV?$handle@VGeom_BezierCurve@@@opencascade@@XZ
+                          AF ?BSpline@Adaptor3d_Curve@@UEBA?AV?$handle@VGeom_BSplineCurve@@@opencascade@@XZ
+                         4C4 ?OffsetCurve@Adaptor3d_Curve@@UEBA?AV?$handle@VGeom_OffsetCurve@@@opencascade@@XZ
+                         1DE ?EvalD0@Adaptor3d_Curve@@UEBA?AVgp_Pnt@@N@Z
+                         205 ?EvalD1@Adaptor3d_Curve@@UEBA?AUResD1@Geom_Curve@@N@Z
+                         22C ?EvalD2@Adaptor3d_Curve@@UEBA?AUResD2@Geom_Curve@@N@Z
+                         253 ?EvalD3@Adaptor3d_Curve@@UEBA?AUResD3@Geom_Curve@@N@Z
+                         27A ?EvalDN@Adaptor3d_Curve@@UEBA?AVgp_Vec@@NH@Z
+                          74 ??1Adaptor3d_Curve@@UEAA@XZ
+                          40 ??0Geom_BSplineCurve@@QEAA@AEBV?$NCollection_Array1@Vgp_Pnt@@@@AEBV?$NCollection_Array1@N@@AEBV?$NCollection_Array1@H@@H_N@Z
+                          4D ??0Geom_Circle@@QEAA@AEBVgp_Circ@@@Z
+                         51A ?Radius@Geom_Circle@@QEBANXZ
+                          59 ??0Geom_Line@@QEAA@AEBVgp_Lin@@@Z
+                         538 ?Reverse@Geom_Line@@UEAAXXZ
+                          70 ??0Geom_TrimmedCurve@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@NN_N1@Z
+                          C0 ?BasisCurve@Geom_TrimmedCurve@@QEBA?AV?$handle@VGeom_Curve@@@opencascade@@XZ
+                         75B ?get_type_descriptor@Geom_TrimmedCurve@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         196 ?DynamicType@Adaptor3d_Surface@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         5DB ?ShallowCopy@Adaptor3d_Surface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@XZ
+                         31B ?FirstUParameter@Adaptor3d_Surface@@UEBANXZ
+                         437 ?LastUParameter@Adaptor3d_Surface@@UEBANXZ
+                         31F ?FirstVParameter@Adaptor3d_Surface@@UEBANXZ
+                         43B ?LastVParameter@Adaptor3d_Surface@@UEBANXZ
+                         63C ?UContinuity@Adaptor3d_Surface@@UEBA?AW4GeomAbs_Shape@@XZ
+                         69D ?VContinuity@Adaptor3d_Surface@@UEBA?AW4GeomAbs_Shape@@XZ
+                         4A4 ?NbUIntervals@Adaptor3d_Surface@@UEBAHW4GeomAbs_Shape@@@Z
+                         4B1 ?NbVIntervals@Adaptor3d_Surface@@UEBAHW4GeomAbs_Shape@@@Z
+                         645 ?UIntervals@Adaptor3d_Surface@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         6A6 ?VIntervals@Adaptor3d_Surface@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         698 ?UTrim@Adaptor3d_Surface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@NNN@Z
+                         6FA ?VTrim@Adaptor3d_Surface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@NNN@Z
+                         3B6 ?IsUClosed@Adaptor3d_Surface@@UEBA_NXZ
+                         3EA ?IsVClosed@Adaptor3d_Surface@@UEBA_NXZ
+                         3CC ?IsUPeriodic@Adaptor3d_Surface@@UEBA_NXZ
+                         66B ?UPeriod@Adaptor3d_Surface@@UEBANXZ
+                         400 ?IsVPeriodic@Adaptor3d_Surface@@UEBA_NXZ
+                         6CC ?VPeriod@Adaptor3d_Surface@@UEBANXZ
+                         672 ?UResolution@Adaptor3d_Surface@@UEBANN@Z
+                         6D3 ?VResolution@Adaptor3d_Surface@@UEBANN@Z
+                         333 ?GetType@Adaptor3d_Surface@@UEBA?AW4GeomAbs_SurfaceType@@XZ
+                         4F7 ?Plane@Adaptor3d_Surface@@UEBA?AVgp_Pln@@XZ
+                         147 ?Cylinder@Adaptor3d_Surface@@UEBA?AVgp_Cylinder@@XZ
+                          F9 ?Cone@Adaptor3d_Surface@@UEBA?AVgp_Cone@@XZ
+                         5E8 ?Sphere@Adaptor3d_Surface@@UEBA?AVgp_Sphere@@XZ
+                         5FB ?Torus@Adaptor3d_Surface@@UEBA?AVgp_Torus@@XZ
+                         640 ?UDegree@Adaptor3d_Surface@@UEBAHXZ
+                         4AB ?NbUPoles@Adaptor3d_Surface@@UEBAHXZ
+                         6A1 ?VDegree@Adaptor3d_Surface@@UEBAHXZ
+                         4B9 ?NbVPoles@Adaptor3d_Surface@@UEBAHXZ
+                         4A8 ?NbUKnots@Adaptor3d_Surface@@UEBAHXZ
+                         4B5 ?NbVKnots@Adaptor3d_Surface@@UEBAHXZ
+                         3E2 ?IsURational@Adaptor3d_Surface@@UEBA_NXZ
+                         416 ?IsVRational@Adaptor3d_Surface@@UEBA_NXZ
+                          CB ?Bezier@Adaptor3d_Surface@@UEBA?AV?$handle@VGeom_BezierSurface@@@opencascade@@XZ
+                          B2 ?BSpline@Adaptor3d_Surface@@UEBA?AV?$handle@VGeom_BSplineSurface@@@opencascade@@XZ
+                          A6 ?AxeOfRevolution@Adaptor3d_Surface@@UEBA?AVgp_Ax1@@XZ
+                         157 ?Direction@Adaptor3d_Surface@@UEBA?AVgp_Dir@@XZ
+                          B9 ?BasisCurve@Adaptor3d_Surface@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@XZ
+                          C1 ?BasisSurface@Adaptor3d_Surface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@XZ
+                         4C7 ?OffsetValue@Adaptor3d_Surface@@UEBANXZ
+                         1E1 ?EvalD0@Adaptor3d_Surface@@UEBA?AVgp_Pnt@@NN@Z
+                         208 ?EvalD1@Adaptor3d_Surface@@UEBA?AUResD1@Geom_Surface@@NN@Z
+                         22F ?EvalD2@Adaptor3d_Surface@@UEBA?AUResD2@Geom_Surface@@NN@Z
+                         256 ?EvalD3@Adaptor3d_Surface@@UEBA?AUResD3@Geom_Surface@@NN@Z
+                         27D ?EvalDN@Adaptor3d_Surface@@UEBA?AVgp_Vec@@NNHH@Z
+                          75 ??1Adaptor3d_Surface@@UEAA@XZ
+                         199 ?DynamicType@GeomAdaptor_Surface@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         5DD ?ShallowCopy@GeomAdaptor_Surface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@XZ
+                         63D ?UContinuity@GeomAdaptor_Surface@@UEBA?AW4GeomAbs_Shape@@XZ
+                         69E ?VContinuity@GeomAdaptor_Surface@@UEBA?AW4GeomAbs_Shape@@XZ
+                         4A5 ?NbUIntervals@GeomAdaptor_Surface@@UEBAHW4GeomAbs_Shape@@@Z
+                         4B2 ?NbVIntervals@GeomAdaptor_Surface@@UEBAHW4GeomAbs_Shape@@@Z
+                         646 ?UIntervals@GeomAdaptor_Surface@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         6A7 ?VIntervals@GeomAdaptor_Surface@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         699 ?UTrim@GeomAdaptor_Surface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@NNN@Z
+                         6FB ?VTrim@GeomAdaptor_Surface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@NNN@Z
+                         3B7 ?IsUClosed@GeomAdaptor_Surface@@UEBA_NXZ
+                         3EB ?IsVClosed@GeomAdaptor_Surface@@UEBA_NXZ
+                         3CD ?IsUPeriodic@GeomAdaptor_Surface@@UEBA_NXZ
+                         66C ?UPeriod@GeomAdaptor_Surface@@UEBANXZ
+                         401 ?IsVPeriodic@GeomAdaptor_Surface@@UEBA_NXZ
+                         6CD ?VPeriod@GeomAdaptor_Surface@@UEBANXZ
+                         1E3 ?EvalD0@GeomAdaptor_Surface@@UEBA?AVgp_Pnt@@NN@Z
+                         20A ?EvalD1@GeomAdaptor_Surface@@UEBA?AUResD1@Geom_Surface@@NN@Z
+                         231 ?EvalD2@GeomAdaptor_Surface@@UEBA?AUResD2@Geom_Surface@@NN@Z
+                         258 ?EvalD3@GeomAdaptor_Surface@@UEBA?AUResD3@Geom_Surface@@NN@Z
+                         27F ?EvalDN@GeomAdaptor_Surface@@UEBA?AVgp_Vec@@NNHH@Z
+                         673 ?UResolution@GeomAdaptor_Surface@@UEBANN@Z
+                         6D4 ?VResolution@GeomAdaptor_Surface@@UEBANN@Z
+                         4F8 ?Plane@GeomAdaptor_Surface@@UEBA?AVgp_Pln@@XZ
+                         148 ?Cylinder@GeomAdaptor_Surface@@UEBA?AVgp_Cylinder@@XZ
+                          FA ?Cone@GeomAdaptor_Surface@@UEBA?AVgp_Cone@@XZ
+                         5E9 ?Sphere@GeomAdaptor_Surface@@UEBA?AVgp_Sphere@@XZ
+                         5FC ?Torus@GeomAdaptor_Surface@@UEBA?AVgp_Torus@@XZ
+                         641 ?UDegree@GeomAdaptor_Surface@@UEBAHXZ
+                         4AC ?NbUPoles@GeomAdaptor_Surface@@UEBAHXZ
+                         6A2 ?VDegree@GeomAdaptor_Surface@@UEBAHXZ
+                         4BA ?NbVPoles@GeomAdaptor_Surface@@UEBAHXZ
+                         4A9 ?NbUKnots@GeomAdaptor_Surface@@UEBAHXZ
+                         4B6 ?NbVKnots@GeomAdaptor_Surface@@UEBAHXZ
+                         3E3 ?IsURational@GeomAdaptor_Surface@@UEBA_NXZ
+                         417 ?IsVRational@GeomAdaptor_Surface@@UEBA_NXZ
+                          CD ?Bezier@GeomAdaptor_Surface@@UEBA?AV?$handle@VGeom_BezierSurface@@@opencascade@@XZ
+                          B4 ?BSpline@GeomAdaptor_Surface@@UEBA?AV?$handle@VGeom_BSplineSurface@@@opencascade@@XZ
+                          A7 ?AxeOfRevolution@GeomAdaptor_Surface@@UEBA?AVgp_Ax1@@XZ
+                         158 ?Direction@GeomAdaptor_Surface@@UEBA?AVgp_Dir@@XZ
+                          BA ?BasisCurve@GeomAdaptor_Surface@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@XZ
+                          C2 ?BasisSurface@GeomAdaptor_Surface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@XZ
+                         4C8 ?OffsetValue@GeomAdaptor_Surface@@UEBANXZ
+                         763 ?load@GeomAdaptor_Surface@@AEAAXAEBV?$handle@VGeom_Surface@@@opencascade@@NNNNNN@Z
+                         722 ?get_type_descriptor@Adaptor3d_Curve@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         198 ?DynamicType@GeomAdaptor_Curve@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         5DC ?ShallowCopy@GeomAdaptor_Curve@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@XZ
+                         104 ?Continuity@GeomAdaptor_Curve@@UEBA?AW4GeomAbs_Shape@@XZ
+                         48C ?NbIntervals@GeomAdaptor_Curve@@UEBAHW4GeomAbs_Shape@@@Z
+                         366 ?Intervals@GeomAdaptor_Curve@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         63A ?Trim@GeomAdaptor_Curve@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@NNN@Z
+                         388 ?IsClosed@GeomAdaptor_Curve@@UEBA_NXZ
+                         39C ?IsPeriodic@GeomAdaptor_Curve@@UEBA_NXZ
+                         4EE ?Period@GeomAdaptor_Curve@@UEBANXZ
+                         52B ?Resolution@GeomAdaptor_Curve@@UEBANN@Z
+                         442 ?Line@GeomAdaptor_Curve@@UEBA?AVgp_Lin@@XZ
+                          EB ?Circle@GeomAdaptor_Curve@@UEBA?AVgp_Circ@@XZ
+                         1D7 ?Ellipse@GeomAdaptor_Curve@@UEBA?AVgp_Elips@@XZ
+                         33A ?Hyperbola@GeomAdaptor_Curve@@UEBA?AVgp_Hypr@@XZ
+                         4D6 ?Parabola@GeomAdaptor_Curve@@UEBA?AVgp_Parab@@XZ
+                         151 ?Degree@GeomAdaptor_Curve@@UEBAHXZ
+                         3AD ?IsRational@GeomAdaptor_Curve@@UEBA_NXZ
+                         496 ?NbPoles@GeomAdaptor_Curve@@UEBAHXZ
+                         490 ?NbKnots@GeomAdaptor_Curve@@UEBAHXZ
+                          CC ?Bezier@GeomAdaptor_Curve@@UEBA?AV?$handle@VGeom_BezierCurve@@@opencascade@@XZ
+                          B3 ?BSpline@GeomAdaptor_Curve@@UEBA?AV?$handle@VGeom_BSplineCurve@@@opencascade@@XZ
+                         4C5 ?OffsetCurve@GeomAdaptor_Curve@@UEBA?AV?$handle@VGeom_OffsetCurve@@@opencascade@@XZ
+                         1E2 ?EvalD0@GeomAdaptor_Curve@@UEBA?AVgp_Pnt@@N@Z
+                         209 ?EvalD1@GeomAdaptor_Curve@@UEBA?AUResD1@Geom_Curve@@N@Z
+                         230 ?EvalD2@GeomAdaptor_Curve@@UEBA?AUResD2@Geom_Curve@@N@Z
+                         257 ?EvalD3@GeomAdaptor_Curve@@UEBA?AUResD3@Geom_Curve@@N@Z
+                         27E ?EvalDN@GeomAdaptor_Curve@@UEBA?AVgp_Vec@@NH@Z
+                         762 ?load@GeomAdaptor_Curve@@AEAAXAEBV?$handle@VGeom_Curve@@@opencascade@@NN@Z
+                         636 ?Translated@Geom_Geometry@@QEBA?AV?$handle@VGeom_Geometry@@@opencascade@@AEBVgp_Vec@@@Z
+                          4E ??0Geom_ConicalSurface@@QEAA@AEBVgp_Ax3@@NN@Z
+                         51E ?RefRadius@Geom_ConicalSurface@@QEBANXZ
+                         556 ?SemiAngle@Geom_ConicalSurface@@QEBANXZ
+                         745 ?get_type_descriptor@Geom_ConicalSurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          50 ??0Geom_CylindricalSurface@@QEAA@AEBVgp_Ax3@@N@Z
+                         51B ?Radius@Geom_CylindricalSurface@@QEBANXZ
+                         747 ?get_type_descriptor@Geom_CylindricalSurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         596 ?SetPole@Geom_BSplineSurface@@QEAAXHHAEBVgp_Pnt@@@Z
+                         50C ?Poles@Geom_BSplineSurface@@QEBAAEBV?$NCollection_Array2@Vgp_Pnt@@@@XZ
+                         73D ?get_type_descriptor@Geom_BSplineSurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          5E ??0Geom_OffsetSurface@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@N_N@Z
+                         74F ?get_type_descriptor@Geom_OffsetSurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         751 ?get_type_descriptor@Geom_Plane@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          66 ??0Geom_RectangularTrimmedSurface@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@NNNN_N1@Z
+                          C4 ?BasisSurface@Geom_RectangularTrimmedSurface@@QEBA?AV?$handle@VGeom_Surface@@@opencascade@@XZ
+                          DF ?Bounds@Geom_RectangularTrimmedSurface@@UEBAXAEAN000@Z
+                         753 ?get_type_descriptor@Geom_RectangularTrimmedSurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          68 ??0Geom_SphericalSurface@@QEAA@AEBVgp_Ax3@@N@Z
+                         51C ?Radius@Geom_SphericalSurface@@QEBANXZ
+                         754 ?get_type_descriptor@Geom_SphericalSurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         756 ?get_type_descriptor@Geom_SurfaceOfLinearExtrusion@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         757 ?get_type_descriptor@Geom_SurfaceOfRevolution@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          6C ??0Geom_ToroidalSurface@@QEAA@AEBVgp_Ax3@@NN@Z
+                         469 ?MajorRadius@Geom_ToroidalSurface@@QEBANXZ
+                         475 ?MinorRadius@Geom_ToroidalSurface@@QEBANXZ
+                         759 ?get_type_descriptor@Geom_ToroidalSurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          E7 ?Circ@Geom_Circle@@QEBA?AVgp_Circ@@XZ
+                         49A ?NbPoles@Geom_BezierCurve@@QEBAHXZ
+                         501 ?Pole@Geom_BezierCurve@@QEBAAEBVgp_Pnt@@H@Z
+                         73E ?get_type_descriptor@Geom_BezierCurve@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         43E ?Lin@Geom_Line@@QEBA?AVgp_Lin@@XZ
+                         74D ?get_type_descriptor@Geom_Line@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         499 ?NbPoles@Geom_BSplineCurve@@QEBAHXZ
+                         4FF ?Pole@Geom_BSplineCurve@@QEBAAEBVgp_Pnt@@H@Z
+                         73C ?get_type_descriptor@Geom_BSplineCurve@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                          43 ??0Geom_BSplineSurface@@QEAA@AEBV?$NCollection_Array2@Vgp_Pnt@@@@AEBV?$NCollection_Array2@N@@AEBV?$NCollection_Array1@N@@2AEBV?$NCollection_Array1@H@@3HH_N4@Z
+                         553 ?Segment@Geom_BSplineSurface@@QEAAXNNNNNN@Z
+                         461 ?LocateU@Geom_BSplineSurface@@QEBAXNNAEAH0_N@Z
+                          D9 ?Bounds@Geom_BSplineSurface@@UEBAXAEAN000@Z
+                         31E ?FirstVKnotIndex@Geom_BSplineSurface@@QEBAHXZ
+                         43A ?LastVKnotIndex@Geom_BSplineSurface@@QEBAHXZ
+                         65D ?UKnot@Geom_BSplineSurface@@QEBANH@Z
+                         6BE ?VKnot@Geom_BSplineSurface@@QEBANH@Z
+                         652 ?UIso@Geom_BSplineSurface@@UEBA?AV?$handle@VGeom_Curve@@@opencascade@@N@Z
+                         6B3 ?VIso@Geom_BSplineSurface@@UEBA?AV?$handle@VGeom_Curve@@@opencascade@@N@Z
+                         127 ?Copy@Geom_BSplineSurface@@UEBA?AV?$handle@VGeom_Geometry@@@opencascade@@XZ
+                         744 ?get_type_descriptor@Geom_Conic@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         535 ?Reverse@Geom_BSplineCurve@@UEAAXXZ
+                         57E ?SetKnots@Geom_BSplineCurve@@QEAAXAEBV?$NCollection_Array1@N@@@Z
+                         422 ?Knots@Geom_BSplineCurve@@QEBAAEBV?$NCollection_Array1@N@@XZ
+                         60E ?Transform@Geom_BSplineCurve@@UEAAXAEBVgp_Trsf@@@Z
+                           0 ??0Adaptor3d_CurveOnSurface@@QEAA@AEBV?$handle@VAdaptor2d_Curve2d@@@opencascade@@AEBV?$handle@VAdaptor3d_Surface@@@2@@Z
+                         32E ?GetCurve@Adaptor3d_CurveOnSurface@@QEBAAEBV?$handle@VAdaptor2d_Curve2d@@@opencascade@@XZ
+                         32F ?GetSurface@Adaptor3d_CurveOnSurface@@QEBAAEBV?$handle@VAdaptor3d_Surface@@@opencascade@@XZ
+                         740 ?get_type_descriptor@Geom_BoundedCurve@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         741 ?get_type_descriptor@Geom_BoundedSurface@@SAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         4AA ?NbUKnots@Geom_BSplineSurface@@QEBAHXZ
+                         4B8 ?NbVKnots@Geom_BSplineSurface@@QEBAHXZ
+                          5A ??0Geom_Line@@QEAA@AEBVgp_Pnt@@AEBVgp_Dir@@@Z
+                          EC ?Circle@GeomAdaptor_TransformedCurve@@UEBA?AVgp_Circ@@XZ
+                         4FB ?Plane@GeomAdaptor_TransformedSurface@@UEBA?AVgp_Pln@@XZ
+                          4F ??0Geom_ConicalSurface@@QEAA@AEBVgp_Cone@@@Z
+                         3D7 ?IsUPeriodic@Geom_BSplineSurface@@UEBA_NXZ
+                         3E7 ?IsURational@Geom_BSplineSurface@@QEBA_NXZ
+                         40B ?IsVPeriodic@Geom_BSplineSurface@@UEBA_NXZ
+                         41B ?IsVRational@Geom_BSplineSurface@@QEBA_NXZ
+                         31A ?FirstUKnotIndex@Geom_BSplineSurface@@QEBAHXZ
+                         436 ?LastUKnotIndex@Geom_BSplineSurface@@QEBAHXZ
+                          63 ??0Geom_Plane@@QEAA@AEBVgp_Pln@@@Z
+                          64 ??0Geom_Plane@@QEAA@AEBVgp_Pnt@@AEBVgp_Dir@@@Z
+                         4FC ?Pln@Geom_Plane@@QEBA?AVgp_Pln@@XZ
+                          69 ??0Geom_SphericalSurface@@QEAA@AEBVgp_Sphere@@@Z
+                         6BA ?VIso@Geom_SphericalSurface@@UEBA?AV?$handle@VGeom_Curve@@@opencascade@@N@Z
+                         555 ?Segment@Geom_BezierSurface@@QEAAXNNNN@Z
+                         502 ?Pole@Geom_BezierSurface@@QEBAAEBVgp_Pnt@@HH@Z
+                         644 ?UDegree@Geom_BezierSurface@@QEBAHXZ
+                         6A5 ?VDegree@Geom_BezierSurface@@QEBAHXZ
+                         70D ?Weight@Geom_BezierSurface@@QEBANHH@Z
+                         3E8 ?IsURational@Geom_BezierSurface@@QEBA_NXZ
+                         41C ?IsVRational@Geom_BezierSurface@@QEBA_NXZ
+                         129 ?Copy@Geom_BezierSurface@@UEBA?AV?$handle@VGeom_Geometry@@@opencascade@@XZ
+                         19D ?DynamicType@GeomAdaptor_TransformedSurface@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         5E1 ?ShallowCopy@GeomAdaptor_TransformedSurface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@XZ
+                         649 ?UIntervals@GeomAdaptor_TransformedSurface@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         6AA ?VIntervals@GeomAdaptor_TransformedSurface@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         69C ?UTrim@GeomAdaptor_TransformedSurface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@NNN@Z
+                         6FE ?VTrim@GeomAdaptor_TransformedSurface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@NNN@Z
+                         1E5 ?EvalD0@GeomAdaptor_TransformedSurface@@UEBA?AVgp_Pnt@@NN@Z
+                         20C ?EvalD1@GeomAdaptor_TransformedSurface@@UEBA?AUResD1@Geom_Surface@@NN@Z
+                         233 ?EvalD2@GeomAdaptor_TransformedSurface@@UEBA?AUResD2@Geom_Surface@@NN@Z
+                         25A ?EvalD3@GeomAdaptor_TransformedSurface@@UEBA?AUResD3@Geom_Surface@@NN@Z
+                         281 ?EvalDN@GeomAdaptor_TransformedSurface@@UEBA?AVgp_Vec@@NNHH@Z
+                         14B ?Cylinder@GeomAdaptor_TransformedSurface@@UEBA?AVgp_Cylinder@@XZ
+                          FD ?Cone@GeomAdaptor_TransformedSurface@@UEBA?AVgp_Cone@@XZ
+                         5EC ?Sphere@GeomAdaptor_TransformedSurface@@UEBA?AVgp_Sphere@@XZ
+                         5FF ?Torus@GeomAdaptor_TransformedSurface@@UEBA?AVgp_Torus@@XZ
+                          D1 ?Bezier@GeomAdaptor_TransformedSurface@@UEBA?AV?$handle@VGeom_BezierSurface@@@opencascade@@XZ
+                          B8 ?BSpline@GeomAdaptor_TransformedSurface@@UEBA?AV?$handle@VGeom_BSplineSurface@@@opencascade@@XZ
+                          AA ?AxeOfRevolution@GeomAdaptor_TransformedSurface@@UEBA?AVgp_Ax1@@XZ
+                         15A ?Direction@GeomAdaptor_TransformedSurface@@UEBA?AVgp_Dir@@XZ
+                          BD ?BasisCurve@GeomAdaptor_TransformedSurface@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@XZ
+                          C3 ?BasisSurface@GeomAdaptor_TransformedSurface@@UEBA?AV?$handle@VAdaptor3d_Surface@@@opencascade@@XZ
+                         4C9 ?OffsetValue@GeomAdaptor_TransformedSurface@@UEBANXZ
+                         193 ?DynamicType@Adaptor3d_CurveOnSurface@@UEBAAEBV?$handle@VStandard_Type@@@opencascade@@XZ
+                         5D9 ?ShallowCopy@Adaptor3d_CurveOnSurface@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@XZ
+                         30B ?FirstParameter@Adaptor3d_CurveOnSurface@@UEBANXZ
+                         427 ?LastParameter@Adaptor3d_CurveOnSurface@@UEBANXZ
+                         102 ?Continuity@Adaptor3d_CurveOnSurface@@UEBA?AW4GeomAbs_Shape@@XZ
+                         48A ?NbIntervals@Adaptor3d_CurveOnSurface@@UEBAHW4GeomAbs_Shape@@@Z
+                         364 ?Intervals@Adaptor3d_CurveOnSurface@@UEBAXAEAV?$NCollection_Array1@N@@W4GeomAbs_Shape@@@Z
+                         638 ?Trim@Adaptor3d_CurveOnSurface@@UEBA?AV?$handle@VAdaptor3d_Curve@@@opencascade@@NNN@Z
+                         386 ?IsClosed@Adaptor3d_CurveOnSurface@@UEBA_NXZ
+                         39A ?IsPeriodic@Adaptor3d_CurveOnSurface@@UEBA_NXZ
+                         4EC ?Period@Adaptor3d_CurveOnSurface@@UEBANXZ
+                         1DF ?EvalD0@Adaptor3d_CurveOnSurface@@UEBA?AVgp_Pnt@@N@Z
+                         206 ?EvalD1@Adaptor3d_CurveOnSurface@@UEBA?AUResD1@Geom_Curve@@N@Z
+                         22D ?EvalD2@Adaptor3d_CurveOnSurface@@UEBA?AUResD2@Geom_Curve@@N@Z
+                         254 ?EvalD3@Adaptor3d_CurveOnSurface@@UEBA?AUResD3@Geom_Curve@@N@Z
+                         27B ?EvalDN@Adaptor3d_CurveOnSurface@@UEBA?AVgp_Vec@@NH@Z
+                         528 ?Resolution@Adaptor3d_CurveOnSurface@@UEBANN@Z
+                         331 ?GetType@Adaptor3d_CurveOnSurface@@UEBA?AW4GeomAbs_CurveType@@XZ
+                         440 ?Line@Adaptor3d_CurveOnSurface@@UEBA?AVgp_Lin@@XZ
+
+    TKGeomAlgo.dll
+             18014EB40 Import Address Table
+             1801A8B70 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         954 ?Perform@IntCurveSurface_HInter@@QEAAXAEBV?$handle@VAdaptor3d_Curve@@@opencascade@@AEBV?$handle@VAdaptor3d_Surface@@@3@@Z
+                         18D ??0IntCurveSurface_HInter@@QEAA@XZ
+                         9BC ?Point@IntCurveSurface_Intersection@@QEBAAEBVIntCurveSurface_IntersectionPoint@@H@Z
+                         877 ?NbPoints@IntCurveSurface_Intersection@@QEBAHXZ
+                         70A ?IsDone@IntCurveSurface_Intersection@@QEBA_NXZ
+                         7E7 ?LowerDistance@GeomAPI_ProjectPointOnSurf@@QEBANXZ
+                         624 ?Init@GeomAPI_ProjectPointOnSurf@@QEAAXAEBVgp_Pnt@@AEBV?$handle@VGeom_Surface@@@opencascade@@NW4Extrema_ExtAlgo@@@Z
+                          E8 ??0GeomAPI_ProjectPointOnSurf@@QEAA@AEBVgp_Pnt@@AEBV?$handle@VGeom_Surface@@@opencascade@@NW4Extrema_ExtAlgo@@@Z
+                          56 ??0Geom2dAPI_ProjectPointOnCurve@@QEAA@AEBVgp_Pnt2d@@AEBV?$handle@VGeom2d_Curve@@@opencascade@@@Z
+                         7C3 ?LineOnS2@GeomInt_IntSS@@QEBAAEBV?$handle@VGeom2d_Curve@@@opencascade@@H@Z
+                         5E5 ?HasLineOnS2@GeomInt_IntSS@@QEBA_NH@Z
+                         7C2 ?LineOnS1@GeomInt_IntSS@@QEBAAEBV?$handle@VGeom2d_Curve@@@opencascade@@H@Z
+                         5E4 ?HasLineOnS1@GeomInt_IntSS@@QEBA_NH@Z
+                         7BD ?Line@GeomInt_IntSS@@QEBAAEBV?$handle@VGeom_Curve@@@opencascade@@H@Z
+                         93E ?Perform@GeomInt_IntSS@@QEAAXAEBV?$handle@VGeom_Surface@@@opencascade@@0N_N11@Z
+                         1D6 ??0IntPatch_Intersection@@QEAA@XZ
+                         BB9 ?To2d@GeomAPI@@SA?AV?$handle@VGeom2d_Curve@@@opencascade@@AEBV?$handle@VGeom_Curve@@@3@AEBVgp_Pln@@@Z
+                         931 ?Perform@GeomFill_Pipe@@QEAAXN_NW4GeomAbs_Shape@@HH@Z
+                         932 ?Perform@GeomFill_Pipe@@QEAAX_N0@Z
+                         122 ??0GeomFill_Pipe@@QEAA@AEBV?$handle@VAdaptor3d_Curve@@@opencascade@@00N@Z
+                         12A ??0GeomFill_Pipe@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@N@Z
+                         8C5 ?NearestPoints@GeomAPI_ExtremaCurveCurve@@QEBAXAEAVgp_Pnt@@0@Z
+                          CC ??0GeomAPI_ExtremaCurveCurve@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@0@Z
+                         7EE ?LowerDistanceParameters@GeomAPI_ProjectPointOnSurf@@QEBAXAEAN0@Z
+                         874 ?NbPoints@GeomAPI_ProjectPointOnSurf@@QEBAHXZ
+                         6FD ?IsDone@GeomAPI_ProjectPointOnSurf@@QEBA_NXZ
+                         92E ?Perform@GeomFill_Generator@@UEAAXN@Z
+                         113 ??0GeomFill_Generator@@QEAA@XZ
+                          E3 ??0GeomAPI_ProjectPointOnCurve@@QEAA@AEBVgp_Pnt@@AEBV?$handle@VGeom_Curve@@@opencascade@@@Z
+                         7E6 ?LowerDistance@GeomAPI_ProjectPointOnCurve@@QEBANXZ
+                         873 ?NbPoints@GeomAPI_ProjectPointOnCurve@@QEBAHXZ
+                         928 ?Perform@GeomAPI_ProjectPointOnCurve@@QEAAXAEBVgp_Pnt@@@Z
+                         61C ?Init@GeomAPI_ProjectPointOnCurve@@QEAAXAEBV?$handle@VGeom_Curve@@@opencascade@@NN@Z
+                         724 ?IsG1@LocalAnalysis_SurfaceContinuity@@QEBA_NXZ
+                         308 ?C0Value@LocalAnalysis_SurfaceContinuity@@QEBANXZ
+                         710 ?IsDone@LocalAnalysis_SurfaceContinuity@@QEBA_NXZ
+                         238 ??0LocalAnalysis_SurfaceContinuity@@QEAA@NNNNNNN@Z
+                         236 ??0LocalAnalysis_SurfaceContinuity@@QEAA@AEBV?$handle@VGeom2d_Curve@@@opencascade@@0NAEBV?$handle@VGeom_Surface@@@2@1W4GeomAbs_Shape@@NNNNNNN@Z
+                         130 ??0GeomFill_SectionGenerator@@QEAA@XZ
+                         933 ?Perform@GeomFill_Profiler@@UEAAXN@Z
+                         29E ?AddCurve@GeomFill_Profiler@@QEAAXAEBV?$handle@VGeom_Curve@@@opencascade@@@Z
+                         267 ??1GeomFill_Profiler@@UEAA@XZ
+                         117 ??0GeomFill_Line@@QEAA@H@Z
+                         9A3 ?PerformSmoothing@GeomFill_AppSurf@@QEAAXAEBV?$handle@VGeomFill_Line@@@opencascade@@AEAVGeomFill_SectionGenerator@@@Z
+                         92B ?Perform@GeomFill_AppSurf@@QEAAXAEBV?$handle@VGeomFill_Line@@@opencascade@@AEAVGeomFill_SectionGenerator@@_N@Z
+                         A7F ?SetCriteriumWeight@GeomFill_AppSurf@@QEAAXNNN@Z
+                         A7B ?SetContinuity@GeomFill_AppSurf@@QEAAXW4GeomAbs_Shape@@@Z
+                         AD3 ?SetParType@GeomFill_AppSurf@@QEAAXW4Approx_ParametrizationType@@@Z
+                          EB ??0GeomFill_AppSurf@@QEAA@HHNNH_N@Z
+                         264 ??1AppBlend_Approx@@UEAA@XZ
+                         6FA ?IsDone@GeomAPI_Interpolate@@QEBA_NXZ
+                         3C8 ?Curve@GeomAPI_Interpolate@@QEBAAEBV?$handle@VGeom_BSplineCurve@@@opencascade@@XZ
+                         927 ?Perform@GeomAPI_Interpolate@@QEAAXXZ
+                          E9 ??0GeomAPI_ProjectPointOnSurf@@QEAA@AEBVgp_Pnt@@AEBV?$handle@VGeom_Surface@@@opencascade@@W4Extrema_ExtAlgo@@@Z
+                          58 ??0Geom2dAPI_ProjectPointOnCurve@@QEAA@XZ
+                         60D ?Init@Geom2dAPI_ProjectPointOnCurve@@QEAAXAEBVgp_Pnt2d@@AEBV?$handle@VGeom2d_Curve@@@opencascade@@NN@Z
+                         870 ?NbPoints@Geom2dAPI_ProjectPointOnCurve@@QEBAHXZ
+                         7E2 ?LowerDistance@Geom2dAPI_ProjectPointOnCurve@@QEBANXZ
+                         BBA ?To3d@GeomAPI@@SA?AV?$handle@VGeom_Curve@@@opencascade@@AEBV?$handle@VGeom2d_Curve@@@3@AEBVgp_Pln@@@Z
+                          E5 ??0GeomAPI_ProjectPointOnCurve@@QEAA@XZ
+                         61D ?Init@GeomAPI_ProjectPointOnCurve@@QEAAXAEBVgp_Pnt@@AEBV?$handle@VGeom_Curve@@@opencascade@@@Z
+                         7E9 ?LowerDistanceParameter@GeomAPI_ProjectPointOnCurve@@QEBANXZ
+                         8C2 ?NearestPoint@GeomAPI_ProjectPointOnCurve@@QEBA?AVgp_Pnt@@XZ
+                         1AC ??0IntCurve_IntImpConicParConic@@QEAA@XZ
+                          C8 ??0Geom2dInt_TheIntPCurvePCurveOfGInter@@QEAA@XZ
+                         919 ?Perform@Geom2dInt_GInter@@QEAAXAEBVAdaptor2d_Curve2d@@AEBVIntRes2d_Domain@@01NN@Z
+                         367 ?ComputeDomain@Geom2dInt_GInter@@QEBA?AVIntRes2d_Domain@@AEBVAdaptor2d_Curve2d@@N@Z
+                         176 ??0GeomPlate_BuildPlateSurface@@QEAA@HHHNNNN_N@Z
+                          D8 ??0GeomAPI_Interpolate@@QEAA@AEBV?$handle@V?$NCollection_HArray1@Vgp_Pnt@@@@@opencascade@@_NN@Z
+                         7C7 ?Load@GeomAPI_Interpolate@@QEAAXAEBV?$NCollection_Array1@Vgp_Vec@@@@AEBV?$handle@V?$NCollection_HArray1@_N@@@opencascade@@_N@Z
+
+    TKShHealing.dll
+             18014F3A0 Import Address Table
+             1801A93D0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          85 ??0ShapeUpgrade_UnifySameDomain@@QEAA@AEBVTopoDS_Shape@@_N11@Z
+                          CE ?Build@ShapeUpgrade_UnifySameDomain@@QEAAXXZ
+                          1F ??0ShapeBuild_ReShape@@QEAA@XZ
+                         15F ?ConvertToLine2d@ShapeCustom_Curve2d@@SA?AV?$handle@VGeom2d_Line@@@opencascade@@AEBV?$handle@VGeom2d_Curve@@@3@NNNAEAN11@Z
+                          3A ??0ShapeFix_Edge@@QEAA@XZ
+                         200 ?FixSameParameter@ShapeFix_Edge@@QEAA_NAEBVTopoDS_Edge@@N@Z
+                         394 ?SetContext@ShapeFix_Edge@@QEAAXAEBV?$handle@VShapeBuild_ReShape@@@opencascade@@@Z
+                          48 ??0ShapeFix_Shape@@QEAA@AEBVTopoDS_Shape@@@Z
+                         33E ?Perform@ShapeFix_Shape@@QEAA_NAEBVMessage_ProgressRange@@@Z
+                         409 ?Shape@ShapeFix_Shape@@QEBA?AVTopoDS_Shape@@XZ
+                           C ??0ShapeAnalysis_FreeBounds@@QEAA@AEBVTopoDS_Shape@@_N11@Z
+
+    TKBO.dll
+             18014D140 Import Address Table
+             1801A7170 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         27E ?PaveBlocks@BOPDS_DS@@QEBAAEBV?$NCollection_List@V?$handle@VBOPDS_PaveBlock@@@opencascade@@@@H@Z
+                         1F8 ?IsCommonBlock@BOPDS_DS@@QEBA_NAEBV?$handle@VBOPDS_PaveBlock@@@opencascade@@@Z
+                         10C ?CommonBlock@BOPDS_DS@@QEBA?AV?$handle@VBOPDS_CommonBlock@@@opencascade@@AEBV?$handle@VBOPDS_PaveBlock@@@3@@Z
+                           B ??0BOPAlgo_BuilderFace@@QEAA@XZ
+                          7C ??1BOPAlgo_BuilderFace@@UEAA@XZ
+                         319 ?SetFace@BOPAlgo_BuilderFace@@QEAAXAEBVTopoDS_Face@@@Z
+                         284 ?Perform@BOPAlgo_BuilderFace@@UEAAXAEBVMessage_ProgressRange@@@Z
+                         283 ?Perform@BOPAlgo_Builder@@UEAAXAEBVMessage_ProgressRange@@@Z
+                          17 ??0BOPAlgo_Section@@QEAA@XZ
+                          82 ??1BOPAlgo_Section@@UEAA@XZ
+                          AF ?AddTool@BOPAlgo_ToolsProvider@@UEAAXAEBVTopoDS_Shape@@@Z
+                          1B ??0BOPAlgo_Splitter@@QEAA@XZ
+                          84 ??1BOPAlgo_Splitter@@UEAA@XZ
+                         28D ?Perform@BOPAlgo_Splitter@@UEAAXAEBVMessage_ProgressRange@@@Z
+                           5 ??0BOPAlgo_BOP@@QEAA@XZ
+                          79 ??1BOPAlgo_BOP@@UEAA@XZ
+                         32E ?SetOperation@BOPAlgo_BOP@@QEAAXW4BOPAlgo_Operation@@@Z
+                         282 ?Perform@BOPAlgo_BOP@@UEAAXAEBVMessage_ProgressRange@@@Z
+                         2B6 ?PointInFace@BOPTools_AlgoTools3D@@SAHAEBVTopoDS_Face@@AEAVgp_Pnt@@AEAVgp_Pnt2d@@AEBV?$handle@VIntTools_Context@@@opencascade@@@Z
+                         125 ?ComputeVV@BOPTools_AlgoTools@@SAHAEBVTopoDS_Vertex@@0N@Z
+                         20F ?IsMicroEdge@BOPTools_AlgoTools@@SA_NAEBVTopoDS_Edge@@AEBV?$handle@VIntTools_Context@@@opencascade@@_N@Z
+                          2E ??0BOPTools_Set@@QEAA@XZ
+                          8A ??1BOPTools_Set@@UEAA@XZ
+                          9F ?Add@BOPTools_Set@@QEAAXAEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@@Z
+                         202 ?IsEqual@BOPTools_Set@@QEBA_NAEBV1@@Z
+                         355 ?Shape@BOPDS_DS@@QEBAAEBVTopoDS_Shape@@H@Z
+                         124 ?ComputeVF@IntTools_Context@@QEAAHAEBVTopoDS_Vertex@@AEBVTopoDS_Face@@AEAN22N@Z
+                         219 ?IsPointInOnFace@IntTools_Context@@QEAA_NAEBVTopoDS_Face@@AEBVgp_Pnt2d@@@Z
+                         229 ?IsValidPointForFace@IntTools_Context@@QEAA_NAEBVgp_Pnt@@AEBVTopoDS_Face@@N@Z
+                         156 ?Edge@BOPDS_PaveBlock@@QEBAHXZ
+                          CB ?Bounds@IntTools_Curve@@QEBA_NAEAN0AEAVgp_Pnt@@1@Z
+                          15 ??0BOPAlgo_PaveFiller@@QEAA@XZ
+                          81 ??1BOPAlgo_PaveFiller@@UEAA@XZ
+                         276 ?PDS@BOPAlgo_PaveFiller@@QEAAPEAVBOPDS_DS@@XZ
+                         12B ?Context@BOPAlgo_PaveFiller@@QEAAAEBV?$handle@VIntTools_Context@@@opencascade@@XZ
+                         28A ?Perform@BOPAlgo_PaveFiller@@UEAAXAEBVMessage_ProgressRange@@@Z
+                          56 ??0IntTools_CommonPrt@@QEAA@AEBV0@@Z
+                         266 ?NbShapes@BOPDS_DS@@QEBAHXZ
+                         268 ?NbSourceShapes@BOPDS_DS@@QEBAHXZ
+                         163 ?FaceInfo@BOPDS_DS@@QEBAAEBVBOPDS_FaceInfo@@H@Z
+                         1BA ?HasCurveOnSurface@BOPTools_AlgoTools2D@@SA_NAEBVTopoDS_Edge@@AEBVTopoDS_Face@@@Z
+                          B0 ?AdjustPCurveOnFace@BOPTools_AlgoTools2D@@SAXAEBVTopoDS_Face@@AEBV?$handle@VGeom_Curve@@@opencascade@@AEBV?$handle@VGeom2d_Curve@@@4@AEAV54@AEBV?$handle@VIntTools_Context@@@4@@Z
+                          B1 ?AdjustPCurveOnFace@BOPTools_AlgoTools2D@@SAXAEBVTopoDS_Face@@NNAEBV?$handle@VGeom2d_Curve@@@opencascade@@AEAV34@AEBV?$handle@VIntTools_Context@@@4@@Z
+                         1EA ?IntermediatePoint@BOPTools_AlgoTools2D@@SANNN@Z
+                          62 ??0IntTools_FaceFace@@QEAA@XZ
+                         334 ?SetParameters@IntTools_FaceFace@@QEAAX_N00N@Z
+                         294 ?Perform@IntTools_FaceFace@@QEAAXAEBVTopoDS_Face@@0_N@Z
+                         1FE ?IsDone@IntTools_FaceFace@@QEBA_NXZ
+                         235 ?Lines@IntTools_FaceFace@@QEBAAEBV?$NCollection_Sequence@VIntTools_Curve@@@@XZ
+                          59 ??0IntTools_Context@@QEAA@XZ
+                         25B ?MakeVertex@BOPTools_AlgoTools@@SAXAEBV?$NCollection_List@VTopoDS_Shape@@@@AEAVTopoDS_Vertex@@@Z
+                         2BB ?PointNearEdge@BOPTools_AlgoTools3D@@SAHAEBVTopoDS_Edge@@AEBVTopoDS_Face@@NNAEAVgp_Pnt2d@@AEAVgp_Pnt@@@Z
+                         211 ?IsNewShape@BOPDS_DS@@QEBA_NH@Z
+                         385 ?Type@IntTools_CommonPrt@@QEBA?AW4TopAbs_ShapeEnum@@XZ
+                         273 ?OriginalEdge@BOPDS_PaveBlock@@QEBAHXZ
+                         1BE ?HasEdge@BOPDS_PaveBlock@@QEBA_NAEAH@Z
+                         27D ?PaveBlocks@BOPDS_CommonBlock@@QEBAAEBV?$NCollection_List@V?$handle@VBOPDS_PaveBlock@@@opencascade@@@@XZ
+                         3B9 ?fillPISteps@BOPAlgo_MakerVolume@@MEBAXAEAVBOPAlgo_PISteps@@@Z
+                         2A3 ?PerformInternal1@BOPAlgo_MakerVolume@@MEAAXAEBVBOPAlgo_PaveFiller@@AEBVMessage_ProgressRange@@@Z
+                          F0 ?CheckData@BOPAlgo_MakerVolume@@MEAAXXZ
+                         289 ?Perform@BOPAlgo_MakerVolume@@UEAAXAEBVMessage_ProgressRange@@@Z
+                         2C0 ?PostTreat@BOPAlgo_Builder@@MEAAXAEBVMessage_ProgressRange@@@Z
+                         171 ?FillIn3DParts@BOPAlgo_Builder@@MEAAXAEAV?$NCollection_DataMap@VTopoDS_Shape@@V1@VTopTools_ShapeMapHasher@@@@AEBVMessage_ProgressRange@@@Z
+                          DF ?BuildSplitFaces@BOPAlgo_Builder@@MEAAXAEBVMessage_ProgressRange@@@Z
+                         2C5 ?Prepare@BOPAlgo_Builder@@MEAAXXZ
+                          D7 ?BuildResult@BOPAlgo_Builder@@MEAAXW4TopAbs_ShapeEnum@@@Z
+                         2A5 ?PerformInternal@BOPAlgo_Builder@@MEAAXAEBVBOPAlgo_PaveFiller@@AEBVMessage_ProgressRange@@@Z
+                         3B3 ?fillPIConstants@BOPAlgo_Builder@@MEBAXNAEAVBOPAlgo_PISteps@@@Z
+                         238 ?LocGenerated@BOPAlgo_Builder@@MEAAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         239 ?LocModified@BOPAlgo_Builder@@MEAAPEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                          D1 ?BuildBOP@BOPAlgo_Builder@@UEAAXAEBV?$NCollection_List@VTopoDS_Shape@@@@W4TopAbs_State@@01AEBVMessage_ProgressRange@@V?$handle@VMessage_Report@@@opencascade@@@Z
+                         2B3 ?PerformWithFiller@BOPAlgo_Builder@@UEAAXAEBVBOPAlgo_PaveFiller@@AEBVMessage_ProgressRange@@@Z
+                         307 ?SetArguments@BOPAlgo_Builder@@UEAAXAEBV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                          A1 ?AddArgument@BOPAlgo_Builder@@UEAAXAEBVTopoDS_Shape@@@Z
+                         102 ?Clear@BOPAlgo_Builder@@UEAAXXZ
+                          7A ??1BOPAlgo_Builder@@UEAA@XZ
+                           7 ??0BOPAlgo_Builder@@QEAA@XZ
+                         194 ?GetCheckResult@BOPAlgo_ArgumentAnalyzer@@QEBAAEBV?$NCollection_List@VBOPAlgo_CheckResult@@@@XZ
+                         281 ?Perform@BOPAlgo_ArgumentAnalyzer@@UEAAXAEBVMessage_ProgressRange@@@Z
+                         36E ?StopOnFirstFaulty@BOPAlgo_ArgumentAnalyzer@@QEAAAEA_NXZ
+                         344 ?SetShape1@BOPAlgo_ArgumentAnalyzer@@QEAAXAEBVTopoDS_Shape@@@Z
+                          78 ??1BOPAlgo_ArgumentAnalyzer@@UEAA@XZ
+                           3 ??0BOPAlgo_ArgumentAnalyzer@@QEAA@XZ
+                         195 ?GetCheckStatus@BOPAlgo_CheckResult@@QEBA?AW4BOPAlgo_CheckStatus@@XZ
+                          FB ?CheckResult@BOPAlgo_Algo@@MEAAXXZ
+                         207 ?IsHole@IntTools_FClass2d@@QEBA_NXZ
+                          93 ??1IntTools_FClass2d@@QEAA@XZ
+                         293 ?Perform@IntTools_FClass2d@@QEBA?AW4TopAbs_State@@AEBVgp_Pnt2d@@_N@Z
+                         1DE ?Init@IntTools_FClass2d@@QEAAXAEBVTopoDS_Face@@N@Z
+                          60 ??0IntTools_FClass2d@@QEAA@AEBVTopoDS_Face@@N@Z
+                         1CE ?Index@BOPDS_DS@@QEBAHAEBVTopoDS_Shape@@@Z
+                          61 ??0IntTools_FClass2d@@QEAA@XZ
+                         243 ?MakeConnexityBlocks@BOPTools_AlgoTools@@SAXAEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@1AEAV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         258 ?MakeSplitEdge@BOPTools_AlgoTools@@SAXAEBVTopoDS_Edge@@AEBVTopoDS_Vertex@@N1NAEAV2@@Z
+                         10E ?ComputeIntRange@IntTools_Tools@@SANNNN@Z
+                         221 ?IsSplitToReverse@BOPTools_AlgoTools@@SA_NAEBVTopoDS_Shape@@0AEBV?$handle@VIntTools_Context@@@opencascade@@PEAH@Z
+                         1A4 ?GetNormalToFaceOnEdge@BOPTools_AlgoTools3D@@SAXAEBVTopoDS_Edge@@AEBVTopoDS_Face@@AEAVgp_Dir@@AEBV?$handle@VIntTools_Context@@@opencascade@@@Z
+                         360 ?SolidClassifier@IntTools_Context@@QEAAAEAVBRepClass3d_SolidClassifier@@AEBVTopoDS_Solid@@@Z
+                         242 ?MakeConnexityBlocks@BOPTools_AlgoTools@@SAXAEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@1AEAV?$NCollection_List@V?$NCollection_List@VTopoDS_Shape@@@@@@AEAV?$NCollection_IndexedDataMap@VTopoDS_Shape@@V?$NCollection_List@VTopoDS_Shape@@@@VTopTools_ShapeMapHasher@@@@@Z
+
+    TKPrim.dll
+             18014F380 Import Address Table
+             1801A93B0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          64 ??1BRepSweep_NumLinearRegularSweep@@UEAA@XZ
+                          BE ?Generated@BRepPrimAPI_MakePrism@@UEAAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                           F ??0BRepPrimAPI_MakePrism@@QEAA@AEBVTopoDS_Shape@@AEBVgp_Vec@@_N2@Z
+
+    TKBool.dll
+             18014D818 Import Address Table
+             1801A7848 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         60F ?IsDone@BRepAlgo_FaceRestrictor@@QEBA_NXZ
+                         7F8 ?Perform@BRepAlgo_FaceRestrictor@@QEAAXXZ
+                         105 ?Add@BRepAlgo_FaceRestrictor@@QEAAXAEAVTopoDS_Wire@@@Z
+                         596 ?Init@BRepAlgo_FaceRestrictor@@QEAAXAEBVTopoDS_Face@@_N1@Z
+                           1 ??0BRepAlgo_FaceRestrictor@@QEAA@XZ
+                         25E ?ConvertWire@BRepAlgo@@SA?AVTopoDS_Wire@@AEBV2@NAEBVTopoDS_Face@@@Z
+                         497 ?G2Error@BRepFill_Filling@@QEAANH@Z
+                         495 ?G1Error@BRepFill_Filling@@QEAANH@Z
+                         493 ?G0Error@BRepFill_Filling@@QEAANH@Z
+                         498 ?G2Error@BRepFill_Filling@@QEBANXZ
+                         496 ?G1Error@BRepFill_Filling@@QEBANXZ
+                         494 ?G0Error@BRepFill_Filling@@QEBANXZ
+                         50E ?Generated@BRepFill_Filling@@QEAAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         435 ?Face@BRepFill_Filling@@QEBA?AVTopoDS_Face@@XZ
+                         615 ?IsDone@BRepFill_Filling@@QEBA_NXZ
+                         188 ?Build@BRepFill_Filling@@QEAAXXZ
+                         727 ?More@BRepAlgo_FaceRestrictor@@QEBA_NXZ
+                         10D ?Add@BRepFill_Filling@@QEAAHAEBVgp_Pnt@@@Z
+                         10C ?Add@BRepFill_Filling@@QEAAHAEBVTopoDS_Face@@W4GeomAbs_Shape@@@Z
+                         10A ?Add@BRepFill_Filling@@QEAAHAEBVTopoDS_Edge@@AEBVTopoDS_Face@@W4GeomAbs_Shape@@_N@Z
+                         10B ?Add@BRepFill_Filling@@QEAAHAEBVTopoDS_Edge@@W4GeomAbs_Shape@@_N@Z
+                         6AF ?LoadInitSurface@BRepFill_Filling@@QEAAXAEBVTopoDS_Face@@@Z
+                         913 ?SetApproxParam@BRepFill_Filling@@QEAAXHH@Z
+                         952 ?SetResolParam@BRepFill_Filling@@QEAAXHHH_N@Z
+                         916 ?SetConstrParam@BRepFill_Filling@@QEAAXNNNN@Z
+                          1B ??0BRepFill_Filling@@QEAA@HHH_NNNNNHH@Z
+                         7FA ?Perform@BRepFill_AdvancedEvolved@@QEAAXAEBVTopoDS_Wire@@0N_N@Z
+                         181 ?Bottom@BRepFill_Evolved@@QEBAAEBVTopoDS_Shape@@XZ
+                         A07 ?Top@BRepFill_Evolved@@QEBAAEBVTopoDS_Shape@@XZ
+                         514 ?GeneratedShapes@BRepFill_Evolved@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@0@Z
+                         77F ?Next@BRepAlgo_FaceRestrictor@@QEAAXXZ
+                         614 ?IsDone@BRepFill_Evolved@@QEBA_NXZ
+                         801 ?Perform@BRepFill_Evolved@@QEAAXAEBVTopoDS_Face@@AEBVTopoDS_Wire@@AEBVgp_Ax3@@W4GeomAbs_JoinType@@_N@Z
+                         802 ?Perform@BRepFill_Evolved@@QEAAXAEBVTopoDS_Wire@@0AEBVgp_Ax3@@W4GeomAbs_JoinType@@_N@Z
+                          18 ??0BRepFill_Evolved@@QEAA@XZ
+                         171 ?Axe@BRepFill@@SAXAEBVTopoDS_Shape@@AEBVTopoDS_Wire@@AEAVgp_Ax3@@AEA_NN@Z
+                         972 ?Shape@BRepFill_Draft@@QEBA?AVTopoDS_Shape@@XZ
+                         50C ?Generated@BRepFill_Draft@@QEAAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         997 ?Shell@BRepFill_Draft@@QEBA?AVTopoDS_Shell@@XZ
+                         613 ?IsDone@BRepFill_Draft@@QEBA_NXZ
+                         7FF ?Perform@BRepFill_Draft@@QEAAXAEBVTopoDS_Shape@@_N@Z
+                         7FE ?Perform@BRepFill_Draft@@QEAAXAEBV?$handle@VGeom_Surface@@@opencascade@@_N@Z
+                         800 ?Perform@BRepFill_Draft@@QEAAXN@Z
+                         91C ?SetDraft@BRepFill_Draft@@QEAAX_N@Z
+                         945 ?SetOptions@BRepFill_Draft@@QEAAXW4BRepFill_TransitionStyle@@NN@Z
+                          10 ??0BRepFill_Draft@@QEAA@AEBVTopoDS_Shape@@AEBVgp_Dir@@N@Z
+                         565 ?HasCommonDescendant@BRepAlgo_AsDes@@QEBA_NAEBVTopoDS_Shape@@0AEAV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         2AF ?Descendant@BRepAlgo_AsDes@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         169 ?Ascendant@BRepAlgo_AsDes@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         103 ?Add@BRepAlgo_AsDes@@QEAAXAEBVTopoDS_Shape@@0@Z
+                         215 ?Clear@BRepAlgo_AsDes@@QEAAXXZ
+                           0 ??0BRepAlgo_AsDes@@QEAA@XZ
+                         6A3 ?LastImage@BRepAlgo_Image@@QEBAXAEBVTopoDS_Shape@@AEAV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         581 ?Image@BRepAlgo_Image@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         56B ?HasImage@BRepAlgo_Image@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         582 ?ImageFrom@BRepAlgo_Image@@QEBAAEBVTopoDS_Shape@@AEBV2@@Z
+                         217 ?Clear@BRepAlgo_Image@@QEAAXXZ
+                         17C ?Bind@BRepAlgo_Image@@QEAAXAEBVTopoDS_Shape@@0@Z
+                         956 ?SetRoot@BRepAlgo_Image@@QEAAXAEBVTopoDS_Shape@@@Z
+                           2 ??0BRepAlgo_Image@@QEAA@XZ
+                         26C ?Current@BRepAlgo_FaceRestrictor@@QEBA?AVTopoDS_Face@@XZ
+                          23 ??0BRepFill_OffsetWire@@QEAA@AEBVTopoDS_Face@@W4GeomAbs_JoinType@@_N@Z
+                         805 ?Perform@BRepFill_OffsetWire@@QEAAXNN@Z
+                         617 ?IsDone@BRepFill_OffsetWire@@QEBA_NXZ
+                         974 ?Shape@BRepFill_OffsetWire@@QEBAAEBVTopoDS_Shape@@XZ
+                         516 ?GeneratedShapes@BRepFill_OffsetWire@@QEAAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                          25 ??0BRepFill_Pipe@@QEAA@AEBVTopoDS_Wire@@AEBVTopoDS_Shape@@W4GeomFill_Trihedron@@_N3@Z
+                         975 ?Shape@BRepFill_Pipe@@QEBAAEBVTopoDS_Shape@@XZ
+                         326 ?ErrorOnSurface@BRepFill_Pipe@@QEBANXZ
+                         489 ?FirstShape@BRepFill_Pipe@@QEBAAEBVTopoDS_Shape@@XZ
+                         6A5 ?LastShape@BRepFill_Pipe@@QEBAAEBVTopoDS_Shape@@XZ
+                         511 ?Generated@BRepFill_Pipe@@QEAAXAEBVTopoDS_Shape@@AEAV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         436 ?Face@BRepFill_Pipe@@QEAA?AVTopoDS_Face@@AEBVTopoDS_Edge@@0@Z
+                         2FA ?Edge@BRepFill_Pipe@@QEAA?AVTopoDS_Edge@@AEBV2@AEBVTopoDS_Vertex@@@Z
+                          27 ??0BRepFill_PipeShell@@QEAA@AEBVTopoDS_Wire@@@Z
+                         909 ?Set@BRepFill_PipeShell@@QEAAX_N@Z
+                         91B ?SetDiscrete@BRepFill_PipeShell@@QEAAXXZ
+                         907 ?Set@BRepFill_PipeShell@@QEAAXAEBVgp_Ax2@@@Z
+                         908 ?Set@BRepFill_PipeShell@@QEAAXAEBVgp_Dir@@@Z
+                         90A ?Set@BRepFill_PipeShell@@QEAA_NAEBVTopoDS_Shape@@@Z
+                         906 ?Set@BRepFill_PipeShell@@QEAAXAEBVTopoDS_Wire@@_NW4BRepFill_TypeOfContact@@@Z
+                         93D ?SetMaxDegree@BRepFill_PipeShell@@QEAAXH@Z
+                         940 ?SetMaxSegments@BRepFill_PipeShell@@QEAAXH@Z
+                         925 ?SetForceApproxC1@BRepFill_PipeShell@@QEAAX_N@Z
+                         110 ?Add@BRepFill_PipeShell@@QEAAXAEBVTopoDS_Shape@@_N1@Z
+                         10F ?Add@BRepFill_PipeShell@@QEAAXAEBVTopoDS_Shape@@AEBVTopoDS_Vertex@@_N2@Z
+                         939 ?SetLaw@BRepFill_PipeShell@@QEAAXAEBVTopoDS_Shape@@AEBV?$handle@VLaw_Function@@@opencascade@@_N2@Z
+                         938 ?SetLaw@BRepFill_PipeShell@@QEAAXAEBVTopoDS_Shape@@AEBV?$handle@VLaw_Function@@@opencascade@@AEBVTopoDS_Vertex@@_N3@Z
+                         2AD ?DeleteProfile@BRepFill_PipeShell@@QEAAXAEBVTopoDS_Shape@@@Z
+                         644 ?IsReady@BRepFill_PipeShell@@QEBA_NXZ
+                         547 ?GetStatus@BRepFill_PipeShell@@QEBA?AW4GeomFill_PipeError@@XZ
+                         95E ?SetTolerance@BRepFill_PipeShell@@QEAAXNNN@Z
+                         965 ?SetTransition@BRepFill_PipeShell@@QEAAXW4BRepFill_TransitionStyle@@NN@Z
+                         998 ?Simulate@BRepFill_PipeShell@@QEAAXHAEAV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         189 ?Build@BRepFill_PipeShell@@QEAA_NXZ
+                         6F0 ?MakeSolid@BRepFill_PipeShell@@QEAA_NXZ
+                         976 ?Shape@BRepFill_PipeShell@@QEBAAEBVTopoDS_Shape@@XZ
+                         327 ?ErrorOnSurface@BRepFill_PipeShell@@QEBANXZ
+                         48A ?FirstShape@BRepFill_PipeShell@@QEBAAEBVTopoDS_Shape@@XZ
+                         6A6 ?LastShape@BRepFill_PipeShell@@QEBAAEBVTopoDS_Shape@@XZ
+                         512 ?Generated@BRepFill_PipeShell@@QEAAXAEBVTopoDS_Shape@@AEAV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                           5 ??0BRepAlgo_NormalProjection@@QEAA@XZ
+                         598 ?Init@BRepAlgo_NormalProjection@@QEAAXAEBVTopoDS_Shape@@@Z
+                         108 ?Add@BRepAlgo_NormalProjection@@QEAAXAEBVTopoDS_Shape@@@Z
+                         94B ?SetParams@BRepAlgo_NormalProjection@@QEAAXNNW4GeomAbs_Shape@@HH@Z
+                         93E ?SetMaxDistance@BRepAlgo_NormalProjection@@QEAAXN@Z
+                         245 ?Compute3d@BRepAlgo_NormalProjection@@QEAAX_N@Z
+                         93A ?SetLimit@BRepAlgo_NormalProjection@@QEAAX_N@Z
+                         187 ?Build@BRepAlgo_NormalProjection@@QEAAXXZ
+                         610 ?IsDone@BRepAlgo_NormalProjection@@QEBA_NXZ
+                         873 ?Projection@BRepAlgo_NormalProjection@@QEBAAEBVTopoDS_Shape@@XZ
+                         15A ?Ancestor@BRepAlgo_NormalProjection@@QEBAAEBVTopoDS_Shape@@AEBVTopoDS_Edge@@@Z
+                         26B ?Couple@BRepAlgo_NormalProjection@@QEBAAEBVTopoDS_Shape@@AEBVTopoDS_Edge@@@Z
+                         19E ?BuildWire@BRepAlgo_NormalProjection@@QEBA_NAEAV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                           A ??0BRepFill_CompatibleWires@@QEAA@AEBV?$NCollection_Sequence@VTopoDS_Shape@@@@@Z
+                         7FC ?Perform@BRepFill_CompatibleWires@@QEAAX_N@Z
+                         612 ?IsDone@BRepFill_CompatibleWires@@QEBA_NXZ
+                         971 ?Shape@BRepFill_CompatibleWires@@QEBAAEBV?$NCollection_Sequence@VTopoDS_Shape@@@@XZ
+                         513 ?GeneratedShapes@BRepFill_CompatibleWires@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Edge@@@Z
+                         50B ?Generated@BRepFill_CompatibleWires@@QEBAAEBV?$NCollection_DataMap@VTopoDS_Shape@@V?$NCollection_List@VTopoDS_Shape@@@@VTopTools_ShapeMapHasher@@@@XZ
+                         60D ?IsDegeneratedFirstSection@BRepFill_CompatibleWires@@QEBA_NXZ
+                         60E ?IsDegeneratedLastSection@BRepFill_CompatibleWires@@QEBA_NXZ
+                          1C ??0BRepFill_Generator@@QEAA@XZ
+                         150 ?AddWire@BRepFill_Generator@@QEAAXAEBVTopoDS_Wire@@@Z
+                         803 ?Perform@BRepFill_Generator@@QEAAXXZ
+                         8BB ?ResultShape@BRepFill_Generator@@QEBA?AVTopoDS_Shape@@AEBV2@@Z
+                         941 ?SetMutableInput@BRepFill_Generator@@QEAAX_N@Z
+                         104 ?Add@BRepAlgo_AsDes@@QEAAXAEBVTopoDS_Shape@@AEBV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         561 ?HasAscendant@BRepAlgo_AsDes@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         8A6 ?Replace@BRepAlgo_AsDes@@QEAAXAEBVTopoDS_Shape@@0@Z
+                         106 ?Add@BRepAlgo_Image@@QEAAXAEBVTopoDS_Shape@@0@Z
+                         629 ?IsImage@BRepAlgo_Image@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         566 ?HasDescendant@BRepAlgo_AsDes@@QEBA_NAEBVTopoDS_Shape@@@Z
+                         17D ?Bind@BRepAlgo_Image@@QEAAXAEBVTopoDS_Shape@@AEBV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         107 ?Add@BRepAlgo_Image@@QEAAXAEBVTopoDS_Shape@@AEBV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                           3 ??0BRepAlgo_Loop@@QEAA@XZ
+                         597 ?Init@BRepAlgo_Loop@@QEAAXAEBVTopoDS_Face@@@Z
+                         124 ?AddEdge@BRepAlgo_Loop@@QEAAXAEAVTopoDS_Edge@@AEBV?$NCollection_List@VTopoDS_Shape@@@@@Z
+                         120 ?AddConstEdge@BRepAlgo_Loop@@QEAAXAEBVTopoDS_Edge@@@Z
+                         931 ?SetImageVV@BRepAlgo_Loop@@QEAAXAEBVBRepAlgo_Image@@@Z
+                         7F9 ?Perform@BRepAlgo_Loop@@QEAAXXZ
+                         A71 ?WiresToFaces@BRepAlgo_Loop@@QEAAXXZ
+                         778 ?NewFaces@BRepAlgo_Loop@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@XZ
+                         775 ?NewEdges@BRepAlgo_Loop@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Edge@@@Z
+                         550 ?GetVerticesForSubstitute@BRepAlgo_Loop@@QEBAXAEAV?$NCollection_DataMap@VTopoDS_Shape@@V1@VTopTools_ShapeMapHasher@@@@@Z
+                         A6B ?VerticesForSubstitute@BRepAlgo_Loop@@QEAAXAEAV?$NCollection_DataMap@VTopoDS_Shape@@V1@VTopTools_ShapeMapHasher@@@@@Z
+                         894 ?Remove@BRepAlgo_AsDes@@QEAAXAEBVTopoDS_Shape@@@Z
+                         895 ?Remove@BRepAlgo_Image@@QEAAXAEBVTopoDS_Shape@@@Z
+                         8A7 ?ReplaceRoot@BRepAlgo_Image@@QEAAXAEBVTopoDS_Shape@@0@Z
+                         8BF ?Roots@BRepAlgo_Image@@QEBAAEBV?$NCollection_List@VTopoDS_Shape@@@@XZ
+                         8BE ?Root@BRepAlgo_Image@@QEBAAEBVTopoDS_Shape@@AEBV2@@Z
+                         45D ?Filter@BRepAlgo_Image@@QEAAXAEBVTopoDS_Shape@@W4TopAbs_ShapeEnum@@@Z
+                         1AF ?ChangeDescendant@BRepAlgo_AsDes@@QEAAAEAV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         10E ?Add@BRepFill_Filling@@QEAAHNNAEBVTopoDS_Face@@W4GeomAbs_Shape@@@Z
+                         50A ?Generated@BRepAlgo_NormalProjection@@QEAAAEBV?$NCollection_List@VTopoDS_Shape@@@@AEBVTopoDS_Shape@@@Z
+                         973 ?Shape@BRepFill_Evolved@@QEBAAEBVTopoDS_Shape@@XZ
+
+    MSVCP140.dll
+             18014D058 Import Address Table
+             1801A7088 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         228 ?_Lock@?$basic_streambuf@DU?$char_traits@D@std@@@std@@UEAAXXZ
+                         27F ?_Unlock@?$basic_streambuf@DU?$char_traits@D@std@@@std@@UEAAXXZ
+                         4D5 ?showmanyc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JXZ
+                         51B ?uflow@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAHXZ
+                         543 ?xsgetn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JPEAD_J@Z
+                         4B5 ?setbuf@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAPEAV12@PEAD_J@Z
+                         28E ?_Xlength_error@std@@YAXPEBD@Z
+                         4FD ?sync@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAHXZ
+                         3F6 ?imbue@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAAXAEBVlocale@2@@Z
+                          80 ??1?$basic_iostream@DU?$char_traits@D@std@@@std@@UEAA@XZ
+                          13 ??0?$basic_iostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@@Z
+                          FF ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z
+                         10D ??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_N@Z
+                           C ??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ
+                          7D ??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+                          89 ??1?$basic_streambuf@DU?$char_traits@D@std@@@std@@UEAA@XZ
+                          2F ??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ
+                         2B4 ?cout@std@@3V?$basic_ostream@DU?$char_traits@D@std@@@1@A
+                         368 ?flush@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@XZ
+                         244 ?_Osfx@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAXXZ
+                         4C5 ?setstate@?$basic_ios@DU?$char_traits@D@std@@@std@@QEAAXH_N@Z
+                         4E1 ?sputn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAA_JPEBD_J@Z
+                         4DE ?sputc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAAHD@Z
+                         275 ?_Throw_Cpp_error@std@@YAXH@Z
+                         589 _Mtx_unlock
+                         585 _Mtx_lock
+                         51E ?uncaught_exception@std@@YA_NXZ
+                         546 ?xsputn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JPEBD_J@Z
+
+    KERNEL32.dll
+             18014D000 Import Address Table
+             1801A7030 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         5A9 SleepConditionVariableSRW
+                         381 InitializeSListHead
+                         12C DisableThreadLibraryCalls
+                         301 GetSystemTimeAsFileTime
+                         22F GetCurrentThreadId
+                         22B GetCurrentProcessId
+                         464 QueryPerformanceCounter
+                         4CC ReleaseSRWLockExclusive
+                           0 AcquireSRWLockExclusive
+                         60A WakeAllConditionVariable
+
+    VCRUNTIME140.dll
+             18014F928 Import Address Table
+             1801A9958 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          36 _purecall
+                          21 __std_exception_copy
+                          22 __std_exception_destroy
+                           1 _CxxThrowException
+                          1C __current_exception_context
+                          18 __RTDynamicCast
+                          3C memcpy
+                          3D memmove
+                          3B memcmp
+                          3E memset
+                           8 __C_specific_handler
+                          1B __current_exception
+                          25 __std_type_info_destroy_list
+
+    VCRUNTIME140_1.dll
+             18014F998 Import Address Table
+             1801A99C8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           0 __CxxFrameHandler4
+
+    api-ms-win-crt-math-l1-1-0.dll
+             18014F9C8 Import Address Table
+             1801A99F8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          4F asin
+                          90 cos
+                         112 sin
+                         118 tan
+                          4A acos
+                          55 atan2
+                          F5 nextafter
+                         116 sqrt
+
+    api-ms-win-crt-heap-l1-1-0.dll
+             18014F9A8 Import Address Table
+             1801A99D8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          19 malloc
+                          18 free
+                           8 _callnewh
+
+    api-ms-win-crt-string-l1-1-0.dll
+             18014FA70 Import Address Table
+             1801A9AA0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          8B strlen
+
+    api-ms-win-crt-runtime-l1-1-0.dll
+             18014FA10 Import Address Table
+             1801A9A40 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          33 _initialize_narrow_environment
+                          34 _initialize_onexit_table
+                          3C _register_onexit_function
+                          22 _execute_onexit_table
+                          1E _crt_atexit
+                          16 _cexit
+                          3F _seh_filter_dll
+                          67 terminate
+                          36 _initterm
+                          37 _initterm_e
+                          18 _configure_narrow_argv
+
+  Summary
+
+        5000 .data
+        8000 .pdata
+       72000 .rdata
+        1000 .reloc
+        1000 .rsrc
+      14C000 .text

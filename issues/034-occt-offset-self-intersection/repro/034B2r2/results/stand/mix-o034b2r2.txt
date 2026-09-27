@@ -1,0 +1,19 @@
+mix_r1_3_d1.5_a_off                          EXACT   valid=True bop=clean nsol=1 nf=8 vol=1302.24004 ms=57 ref=1302.24004 sd=0 rel=0 exc=-
+mix_r1_3_d1.5_n_off                          EXACT   valid=True bop=clean nsol=1 nf=8 vol=1302.24003 ms=213 ref=1302.24004 sd=0 rel=0 exc=-
+mix_r1_3_d1.5_w_off                          EXACT   valid=True bop=clean nsol=1 nf=8 vol=1302.24004 ms=63 ref=1302.24004 sd=0 rel=0 exc=-
+mix_r1_3_t1.5_a_thk                          EXACT   valid=True bop=clean nsol=1 nf=17 vol=1175.78815 ms=21 ref=1175.78815 sd=0 rel=0 exc=-
+mix_r1_3_t1.5_n_thk                          EXACT   valid=True bop=C0only nsol=1 nf=17 vol=1175.76254 ms=307 ref=1175.78815 sd=0 rel=0 exc=-
+mix_r1_3_t1.5_w_thk                          EXACT   valid=True bop=clean nsol=1 nf=17 vol=1175.78815 ms=36 ref=1175.78815 sd=0 rel=0 exc=-
+mix_r1_3_d2.5_a_off                          EXACT   valid=True bop=clean nsol=1 nf=8 vol=674.46350 ms=24 ref=674.46350 sd=0 rel=0 exc=-
+mix_r1_3_d2.5_n_off                          EXACT   valid=True bop=clean nsol=1 nf=8 vol=674.46349 ms=145 ref=674.46350 sd=0 rel=0 exc=-
+mix_r1_3_d2.5_w_off                          EXACT   valid=True bop=clean nsol=1 nf=8 vol=674.46350 ms=50 ref=674.46350 sd=0 rel=0 exc=-
+mix_r1_3_t2.5_a_thk                          EXACT   valid=True bop=clean nsol=1 nf=17 vol=1745.38439 ms=21 ref=1745.38439 sd=0 rel=0 exc=-
+mix_r1_3_t2.5_n_thk                          EXACT   valid=True bop=C0only nsol=1 nf=17 vol=1745.37953 ms=256 ref=1745.38439 sd=0 rel=0 exc=-
+mix_r1_3_t2.5_w_thk                          EXACT   valid=True bop=clean nsol=1 nf=17 vol=1745.38439 ms=24 ref=1745.38439 sd=0 rel=0 exc=-
+mix_r1_2_d1_a_off                            EXACT   valid=True bop=clean nsol=1 nf=8 vol=1724.56637 ms=35 ref=1724.56637 sd=0 rel=0 exc=-
+mix_r1_2_d1_n_off                            EXACT   valid=True bop=clean nsol=1 nf=8 vol=1724.56635 ms=198 ref=1724.56637 sd=0 rel=0 exc=-
+mix_r1_2_d1_w_off                            EXACT   valid=True bop=clean nsol=1 nf=8 vol=1724.56637 ms=75 ref=1724.56637 sd=0 rel=0 exc=-
+mix_r1_2_t1_a_thk                            EXACT   valid=True bop=clean nsol=1 nf=17 vol=838.40265 ms=49 ref=838.40265 sd=0 rel=0 exc=-
+mix_r1_2_t1_n_thk                            EXACT   valid=True bop=C0only nsol=1 nf=17 vol=838.38287 ms=404 ref=838.40265 sd=0 rel=0 exc=-
+mix_r1_2_t1_w_thk                            EXACT   valid=True bop=clean nsol=1 nf=17 vol=838.40265 ms=40 ref=838.40265 sd=0 rel=0 exc=-
+RV-DONE

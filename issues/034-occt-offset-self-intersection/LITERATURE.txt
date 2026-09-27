@@ -349,3 +349,9 @@ Own derivations (recorded here and in the commit/code comments):
 Better-known method check: no published kernel method for this sub-class beyond Forsyth's neighbour intersection was
 found; the exact partial-fold trimming (Aomura-Uehara 1990, Maekawa 1999, Hong 2019, Park 2021) stays the method for
 rounds 2+.
+
+Lane B2 round 2 (28.09.2026): sources and their use are listed in repro/034B2r2/LIT-r2.txt (A proven vanishing test:
+Maekawa 1999 CAD, Sederberg-Meyers 1988 CAGD, Hu-Maekawa-Patrikalakis-Ye 1997 CAD, lane R-034g conditions; B cap/rim
+sections: own derivation on the round-1 rim lemma, Forsyth 1995, Rossignac-Requicha 1986; C partial folds studied, not
+implemented: Park-Hong-Kim-Elber CAGD 2021, ACM TOG 2025 doi 10.1145/3727620, Pekerman-Elber-Kim CAD 2008,
+Seong-Elber-Kim CAD 2006 (distance maps - not applied, IP), Hong 2019).

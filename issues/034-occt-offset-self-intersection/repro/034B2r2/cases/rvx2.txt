@@ -1,0 +1,12 @@
+var_d1.2_a var_a.brep offset -1.2 arc none 0 -
+var_d1.2_w var_w.brep offset -1.2 arc none 0 -
+var_d2_a var_a.brep offset -2 arc none 0 -
+var_d2_w var_w.brep offset -2 arc none 0 -
+var_d0.75_a var_a.brep offset -0.75 arc none 0 -
+var_d0.75_w var_w.brep offset -0.75 arc none 0 -
+barrel_r1_a_t1.5 barrel_r1_a.brep thick -1.5 arc 2 1086.508363296 ref_barrel_r1_a_t1.5.brep
+barrel_r1_a_t3 barrel_r1_a.brep thick -3 arc 2 1817.934151434 ref_barrel_r1_a_t3.brep
+barrel_r1_w_t1.5 barrel_r1_w.brep thick -1.5 arc 2 1086.508363296 ref_barrel_r1_w_t1.5.brep
+barrel_r1_w_t3 barrel_r1_w.brep thick -3 arc 2 1817.934151434 ref_barrel_r1_w_t3.brep
+barrel_r2_a_t3 barrel_r2_a.brep thick -3 arc 2 1809.633466122 ref_barrel_r2_a_t3.brep
+barrel_r2_w_t3 barrel_r2_w.brep thick -3 arc 2 1809.633466122 ref_barrel_r2_w_t3.brep

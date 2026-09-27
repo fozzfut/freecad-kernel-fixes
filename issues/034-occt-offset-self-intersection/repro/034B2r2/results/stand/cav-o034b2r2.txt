@@ -1,0 +1,6 @@
+# cav solids/shells: 1 2
+cav_r1_d1.5_a_outoff                         ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+cav_r1_d1.5_n_outoff                         ERR     ms=1 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+cav_r1_d3_a_outoff                           ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+cav_r1_d3_n_outoff                           ERR     ms=1 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+RV-DONE
