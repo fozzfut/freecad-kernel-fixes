@@ -1,0 +1,89 @@
+From 01c0dbd5ee5dcf504f3a7745244469f4ee8e82ff Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 19:07:17 +0700
+Subject: [PATCH] Gui: Python document observers do not see a view provider
+ under construction (issue 040)
+
+A document view provider is attached to its object right after construction
+(Gui::Document::slotNewObject). Before that, base-class constructors already set
+properties (ViewProviderGeometryObject::Selectable) and the change is signalled.
+DocumentObserverPython wrapped the view provider at that moment: getPyObject()
+of the base class under construction created and cached the base wrapper
+(ViewProviderGeometryObjectPy) for the life of the view provider, so
+ViewProviderAssembly, ViewProviderPartExt, PartDesign, Mesh and FEM view providers
+lost their own Python API, and ViewProviderFemMesh could not be created
+("Cannot add static property") as soon as any Python Gui observer with
+slotChangedObject/slotBeforeChangeObject was registered.
+
+slotBeforeChangeObject/slotChangedObject now skip a document view provider that is
+not attached yet (getObject() == nullptr).
+
+Declared change: Python Gui observers no longer receive the property changes a
+view provider makes before ViewProviderDocumentObject::attach() sets its object:
+(1) the default values set by constructors, and (2) the part of a derived attach()
+that runs before it calls the base attach(). Of the 52 attach() overrides only
+ViewProviderSubShapeBinder::attach has such a part (ViewProviderShapeBinder.cpp:
+UseBinderStyle.setValue and its onChanged cascade ShapeAppearance, LineColor,
+LineColorArray, PointColor, PointColorArray, PointMaterial, Transparency,
+LineWidth). Stock handed those events to Python with Object == None. Every event
+after the object is set is unchanged; C++ subscribers are untouched.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/DocumentObserverPython.cpp | 26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/src/Gui/DocumentObserverPython.cpp b/src/Gui/DocumentObserverPython.cpp
+index 426aed9..77ca320 100644
+--- a/src/Gui/DocumentObserverPython.cpp
++++ b/src/Gui/DocumentObserverPython.cpp
+@@ -34,6 +34,26 @@ namespace sp = std::placeholders;
+ 
+ std::vector<DocumentObserverPython*> DocumentObserverPython::_instances;
+ 
++namespace
++{
++// A document view provider is attached to its object right after it is constructed
++// (Gui::Document::slotNewObject: createInstance() then attach()). Before that it is still being
++// constructed: base-class constructors already set properties (e.g. Selectable in
++// ViewProviderGeometryObject), and every such change is signalled. Handing the view provider to
++// Python at that point calls getPyObject() while only a base class is constructed, so the base
++// class's wrapper (e.g. ViewProviderGeometryObjectPy) is created and cached in pyViewObject for the
++// whole life of the view provider: its own Python API (ViewProviderAssembly.isInEditMode,
++// ViewProviderPartExt, PartDesign ViewProvider, Mesh, FEM ...) is lost. The property-name lookup
++// for the observer also merges the property table of the class under construction, so a
++// constructor that adds a property after such a signal throws "Cannot add static property"
++// (ViewProviderFemMesh). Python observers therefore see a view provider only once it is attached.
++bool isUnderConstruction(const Gui::ViewProvider& vp)
++{
++    return vp.isDerivedFrom<ViewProviderDocumentObject>()
++        && !static_cast<const ViewProviderDocumentObject&>(vp).getObject();
++}
++}  // namespace
++
+ void DocumentObserverPython::addObserver(const Py::Object& obj)
+ {
+     _instances.push_back(new DocumentObserverPython(obj));
+@@ -196,6 +216,9 @@ void DocumentObserverPython::slotBeforeChangeObject(
+     const App::Property& Prop
+ )
+ {
++    if (isUnderConstruction(Obj)) {
++        return;
++    }
+     Base::PyGILStateLocker lock;
+     try {
+         Py::Tuple args(2);
+@@ -216,6 +239,9 @@ void DocumentObserverPython::slotBeforeChangeObject(
+ 
+ void DocumentObserverPython::slotChangedObject(const Gui::ViewProvider& Obj, const App::Property& Prop)
+ {
++    if (isUnderConstruction(Obj)) {
++        return;
++    }
+     Base::PyGILStateLocker lock;
+     try {
+         Py::Tuple args(2);
+-- 
+2.52.0.windows.1
+

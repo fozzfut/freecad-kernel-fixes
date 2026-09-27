@@ -1,0 +1,5 @@
+040 provenance / IP (27.09.2026)
+- Design element "Python observers are not shown a view provider before attach()": own derivation from FreeCAD's
+  own code (Gui::Document::slotNewObject creates then attaches; LGPL, same repo) and the object-initialisation
+  literature in LITERATURE.txt. No proprietary code, text or documentation used.
+- Patent check: not an algorithm; a lifecycle guard in a signal gateway. No patent concern identified.
