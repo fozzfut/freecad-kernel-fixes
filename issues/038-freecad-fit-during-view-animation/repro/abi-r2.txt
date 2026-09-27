@@ -1,0 +1,19 @@
+== round 2: FreeCADGui delivered 7af65a21 -> fix 39a66e0c
+exports(named) 12230 12232 functions 12230 12232 +2 -0
+imports 8426 8429 +3 -0
+  + ('qt6core.dll', '?loopCount@QAbstractAnimation@@QEBAHXZ')
+  + ('qt6core.dll', '?setCurrentTime@QAbstractAnimation@@QEAAXH@Z')
+  + ('qt6core.dll', '?totalDuration@QAbstractAnimation@@QEBAHXZ')
+== round 2: D0 74c28d34 -> fix
+exports(named) 12230 12232 functions 12230 12232 +2 -0
+imports 8426 8429 +3 -0
+  + ('qt6core.dll', '?loopCount@QAbstractAnimation@@QEBAHXZ')
+  + ('qt6core.dll', '?setCurrentTime@QAbstractAnimation@@QEAAXH@Z')
+  + ('qt6core.dll', '?totalDuration@QAbstractAnimation@@QEBAHXZ')
+== round 2: r1 fix 9a0de2e7 -> r2 fix (only the absolute-placement change)
+exports(named) 12232 12232 functions 12232 12232 +0 -0
+imports 8429 8429 +0 -0
+== negative control: 1.1.1 FreeCADGui -> fix
+exports(named) 11662 12232 functions 11662 12232 +1054 -484
+imports 8200 8429 +631 -402
+  + ('api-ms-win-crt-convert-l1-1-0.dll', 'strtof')

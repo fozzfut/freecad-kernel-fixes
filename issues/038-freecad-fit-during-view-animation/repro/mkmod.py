@@ -21,6 +21,14 @@ TARGETS = {
     "gui": ("bin\\FreeCADGui.dll", "FreeCADGui", ["Gui/View3DInventorViewer.cpp", "Gui/Navigation/NavigationStyle.cpp",
             "Gui/Navigation/NavigationAnimator.cpp", "Gui/View3DPy.cpp", "Gui/View3DViewerPy.cpp",
             "Gui/CommandView.cpp", "Gui/Tree.cpp"], "FreeCADGui.dll", "FreeCADGui.lib"),
+    # round 2: on mig/undo-vis-pe 3eccec5 (delivered 7af65a21) = the undo-vis sources + propertyeditor/PropertyItem.cpp
+    "gui2": ("bin\\FreeCADGui.dll", "FreeCADGui", ["Gui/View3DInventorViewer.cpp", "Gui/Navigation/NavigationStyle.cpp",
+             "Gui/Navigation/NavigationAnimator.cpp", "Gui/View3DPy.cpp", "Gui/View3DViewerPy.cpp",
+             "Gui/CommandView.cpp", "Gui/Tree.cpp", "Gui/propertyeditor/PropertyItem.cpp"], "FreeCADGui.dll", "FreeCADGui.lib"),
+    # round 2 D0: only the five sources the delivered 035-PE build (7af65a21) swapped, from a folder whose path has the
+    # length of that build's mirror (C:\dev\occt8-mig\uvp\fix\src = C:\dev\occt8-mig\vr6unconf\d), so __FILE__ strings keep their size
+    "gui2d0": ("bin\\FreeCADGui.dll", "FreeCADGui", ["Gui/View3DPy.cpp", "Gui/View3DViewerPy.cpp", "Gui/CommandView.cpp",
+               "Gui/Tree.cpp", "Gui/propertyeditor/PropertyItem.cpp"], "FreeCADGui.dll", "FreeCADGui.lib"),
     "part": ("Mod\\Part\\PartGui.pyd", "PartGui", ["Mod/Part/Gui/SoBrepFaceSet.cpp"], "PartGui.pyd", "PartGui.lib"),
 }
 
