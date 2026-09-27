@@ -1,0 +1,27 @@
+040 - literature pass (27.09.2026). Problem class: an object is published (handed to foreign code) before its
+construction has finished; a virtual call made through it resolves to a base class, and its result is cached.
+
+1. Qi X., Myers A.C. "Masked types for sound object initialization". POPL 2009, pp. 53-65.
+   DOI 10.1145/1480881.1480890 (web-checked). Venue: ACM SIGPLAN-SIGACT POPL (top conference; PL publishes mainly there).
+   Idea: track the initialisation state of an object in its type; a partially initialised object may not be used
+   as a fully initialised one. Applied: "attached" is the observable end of view-provider construction in FreeCAD;
+   the Python gateway treats an unattached view provider as not yet usable and does not publish it.
+2. Summers A.J., Müller P. "Freedom before commitment: a lightweight type system for object initialisation".
+   OOPSLA 2011, pp. 1013-1032. DOI 10.1145/2048066.2048142 (web-checked). Venue: ACM OOPSLA (top conference).
+   Idea: objects under construction ("free") may only be referenced in restricted ways until construction is
+   "committed". Applied: the same boundary - no reference to a free view provider may escape to Python, where
+   it would be stored (pyViewObject cache) and used as a committed object.
+3. Fähndrich M., Leino K.R.M. "Declaring and checking non-null types in an object-oriented language".
+   OOPSLA 2003. DOI 10.1145/949305.949332 (not web-checked). Venue: ACM OOPSLA.
+   Idea: "raw" (partially constructed) types; methods called on raw objects must not assume invariants of
+   subclasses. Applied as the diagnosis: getPyObject() is virtual and was called on a raw object.
+4. Gil J., Shragai T. "Are we ready for a safer construction environment?" ECOOP 2009, LNCS 5653.
+   (DOI not web-checked; abstract-level only.) Idea: empirical study - virtual calls from constructors and
+   'this' escaping during construction are common defect sources in C++/Java code. Applied: the fix removes the
+   escape at the one gateway (DocumentObserverPython) instead of guarding each of the 11 getPyObject overrides.
+
+Why not the alternatives from the same literature:
+- Re-creating the wrapper after construction (a "commit" step that swaps the cached wrapper) would invalidate Python
+  references an observer may have kept, and changes ViewProvider's layout/ABI (a flag member) - rejected.
+- Guarding every getPyObject() override (11 classes in 7 modules) fixes only known classes, not the class of defect.
+No journal with IF >= 5 treats this specific C++/Python binding issue; the field publishes in PL conferences (above).
