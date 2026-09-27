@@ -1,0 +1,179 @@
+From ec793506f9d6c78a487a96a1421e4620eeaa74b2 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 18:55:18 +0700
+Subject: [PATCH] PartDesign: New Body and dropping onto a body share one base
+ feature test
+
+PR #31763 ("PD: Allow BaseFeatures from other App::Parts") let a body take a
+base feature from another App::Part (STEP imports with nested Part
+containers) and from links. For the links it widened the selection
+PartDesign_Body looks at from Part::Feature to every App::DocumentObject, and
+the drop test of ViewProviderBody from Part::Feature to "has a non-null
+shape". Since then every selected object is a base feature candidate: a
+Spreadsheet or VarSet still selected after its creation, a mesh, points, a
+coordinate system or an origin gives the modal "Base feature (...) has an
+empty shape."; an App::Part, a group or a link group becomes the BaseFeature
+(a compound of its children; the active App::Part even a body based on its
+own container); an origin plane or axis gives an infinite base; a mixed
+selection fails with "Body may be based on no more than one feature." and no
+body. Dropping a group, an App::Part or a link group onto an empty body makes
+it the BaseFeature as well.
+
+PartDesignGui::canBeBaseFeature() (Utils) now answers the question for both
+paths: the object owns Part geometry (Part::Feature, or a GeoFeature whose
+geometry property is a Part shape), directly or as the final target of a
+link, a link array or a chain of them. Links are followed with
+LinkBaseExtension::getTrueLinkedObject(), because getLinkedObject() stops at
+a link array (extensionGetLinkedObject() returns the array itself while
+ElementCount > 0); a link group has no target and stays out.
+
+PartDesign_Body leaves the other selected objects out silently, as before
+#31763. Shape objects keep every check and message: other body, Part Design
+feature, body, sketch, the empty-shape warning of a Part feature without a
+shape, the multiple solids/shells warnings, links and link arrays of solids,
+base features from other App::Parts. The BaseFeature/move branch of
+canDropObject() requires canBeBaseFeature() in addition to a non-empty shape;
+its VarSet, datum, coordinate system, sub-shape binder and 2D object branches
+are unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/PartDesign/Gui/CommandBody.cpp      | 13 ++++++++
+ src/Mod/PartDesign/Gui/Utils.cpp            | 35 +++++++++++++++++++++
+ src/Mod/PartDesign/Gui/Utils.h              | 10 ++++++
+ src/Mod/PartDesign/Gui/ViewProviderBody.cpp |  4 ++-
+ 4 files changed, 61 insertions(+), 1 deletion(-)
+
+diff --git a/src/Mod/PartDesign/Gui/CommandBody.cpp b/src/Mod/PartDesign/Gui/CommandBody.cpp
+index 2d2a48d..f200669 100644
+--- a/src/Mod/PartDesign/Gui/CommandBody.cpp
++++ b/src/Mod/PartDesign/Gui/CommandBody.cpp
+@@ -23,6 +23,8 @@
+  ***************************************************************************/
+ 
+ 
++#include <algorithm>
++
+ #include <QApplication>
+ #include <QInputDialog>
+ #include <QMessageBox>
+@@ -123,6 +125,17 @@ void CmdPartDesignBody::activated(int iMsg)
+     std::vector<App::DocumentObject*> features = getSelection().getObjectsOfType(
+         App::DocumentObject::getClassTypeId()
+     );
++    // Only objects that can be a base feature count (canBeBaseFeature(), shared with dropping onto a
++    // body); the rest of the selection (spreadsheets, variable sets, containers, origin elements,
++    // ...) is left out silently, as while only Part::Feature objects were looked at.
++    features.erase(
++        std::remove_if(
++            features.begin(),
++            features.end(),
++            [](const App::DocumentObject* obj) { return !PartDesignGui::canBeBaseFeature(obj); }
++        ),
++        features.end()
++    );
+     App::DocumentObject* baseFeature = nullptr;
+     bool addtogroup = false;
+ 
+diff --git a/src/Mod/PartDesign/Gui/Utils.cpp b/src/Mod/PartDesign/Gui/Utils.cpp
+index 34a4401..7a22cc4 100644
+--- a/src/Mod/PartDesign/Gui/Utils.cpp
++++ b/src/Mod/PartDesign/Gui/Utils.cpp
+@@ -23,11 +23,15 @@
+  ***************************************************************************/
+ 
+ 
++#include <algorithm>
++
+ #include <QMessageBox>
+ #include <gp_Pln.hxx>
+ #include <Precision.hxx>
+ 
+ 
++#include <App/GeoFeature.h>
++#include <App/Link.h>
+ #include <App/Origin.h>
+ #include <App/Datums.h>
+ #include <App/Part.h>
+@@ -35,6 +39,7 @@
+ #include <Gui/CommandT.h>
+ #include <Gui/MainWindow.h>
+ #include <Gui/MDIView.h>
++#include <Mod/Part/App/PropertyTopoShape.h>
+ #include <Mod/PartDesign/App/Body.h>
+ #include <Mod/PartDesign/App/Feature.h>
+ #include <Mod/PartDesign/App/FeatureSketchBased.h>
+@@ -540,6 +545,36 @@ void relinkToBody(PartDesign::Feature* feature)
+     }
+ }
+ 
++bool canBeBaseFeature(const App::DocumentObject* object)
++{
++    auto ownsPartShape = [](const App::DocumentObject* obj) {
++        return obj->isDerivedFrom<Part::Feature>()
++            || freecad_cast<const Part::PropertyPartShape*>(
++                App::GeoFeature::getPropertyOfGeometry(obj)
++            );
++    };
++    // Follow links to the object that holds the geometry. DocumentObject::getLinkedObject() stops
++    // at a link array (LinkBaseExtension::extensionGetLinkedObject() returns the array itself while
++    // ElementCount > 0), so a link step goes through LinkBaseExtension::getTrueLinkedObject(), which
++    // also resolves the array to its target. A link group has no target and ends the walk.
++    std::vector<const App::DocumentObject*> visited;
++    while (object && std::ranges::find(visited, object) == visited.end()) {
++        if (ownsPartShape(object)) {
++            return true;
++        }
++        visited.push_back(object);
++        const App::DocumentObject* next = nullptr;
++        if (auto* link = object->getExtensionByType<App::LinkBaseExtension>(true)) {
++            next = link->getTrueLinkedObject(true);
++        }
++        else {
++            next = object->getLinkedObject(true);
++        }
++        object = next;
++    }
++    return false;
++}
++
+ bool isFeatureMovable(App::DocumentObject* const feat)
+ {
+     if (!feat) {
+diff --git a/src/Mod/PartDesign/Gui/Utils.h b/src/Mod/PartDesign/Gui/Utils.h
+index 894a901..2e20d3b 100644
+--- a/src/Mod/PartDesign/Gui/Utils.h
++++ b/src/Mod/PartDesign/Gui/Utils.h
+@@ -122,4 +122,14 @@ std::vector<App::DocumentObject*> collectMovableDependencies(
+ /// Relink sketches and datums to target body's origin
+ void relinkToOrigin(App::DocumentObject* feature, PartDesign::Body* body);
+ 
++/**
++ * Returns true if the object can become the BaseFeature of a body: it owns Part geometry (a
++ * Part::Feature, or a GeoFeature whose geometry property is a Part shape), directly or as the final
++ * target of a link, a link array or a chain of them. Objects without Part geometry of their own
++ * (spreadsheets, variable sets, meshes, points, App::Part and group containers, link groups, origin
++ * and App datum elements, links to any of them) are not base feature candidates. Whether the shape
++ * is empty is not checked here.
++ */
++bool canBeBaseFeature(const App::DocumentObject* object);
++
+ }  // namespace PartDesignGui
+diff --git a/src/Mod/PartDesign/Gui/ViewProviderBody.cpp b/src/Mod/PartDesign/Gui/ViewProviderBody.cpp
+index e5ff772..ceba94c 100644
+--- a/src/Mod/PartDesign/Gui/ViewProviderBody.cpp
++++ b/src/Mod/PartDesign/Gui/ViewProviderBody.cpp
+@@ -548,7 +548,9 @@ bool ViewProviderBody::canDropObject(App::DocumentObject* obj) const
+     else if (obj->isDerivedFrom<Part::Part2DObject>()) {
+         return true;
+     }
+-    else if (!hasBaseFeatureShape(obj)) {
++    // The rest can only be moved into the body or become its BaseFeature: accept objects that can
++    // be a base feature (the same test PartDesign_Body applies to the selection) with a shape.
++    else if (!PartDesignGui::canBeBaseFeature(obj) || !hasBaseFeatureShape(obj)) {
+         return false;
+     }
+     else if (PartDesign::Body::findBodyOf(obj)) {
+-- 
+2.52.0.windows.1
+
