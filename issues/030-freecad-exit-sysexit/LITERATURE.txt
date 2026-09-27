@@ -1,0 +1,44 @@
+LITERATURE - lane exithang (FreeCAD 26.3 abort at exit, PySide 6.11 / Python 3.14), 26.09.2026
+Problem class: object lifetime across a language boundary at process shutdown - a C++ host (FreeCAD/Qt) embeds a
+garbage-collected runtime (CPython) plus a binding layer (shiboken6/PySide6) whose static state is destroyed by the
+C runtime in DLL-detach order, not in dependency order. The literature is PL/systems work; the field publishes
+mainly in top conferences (POPL, PLDI, ECOOP), which the rules allow when marked as conference. No IF >= 5 journal
+paper on this narrow problem was found (search: TSE/TOSEM multi-language bug studies - they classify FFI bugs but do
+not address finalisation order); marked honestly.
+
+1. H.-J. Boehm, "Destructors, finalizers, and synchronization", POPL 2003 (ACM SIGPLAN-SIGACT, conference, top
+   venue of the field), pp. 262-272. DOI 10.1145/604131.604153. Open access (HP Labs TR HPL-2002-335).
+   Idea: finalizers of a collected runtime run at points unrelated to the host's scope structure; code that runs at
+   shutdown must not assume the other runtime's objects/locks still exist; the safe design is to run finalisation
+   explicitly, in a defined order, BEFORE the host tears down shared state.
+   Applied: the fix finalises the interpreter explicitly before exit() on the SystemExit path, i.e. before the C
+   runtime starts DLL static destructors (shiboken BindingManager, Qt global statics). This is the order the normal
+   close path already uses (App::Application::destruct -> Interpreter().finalize()).
+
+2. B. Lee, B. Wiedermann, M. Hirzel, R. Grimm, K. S. McKinley, "Jinn: synthesizing dynamic bug detectors for
+   foreign language interfaces", PLDI 2010 (conference, top venue). DOI 10.1145/1806596.1806601. Open access (UT).
+   Idea: FFI constraints (who may touch which reference in which state/thread) form state machines; violations such
+   as using a reference after the owning runtime's state ended are detected dynamically at the boundary.
+   Applied (diagnosis, not code): the exit states were classified as a state machine - [Python initialised,
+   GIL released, Qt objects deleted, shiboken statics alive] is the illegal state reached only on the SystemExit
+   path; the exitdbg helper watches exactly the boundary transitions (exit(), abort(), first/second-chance AV).
+
+3. S. Li, G. Tan, "Finding reference-counting errors in Python/C programs with affine analysis", ECOOP 2014
+   (conference, LNCS 8586). DOI 10.1007/978-3-662-44202-9_4. Open access (PSU).
+   Idea: reference-count protocol errors of Python/C extension code, including references kept across
+   interpreter/state changes.
+   Applied: rules out a refcount bug in HD/FreeCAD code as the cause - the fault is a lifetime-ORDER problem (wrappers
+   alive at DLL detach), which is why HD's earlier workaround (shiboken6.invalidate of QMetaObject wrappers, 81b41ed)
+   only lowered the rate; the order fix removes the class.
+
+4. R. Monat, A. Ouadjaout, A. Mine, "A multilanguage static analysis of Python programs with native C extensions",
+   SAS 2021 (conference, LNCS 12913). DOI 10.1007/978-3-030-88806-0_16. Supporting source only (venue below the
+   required tier); open access (HAL).
+   Idea: soundness of Python/C boundaries requires modelling the interpreter state the C side runs in.
+   Applied: supports the choice to fix in the host's main() (the component that owns interpreter state), not in HD.
+
+Better-known method? The standard remedy in embedding guides (CPython "Embedding Python" docs: Py_FinalizeEx
+before the host exits, so that extension modules such as PySide6 clean up while the interpreter still runs) is
+exactly the applied one; measured here: finalising first turns 3/3 aborts into 3/3 clean exits (runs ws-t_t_meta_fin-*). An
+alternative - TerminateProcess/_exit() without static destructors - hides the crash but also skips log flushing
+and Qt/Coin cleanup; rejected (would remove behaviour).

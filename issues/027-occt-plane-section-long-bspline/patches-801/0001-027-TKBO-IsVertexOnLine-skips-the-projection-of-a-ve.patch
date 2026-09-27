@@ -1,0 +1,201 @@
+From d5e0ee70836b8360403c9b2ca6e590ea0544917c Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 15:34:29 +0700
+Subject: [PATCH 1/4] 027 (TKBO): IsVertexOnLine skips the projection of a
+ vertex outside the pole box of the curve
+
+BOPAlgo_PaveFiller::PutPavesOnCurve tests every edge/face vertex of a face pair against every
+section curve (IntTools_Context::IsVertexOnLine). After the end-point checks the stock code projects
+the vertex on the curve; a section curve of a long B-spline face is a 1001-pole degree-1 B-spline,
+so each projection costs O(spans) and the step is O(vertices x curves x spans): 39 % of the section
+of the ball screw thread face 153, 26 % of the whole-screw common.
+
+A B-spline or Bezier curve (positive weights) lies in the convex hull of its poles, hence in their
+axis-aligned box, over its whole parameter range (the projector's range). If the distance from the
+vertex to that box exceeds the tolerance sum (plus a rounding margin 1e-7 + 1e-9 * coordinate scale),
+every point the projector can return, and both curve ends, are farther than the tolerance, so the
+stock code returns false on every path; the new check returns false before projecting. Other curve
+types keep the stock path.
+
+INTTOOLS_027_VERIFY: runs the stock projection too and aborts if a skipped vertex would have been on
+the line; INTTOOLS_027_MUTANT_A: skips every projection (negative control).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../TKBO/IntTools/IntTools_Context.cxx        | 141 ++++++++++++++++++
+ 1 file changed, 141 insertions(+)
+
+diff --git a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx
+index ad2f8e1f..e40b339a 100644
+--- a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx
++++ b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx
+@@ -22,7 +22,9 @@
+ #include <Geom2d_TrimmedCurve.hxx>
+ #include <Geom2dHatch_Hatcher.hxx>
+ #include <Geom2dHatch_Intersector.hxx>
++#include <Geom_BezierCurve.hxx>
+ #include <Geom_BoundedCurve.hxx>
++#include <Geom_BSplineCurve.hxx>
+ #include <Geom_Curve.hxx>
+ #include <GeomAdaptor_Curve.hxx>
+ #include <GeomAPI_ProjectPointOnCurve.hxx>
+@@ -47,6 +49,109 @@
+ IMPLEMENT_STANDARD_RTTIEXT(IntTools_Context, Standard_Transient)
+ 
+ //
++//=================================================================================================
++// 027: far-vertex rejection in IsVertexOnLine.
++// A B-spline or Bezier curve with positive weights lies in the convex hull of its poles, hence in
++// the axis-aligned box of the poles, over its whole parameter range (Boehm 1980; Sederberg-Nishita
++// 1990 use the same property to discard curve pieces). The distance from a point to that box is a
++// lower bound of its distance to every point of the curve, including the points the projector
++// returns and the curve ends. When that bound exceeds the vertex/curve tolerance sum (with a margin
++// for rounding of the evaluated curve points), IsVertexOnLine returns false on every path, so the
++// projection (O(number of spans) per vertex, run for every vertex x every section curve) is skipped.
++namespace
++{
++//! Returns the distance from thePnt to the box of the poles of theCurve, or -1 when the curve is not
++//! exactly a Geom_BSplineCurve or Geom_BezierCurve. theScale receives the largest absolute coordinate
++//! of the box and the point (for the rounding margin).
++static double distanceToPolesBox(const occ::handle<Geom_Curve>& theCurve,
++                                 const gp_Pnt&                  thePnt,
++                                 double&                        theScale)
++{
++  const NCollection_Array1<gp_Pnt>* aPoles = nullptr;
++  if (theCurve->DynamicType() == STANDARD_TYPE(Geom_BSplineCurve))
++  {
++    aPoles = &static_cast<const Geom_BSplineCurve*>(theCurve.get())->Poles();
++  }
++  else if (theCurve->DynamicType() == STANDARD_TYPE(Geom_BezierCurve))
++  {
++    aPoles = &static_cast<const Geom_BezierCurve*>(theCurve.get())->Poles();
++  }
++  if (aPoles == nullptr || aPoles->IsEmpty())
++  {
++    return -1.;
++  }
++  double aMin[3], aMax[3];
++  const gp_XYZ& aP0 = aPoles->First().XYZ();
++  for (int k = 0; k < 3; ++k)
++  {
++    aMin[k] = aMax[k] = aP0.Coord(k + 1);
++  }
++  for (NCollection_Array1<gp_Pnt>::Iterator anIt(*aPoles); anIt.More(); anIt.Next())
++  {
++    const gp_XYZ& aP = anIt.Value().XYZ();
++    for (int k = 0; k < 3; ++k)
++    {
++      const double aC = aP.Coord(k + 1);
++      aMin[k]         = std::min(aMin[k], aC);
++      aMax[k]         = std::max(aMax[k], aC);
++    }
++  }
++  double aSq = 0.;
++  theScale   = 0.;
++  for (int k = 0; k < 3; ++k)
++  {
++    const double aC = thePnt.XYZ().Coord(k + 1);
++    const double aD = aC < aMin[k] ? aMin[k] - aC : (aC > aMax[k] ? aC - aMax[k] : 0.);
++    aSq += aD * aD;
++    theScale = std::max(theScale, std::max(std::abs(aC), std::max(std::abs(aMin[k]), std::abs(aMax[k]))));
++  }
++  return std::sqrt(aSq);
++}
++
++//! True when the vertex point is provably farther than theTolSum from every point of theCurve.
++static bool isFarFromCurveHull(const occ::handle<Geom_Curve>& theCurve,
++                               const gp_Pnt&                  thePnt,
++                               const double                   theTolSum)
++{
++  double       aScale = 0.;
++  const double aDist  = distanceToPolesBox(theCurve, thePnt, aScale);
++  if (!(aDist >= 0.)) // other curve types, NaN
++  {
++    return false;
++  }
++  // margin: rounding of evaluated curve points and of the distances (far above 1e-15 * scale)
++  const double aMargin = 1.e-7 + 1.e-9 * aScale;
++#ifdef INTTOOLS_027_MUTANT_A
++  (void)aMargin;
++  return true; // negative control: every projection is skipped, also for vertices on the line
++#else
++  return aDist > theTolSum + aMargin;
++#endif
++}
++} // namespace
++
++#ifdef INTTOOLS_027_VERIFY
++#include <atomic>
++#include <cstdio>
++#include <cstdlib>
++namespace
++{
++struct Verify027Counters
++{
++  std::atomic<long long> Checked{0}, Far{0}, Mismatch{0};
++  ~Verify027Counters()
++  {
++    std::fprintf(stderr,
++                 "027-VERIFY IsVertexOnLine projections=%lld far=%lld mismatch=%lld\n",
++                 (long long)Checked,
++                 (long long)Far,
++                 (long long)Mismatch);
++  }
++};
++static Verify027Counters THE_027_COUNTERS;
++} // namespace
++#endif
++
+ //=================================================================================================
+ 
+ IntTools_Context::IntTools_Context()
+@@ -939,10 +1044,46 @@ bool IntTools_Context::IsVertexOnLine(const TopoDS_Vertex&  aV,
+     return true;
+   }
+   //
++#ifndef INTTOOLS_027_VERIFY
++  if (isFarFromCurveHull(aC3D, aPv, aTolSum))
++  {
++    return false; // 027: the projection below cannot come closer than aTolSum
++  }
++#else
++  const bool aFar027 = isFarFromCurveHull(aC3D, aPv, aTolSum);
++#endif
+   GeomAPI_ProjectPointOnCurve& aProjector = ProjPT(aC3D);
+   aProjector.Perform(aPv);
+ 
+   aNbProj = aProjector.NbPoints();
++#ifdef INTTOOLS_027_VERIFY
++  {
++    // the stock outcome of the code below, compared with the far-vertex rejection
++    bool aStockOn = false;
++    if (!aNbProj)
++    {
++      occ::handle<Geom_BoundedCurve> aBC0 = occ::down_cast<Geom_BoundedCurve>(aC3D);
++      aStockOn = !aBC0.IsNull()
++                 && (aPv.Distance(aBC0->StartPoint()) < aTolSum
++                     || aPv.Distance(aBC0->EndPoint()) < aTolSum);
++    }
++    else
++    {
++      aStockOn = !(aProjector.LowerDistance() > aTolSum);
++    }
++    ++THE_027_COUNTERS.Checked;
++    if (aFar027)
++    {
++      ++THE_027_COUNTERS.Far;
++      if (aStockOn)
++      {
++        ++THE_027_COUNTERS.Mismatch;
++        std::fprintf(stderr, "027-VERIFY-MISMATCH IsVertexOnLine tolsum=%.17g\n", aTolSum);
++        std::abort();
++      }
++    }
++  }
++#endif
+   if (!aNbProj)
+   {
+     occ::handle<Geom_BoundedCurve> aBC = occ::down_cast<Geom_BoundedCurve>(aC3D);
+-- 
+2.52.0.windows.1
+

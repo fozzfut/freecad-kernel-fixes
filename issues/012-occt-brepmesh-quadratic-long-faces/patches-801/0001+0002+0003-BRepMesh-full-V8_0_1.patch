@@ -1,0 +1,2080 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fozzfut <14357576+fozzfut@users.noreply.github.com>
+Date: Sat, 26 Sep 2026 01:19:22 +0700
+Subject: [PATCH] =?UTF-8?q?012=20(TKMesh):=20=D1=81=D0=B5=D1=82=D0=BA?=
+ =?UTF-8?q?=D0=B0=20=D0=B1=D0=B5=D0=B7=20=D0=BA=D0=B2=D0=B0=D0=B4=D1=80?=
+ =?UTF-8?q?=D0=B0=D1=82=D0=B8=D1=87=D0=BD=D1=8B=D1=85=20=D0=BC=D0=B5=D1=81?=
+ =?UTF-8?q?=D1=82=20=E2=80=94=20=D0=BA=D0=BB=D0=B0=D1=81=D1=81=D0=B8=D1=84?=
+ =?UTF-8?q?=D0=B8=D0=BA=D0=B0=D1=82=D0=BE=D1=80=20=D0=BF=D0=BE=20=D0=BA?=
+ =?UTF-8?q?=D0=BE=D1=80=D0=B7=D0=B8=D0=BD=D0=B0=D0=BC,=20=D1=80=D0=B0?=
+ =?UTF-8?q?=D1=81=D1=82=D1=83=D1=89=D0=B0=D1=8F=20=D1=81=D0=B5=D1=82=D0=BA?=
+ =?UTF-8?q?=D0=B0=20=D0=BE=D0=BA=D1=80=D1=83=D0=B6=D0=BD=D0=BE=D1=81=D1=82?=
+ =?UTF-8?q?=D0=B5=D0=B9,=20=D0=BE=D1=82=D1=81=D0=B5=D0=B2=20=D0=BF=D0=B0?=
+ =?UTF-8?q?=D1=80=20=D0=BF=D1=80=D0=BE=D0=B2=D0=BE=D0=B4=D0=BE=D0=B2?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Перенос patches/0001+0002+0003-BRepMesh-full.patch (freecad-kernel-fixes,
+дефект 012, сборка p012b) с OCCT 7.8.1 на 8.0.1:
+- BRepMesh_Classifier: BRepMesh_BucketClass2d вместо CSLib_Class2d, те же
+  ответы без перебора всех отрезков границы на каждый запрос;
+- BRepMesh_Delaun/CircleTool: сетка ячеек описанных окружностей растёт вместе
+  с триангуляцией, порядок обхода стоковый;
+- BRepMesh_FaceChecker: пары проводов проверяются только при пересекающихся
+  габаритах; при нехватке памяти — стоковый цикл.
+Раскладка классов стоковая, новых членов данных нет.
+
+BRepMesh_BucketClass2d сверен заново с CSLib_Class2d 8.0.1 (TKMath): в тесте ON
+по ребру пропускаются почти вертикальные отрезки
+(std::abs(aEdgeDx) > Precision::PConfusion(), CSLib_Class2d.cxx:305-306),
+угловые проверки допуска идут только при положительном допуске, массивы точек
+выделяются тем же NCollection_Array1::Resize, что и в init() 8.0.1.
+classcmp (13 367 135 запросов против CSLib_Class2d из TKMath weekly):
+0 расхождений; копия с семантикой 7.8.1 — 32 456 расхождений.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepMesh/BRepMesh_BucketClass2d.hxx       | 448 ++++++++++
+ .../TKMesh/BRepMesh/BRepMesh_CircleTool.cxx   | 840 +++++++++++++++++-
+ .../TKMesh/BRepMesh/BRepMesh_CircleTool.hxx   |  24 +
+ .../TKMesh/BRepMesh/BRepMesh_Classifier.cxx   |  17 +-
+ .../TKMesh/BRepMesh/BRepMesh_Classifier.hxx   |   6 +-
+ .../TKMesh/BRepMesh/BRepMesh_Delaun.cxx       |  36 +
+ .../TKMesh/BRepMesh/BRepMesh_FaceChecker.cxx  | 514 ++++++++++-
+ .../TKMesh/BRepMesh/FILES.cmake               |   1 +
+ 8 files changed, 1873 insertions(+), 13 deletions(-)
+ create mode 100644 src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_BucketClass2d.hxx
+
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_BucketClass2d.hxx b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_BucketClass2d.hxx
+new file mode 100644
+index 00000000..c5a04004
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_BucketClass2d.hxx
+@@ -0,0 +1,448 @@
++// Copyright (c) 2026 — modification of Open CASCADE Technology 8.0.1 for FreeCAD (defect 012,
++// https://github.com/fozzfut/freecad-kernel-fixes). Distributed under GNU LGPL 2.1 with the Open
++// CASCADE exception, as the rest of OCCT.
++//
++// Point-in-polygon with EXACTLY the answers of CSLib_Class2d::SiDans (OCCT 8.0.1, TKMath,
++// CSLib_Class2d.cxx: init, SiDans, internalSiDans, internalSiDansOuOn, transformToNormalized) -
++// every per-segment predicate uses the same floating-point expressions - but a query visits only
++// the segments/vertices that can change its answer, found through uniform buckets over the
++// normalized polygon:
++//   parity (ray to +x)  : segments whose y-interval contains Py   -> y-buckets of segments
++//   ON test 1 (vertex)  : vertices within the open box of Tolu/Tolv -> y-buckets of vertices
++//   ON test 2 (x-cross) : segments whose x-interval strictly contains Px -> x-buckets of segments
++// CSLib_Class2d scans all N segments for every query; on the owner's ball-screw face (14 149
++// boundary segments) that scan was 35-39 % of the meshing time
++// (C:/dev/cad-perf-research/tessellation).
++//
++// 8.0.1 semantics (resynced 26.09.2026 from CSLib_Class2d.cxx of V8_0_1; the 7.8.1 copy differed):
++//  - ON test 2 skips nearly vertical segments: std::abs(aEdgeDx) > Precision::PConfusion()
++//    (CSLib_Class2d.cxx:305-306);
++//  - the four tolerance-corner checks run only when myTolU > 0.0 || myTolV > 0.0 (7.8.1: any
++//    non-zero tolerance, i.e. also a negative or NaN one);
++//  - the point arrays are NCollection_Array1<double> members sized by Resize(0, N, false), as
++//    8.0.1 init() sizes them, so their allocation and its failure are the stock ones.
++//
++// Why no candidate is ever missed: bucketOf() is monotone non-decreasing in its argument, and every
++// predicate that can fire implies (in exact arithmetic on the stored doubles, since a - b < 0 <=> a
++// < b and rounding is monotone) that the stored coordinate lies between the two query bounds whose
++// buckets are scanned. The extra PConfusion guard of ON test 2 only removes firings, so the x-bucket
++// candidates remain a superset. The order of the visited segments does not matter: parity is a
++// count, ON is "any segment". A polygon with a non-finite coordinate falls back to one bucket (= the
++// full scan of CSLib_Class2d). Small polygons (N < THE_MIN_BUCKETED segments) and every one-bucket
++// case skip the tables and run CSLib's own fused loops (fullSiDansOuOn / fullParity: same
++// expressions, same order), so a face with a short boundary pays no extra cost over CSLib_Class2d.
++// Identity also relies on the floating-point model: OCCT's TKMath (CSLib_Class2d) and TKMesh (this
++// class) must both be compiled with /fp:precise (or the equivalent) and WITHOUT floating-point
++// contraction into FMA (MSVC: no /fp:contract, no /fp:fast; GCC/Clang: -ffp-contract=off),
++// otherwise the same source expression may round differently in the two libraries. Out of memory:
++// the bucket tables are extra memory that stock never asks for: if they cannot be allocated
++// (std::bad_alloc), the class drops them and answers with CSLib's full scan (K = 1) - the same
++// answers, and no new exception type reaches the caller. Test hook (BREPMESH_BUCKETCLASS2D_TESTHOOKS,
++// defined only by classcmp) makes the table allocation fail for real: an impossible request to
++// operator new.
++#ifndef _BRepMesh_BucketClass2d_HeaderFile
++#define _BRepMesh_BucketClass2d_HeaderFile
++
++#include <Standard.hxx>
++#include <Standard_DefineAlloc.hxx>
++#include <gp_Pnt2d.hxx>
++#include <NCollection_Array1.hxx>
++#include <Precision.hxx>
++
++#include <algorithm>
++#include <cmath>
++#include <cstddef>
++#include <new>
++#include <vector>
++
++class BRepMesh_BucketClass2d
++{
++public:
++  DEFINE_STANDARD_ALLOC
++
++  BRepMesh_BucketClass2d(const NCollection_Array1<gp_Pnt2d>& thePnts,
++                         const double                        theTolU,
++                         const double                        theTolV,
++                         const double                        theUMin,
++                         const double                        theVMin,
++                         const double                        theUMax,
++                         const double                        theVMax)
++      : myUmin(theUMin),
++        myVmin(theVMin),
++        myUmax(theUMax),
++        myVmax(theVMax),
++        myN(0),
++        myTolu(0.),
++        myTolv(0.)
++  {
++    // == CSLib_Class2d::init (8.0.1)
++    if (theUMax <= theUMin || theVMax <= theVMin || thePnts.Length() < 3)
++      return;
++    myN    = thePnts.Length();
++    myTolu = theTolU;
++    myTolv = theTolV;
++    // == myPnts2dX.Resize(0, myPointsCount, false); myPnts2dY.Resize(0, myPointsCount, false);
++    myPntsX.Resize(0, myN, false);
++    myPntsY.Resize(0, myN, false);
++    myX              = &myPntsX.ChangeFirst();
++    myY              = &myPntsY.ChangeFirst();
++    const double du  = theUMax - theUMin;
++    const double dv  = theVMax - theVMin;
++    const int aLower = thePnts.Lower();
++    for (int i = 0; i < myN; ++i)
++    {
++      const gp_Pnt2d& aP = thePnts(i + aLower);
++      myX[i]             = transform2d(aP.X(), theUMin, du);
++      myY[i]             = transform2d(aP.Y(), theVMin, dv);
++    }
++    myX[myN] = myX[0];
++    myY[myN] = myY[0];
++    constexpr double THE_MIN_RANGE = 1e-10;
++    if (du > THE_MIN_RANGE)
++      myTolu /= du;
++    if (dv > THE_MIN_RANGE)
++      myTolv /= dv;
++    build();
++  }
++
++  //! Number of buckets per axis (1 = CSLib's full scan, no tables). For tests.
++  int NbBuckets() const { return myK; }
++
++#ifdef BREPMESH_BUCKETCLASS2D_TESTHOOKS
++  //! Test only: make the next constructions fail to allocate the tables.
++  static bool& TestFailTables()
++  {
++    static bool aFlag = false;
++    return aFlag;
++  }
++
++  //! Test only: number of constructions that lost their tables to std::bad_alloc.
++  static long long& TestTableFallbacks()
++  {
++    static long long aCount = 0;
++    return aCount;
++  }
++#endif
++
++  // myX/myY point into myPntsX/myPntsY: no copies
++  BRepMesh_BucketClass2d(const BRepMesh_BucketClass2d&)            = delete;
++  BRepMesh_BucketClass2d& operator=(const BRepMesh_BucketClass2d&) = delete;
++
++  //! Same contract as CSLib_Class2d::SiDans: 1 inside, 0 on/uncertain, -1 outside.
++  int SiDans(const gp_Pnt2d& theP) const
++  {
++    if (myN == 0)
++      return 0;
++    double       x     = theP.X();
++    double       y     = theP.Y();
++    const double aTolu = myTolu * (myUmax - myUmin);
++    const double aTolv = myTolv * (myVmax - myVmin);
++    // myN != 0 implies myUmax > myUmin and myVmax > myVmin (init), as in 8.0.1
++    if (x < (myUmin - aTolu) || x > (myUmax + aTolu) || y < (myVmin - aTolv)
++        || y > (myVmax + aTolv))
++      return -1;
++    x             = transform2d(x, myUmin, myUmax - myUmin);
++    y             = transform2d(y, myVmin, myVmax - myVmin);
++    const int res = siDansOuOn(x, y);
++    if (res == -1)
++      return 0;
++    if (myTolu > 0.0 || myTolv > 0.0)
++    {
++      if (res != parity(x - myTolu, y - myTolv) || res != parity(x + myTolu, y - myTolv)
++          || res != parity(x - myTolu, y + myTolv) || res != parity(x + myTolu, y + myTolv))
++        return 0;
++    }
++    return res ? 1 : -1;
++  }
++
++private:
++  //! == transformToNormalized in CSLib_Class2d.cxx (8.0.1)
++  static double transform2d(const double u, const double umin, const double d)
++  {
++    constexpr double THE_MIN_RANGE = 1e-10;
++    if (d > THE_MIN_RANGE)
++    {
++      return (u - umin) / d;
++    }
++    return u;
++  }
++
++  //! Monotone non-decreasing in v; the bound check precedes the cast, so a huge or infinite f never
++  //! reaches the (undefined) double -> int conversion.
++  static int bucketOf(const double v, const double lo, const double inv, const int theK)
++  {
++    const double f = (v - lo) * inv;
++    if (!(f >= 0.))
++      return 0; // also NaN
++    if (f >= (double)theK)
++      return theK - 1;
++    return (int)f; // 0 <= f < theK: the conversion is defined
++  }
++
++  int bucketOf(const double v, const double lo, const double inv) const
++  {
++    return bucketOf(v, lo, inv, myK);
++  }
++
++  void build()
++  {
++    double xhi = -1e300, yhi = -1e300;
++    myXlo = myYlo = 1e300;
++    bool isFinite = true;
++    for (int i = 0; i <= myN; ++i)
++    {
++      if (!std::isfinite(myX[i]) || !std::isfinite(myY[i]))
++        isFinite = false;
++      myXlo = std::min(myXlo, myX[i]);
++      xhi   = std::max(xhi, myX[i]);
++      myYlo = std::min(myYlo, myY[i]);
++      yhi   = std::max(yhi, myY[i]);
++    }
++    myK = (isFinite && myN >= THE_MIN_BUCKETED) ? std::max(1, std::min(1 << 16, myN / 4)) : 1;
++    // Memory guard: a polygon whose segments each span many buckets (a zigzag across the whole
++    // face) would store O(N * K) entries; halve K until the tables hold at most 32 entries per
++    // segment. Answers do not depend on K.
++    const long long aLimit = 32LL * myN + 4096;
++    for (;;)
++    {
++      myXinv = (xhi > myXlo) ? myK / (xhi - myXlo) : 0.;
++      myYinv = (yhi > myYlo) ? myK / (yhi - myYlo) : 0.;
++      if (myK == 1)
++        break;
++      long long aTotal = 0;
++      for (int i = 0; i < myN && aTotal <= aLimit; ++i)
++      {
++        aTotal += bucketOf(std::max(myY[i], myY[i + 1]), myYlo, myYinv)
++                  - bucketOf(std::min(myY[i], myY[i + 1]), myYlo, myYinv)
++                  + bucketOf(std::max(myX[i], myX[i + 1]), myXlo, myXinv)
++                  - bucketOf(std::min(myX[i], myX[i + 1]), myXlo, myXinv) + 3;
++      }
++      if (aTotal <= aLimit)
++        break;
++      myK /= 2;
++    }
++    if (myK == 1)
++      return; // fullSiDansOuOn / fullParity need no tables
++    try
++    {
++#ifdef BREPMESH_BUCKETCLASS2D_TESTHOOKS
++      if (TestFailTables())
++        mySy.reserve(std::size_t(1)
++                     << 60); // operator new cannot serve 4 EiB: a real std::bad_alloc
++#endif
++      buildTables();
++    }
++    catch (const std::bad_alloc&)
++    {
++      // the tables only speed the queries up; CSLib's full scan (K = 1) gives the same answers
++      // without them
++      std::vector<int>().swap(myOy);
++      std::vector<int>().swap(myOx);
++      std::vector<int>().swap(myOv);
++      std::vector<int>().swap(mySy);
++      std::vector<int>().swap(mySx);
++      std::vector<int>().swap(mySv);
++      myK = 1;
++#ifdef BREPMESH_BUCKETCLASS2D_TESTHOOKS
++      ++TestTableFallbacks();
++#endif
++    }
++  }
++
++  void buildTables()
++  {
++    std::vector<int> cy(myK + 1, 0), cx(myK + 1, 0), cv(myK + 1, 0);
++    for (int pass = 0; pass < 2; ++pass)
++    {
++      if (pass == 1)
++      {
++        for (int k = 0; k < myK; ++k)
++        {
++          cy[k + 1] += cy[k];
++          cx[k + 1] += cx[k];
++          cv[k + 1] += cv[k];
++        }
++        myOy = cy;
++        myOx = cx;
++        myOv = cv;
++        mySy.resize(cy[myK]);
++        mySx.resize(cx[myK]);
++        mySv.resize(cv[myK]);
++      }
++      for (int i = 0; i < myN; ++i)
++      {
++        const int ya = bucketOf(std::min(myY[i], myY[i + 1]), myYlo, myYinv);
++        const int yb = bucketOf(std::max(myY[i], myY[i + 1]), myYlo, myYinv);
++        const int xa = bucketOf(std::min(myX[i], myX[i + 1]), myXlo, myXinv);
++        const int xb = bucketOf(std::max(myX[i], myX[i + 1]), myXlo, myXinv);
++        const int kv = bucketOf(myY[i + 1], myYlo, myYinv); // vertex ip1 = i + 1
++        for (int k = ya; k <= yb; ++k)
++        {
++          if (pass == 0)
++            ++cy[k + 1];
++          else
++            mySy[cy[k]++] = i;
++        }
++        for (int k = xa; k <= xb; ++k)
++        {
++          if (pass == 0)
++            ++cx[k + 1];
++          else
++            mySx[cx[k]++] = i;
++        }
++        if (pass == 0)
++          ++cv[kv + 1];
++        else
++          mySv[cv[kv]++] = i + 1;
++      }
++    }
++  }
++
++  //! One crossing of the ray from (Px, Py) to +x by the segment with end offsets (aPrevDx, aPrevDy)
++  //! and (aCurrDx, aCurrDy) whose y signs differ: == the crossing test of internalSiDans (8.0.1).
++  static bool crosses(const double aPrevDx,
++                      const double aPrevDy,
++                      const double aCurrDx,
++                      const double aCurrDy)
++  {
++    if (aPrevDx > 0.0 && aCurrDx > 0.0)
++      return true;
++    if (aPrevDx > 0.0 || aCurrDx > 0.0)
++    {
++      const double aXIntersect = aPrevDx - aPrevDy * (aCurrDx - aPrevDx) / (aCurrDy - aPrevDy);
++      return aXIntersect > 0.0;
++    }
++    return false;
++  }
++
++  //! == CSLib_Class2d::internalSiDans restricted to the segments that can cross the ray
++  int parity(const double Px, const double Py) const
++  {
++    if (myK == 1)
++      return fullParity(Px, Py);
++    const int k   = bucketOf(Py, myYlo, myYinv);
++    int       nbc = 0;
++    for (int j = myOy[k]; j < myOy[k + 1]; ++j)
++    {
++      const int    i       = mySy[j];
++      const double aPrevDx = myX[i] - Px;
++      const double aPrevDy = myY[i] - Py;
++      const double aCurrDx = myX[i + 1] - Px;
++      const double aCurrDy = myY[i + 1] - Py;
++      if ((aCurrDy < 0.0) != (aPrevDy < 0.0) && crosses(aPrevDx, aPrevDy, aCurrDx, aCurrDy))
++        ++nbc;
++    }
++    return nbc & 1;
++  }
++
++  //! == ON test 2 of CSLib_Class2d::internalSiDansOuOn for the segment ending at vertex ip1
++  bool onEdge(const int ip1, const double Px, const double Py) const
++  {
++    const double aCurrDx = myX[ip1] - Px;
++    const double aEdgeDx = myX[ip1] - myX[ip1 - 1];
++    if ((myX[ip1 - 1] - Px) * aCurrDx < 0.0 && std::abs(aEdgeDx) > Precision::PConfusion())
++    {
++      const double aInterpY = myY[ip1] - (myY[ip1] - myY[ip1 - 1]) / aEdgeDx * aCurrDx;
++      const double aDeltaY  = aInterpY - Py;
++      if (aDeltaY >= -myTolv && aDeltaY <= myTolv)
++        return true;
++    }
++    return false;
++  }
++
++  //! == ON test 1 of CSLib_Class2d::internalSiDansOuOn at vertex v
++  bool onVertex(const int v, const double Px, const double Py) const
++  {
++    const double aCurrDx = myX[v] - Px;
++    const double aCurrDy = myY[v] - Py;
++    return aCurrDx < myTolu && aCurrDx > -myTolu && aCurrDy < myTolv && aCurrDy > -myTolv;
++  }
++
++  //! == CSLib_Class2d::internalSiDansOuOn: -1 if ON (either test, any segment), else the parity
++  int siDansOuOn(const double Px, const double Py) const
++  {
++    if (myK == 1)
++      return fullSiDansOuOn(Px, Py);
++    {
++      const int a = bucketOf(Py - myTolv, myYlo, myYinv), b = bucketOf(Py + myTolv, myYlo, myYinv);
++      for (int k = a; k <= b; ++k)
++        for (int j = myOv[k]; j < myOv[k + 1]; ++j)
++          if (onVertex(mySv[j], Px, Py))
++            return -1;
++    }
++    {
++      const int k = bucketOf(Px, myXlo, myXinv);
++      for (int j = myOx[k]; j < myOx[k + 1]; ++j)
++        if (onEdge(mySx[j] + 1, Px, Py))
++          return -1;
++    }
++    return parity(Px, Py);
++  }
++
++  //! == CSLib_Class2d::internalSiDans, the same loop (all segments, one pass)
++  int fullParity(const double Px, const double Py) const
++  {
++    int    nbc              = 0;
++    double aPrevDx          = myX[0] - Px;
++    double aPrevDy          = myY[0] - Py;
++    bool   aPrevYIsNegative = (aPrevDy < 0.0);
++    for (int aNextIdx = 1; aNextIdx <= myN; ++aNextIdx)
++    {
++      const double aCurrDx          = myX[aNextIdx] - Px;
++      const double aCurrDy          = myY[aNextIdx] - Py;
++      const bool   aCurrYIsNegative = (aCurrDy < 0.0);
++      if (aCurrYIsNegative != aPrevYIsNegative)
++      {
++        if (crosses(aPrevDx, aPrevDy, aCurrDx, aCurrDy))
++          ++nbc;
++        aPrevYIsNegative = aCurrYIsNegative;
++      }
++      aPrevDx = aCurrDx;
++      aPrevDy = aCurrDy;
++    }
++    return nbc & 1;
++  }
++
++  //! == CSLib_Class2d::internalSiDansOuOn, the same loop (vertex test, edge test, parity in one
++  //! pass)
++  int fullSiDansOuOn(const double Px, const double Py) const
++  {
++    int    nbc              = 0;
++    double aPrevDx          = myX[0] - Px;
++    double aPrevDy          = myY[0] - Py;
++    bool   aPrevYIsNegative = (aPrevDy < 0.0);
++    for (int aNextIdx = 1; aNextIdx <= myN; ++aNextIdx)
++    {
++      if (onVertex(aNextIdx, Px, Py) || onEdge(aNextIdx, Px, Py))
++        return -1;
++      const double aCurrDx          = myX[aNextIdx] - Px;
++      const double aCurrDy          = myY[aNextIdx] - Py;
++      const bool   aCurrYIsNegative = (aCurrDy < 0.0);
++      if (aCurrYIsNegative != aPrevYIsNegative)
++      {
++        if (crosses(aPrevDx, aPrevDy, aCurrDx, aCurrDy))
++          ++nbc;
++        aPrevYIsNegative = aCurrYIsNegative;
++      }
++      aPrevDx = aCurrDx;
++      aPrevDy = aCurrDy;
++    }
++    return nbc & 1;
++  }
++
++  //! Below this many boundary segments the tables cost more than the scan they save.
++  static constexpr int THE_MIN_BUCKETED = 64;
++
++  double                     myUmin, myVmin, myUmax, myVmax;
++  int                        myN;
++  double                     myTolu, myTolv;
++  NCollection_Array1<double> myPntsX; // sized as CSLib_Class2d::init sizes myPnts2dX
++  NCollection_Array1<double> myPntsY;
++  double*                    myX   = nullptr; // &myPntsX.First(), indices 0..N
++  double*                    myY   = nullptr;
++  int                        myK   = 1;
++  double                     myXlo = 0., myYlo = 0., myXinv = 0., myYinv = 0.;
++  std::vector<int>           myOy, myOx, myOv, mySy, mySx, mySv;
++};
++
++#endif
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_CircleTool.cxx b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_CircleTool.cxx
+index a4e8abb3..bd5e456e 100644
+--- a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_CircleTool.cxx
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_CircleTool.cxx
+@@ -21,6 +21,498 @@
+ #include <BRepMesh_Circle.hxx>
+ #include <BRepMesh_CircleInspector.hxx>
+ 
++#include <algorithm>
++#include <climits>
++#include <cmath>
++#include <functional>
++#include <memory>
++#include <new>
++#include <vector>
++
++// defect 012: fast selection of the circles shot by a node on faces with many triangles.
++//
++// Why: BRepMesh_Delaun sizes the circle grid once, from the boundary nodes (5 x 5 cells on a long
++// face), so every Select walks the circles of a whole cell - thousands on a face with 10^5..10^6
++// triangles.
++//
++// What stays the same: Select returns exactly what the stock grid returns, in the same order.
++//  - The stock grid (myCellFilter) registers circle i in every cell of the range of its box clamped
++//  to the face
++//    box; a cell's list is newest first (NCollection_CellFilter::add prepends), and Inspect appends
++//    the circles that pass BRepMesh_CircleInspector's test in list order. Circle indices are
++//    triangle indices; triangles get fresh growing indices
++//    (BRepMesh_DataStructureOfDelaun::AddElement), so "newest first" is "descending index" - this
++//    is checked on the stock lists before the fast mode starts, and every later bind must bring an
++//    index the tool has never seen, otherwise the fast mode ends on the spot.
++//  - So the stock result for a point P = the live circles registered in the stock cell of P that
++//  pass the
++//    test, in descending index order. The fast mode keeps every live circle in a finer grid
++//    (FastGrid), in every cell that its disk, grown by a margin far above the test's tolerance and
++//    rounding, reaches (a superset: every circle that can pass the test at P is in the cell of P);
++//    a circle too large for the finest level goes to a coarser one (4 x 4 times coarser each), the
++//    few largest to a list read on every Select. For P, the fast Select keeps a circle only if the
++//    stock cell of P lies in the circle's stock range (the same expressions as the stock grid),
++//    sorts by descending index and runs the stock test (BRepMesh_CircleInspector::Inspect) in that
++//    order. For a point beyond the face box in x the candidates are the disks that reach beyond it
++//    on that side (kept in two lists).
++//  - Circles bound while the fast mode is on go to the finer grid only; when it ends they are added
++//  to the
++//    stock grid in ascending index order, which gives the stock lists (minus dead entries, which
++//    the stock Inspect would purge anyway and which never pass the test).
++// The finer grid is owned by one call of BRepMesh_Delaun::createTrianglesOnNewVertices (see
++// fastSelectUpdate / fastSelectEnd) and reached through a thread_local pointer keyed by the tool's
++// address: no data member is added to any class, the structure is freed when that call returns
++// (also on an exception). Whether and when the fast mode starts (THE_FAST_* below) changes only the
++// speed, never the result.
++namespace
++{
++//! The fast mode starts only for a pass that still inserts at least this many nodes per stock cell.
++const double THE_FAST_MIN_NODES_PER_CELL = 8.;
++//! Passes that end with fewer triangles keep the stock path.
++const int THE_FAST_MIN_TRIANGLES = 16384;
++//! A circle whose range covers more fine cells than this is kept in a list checked on every Select.
++const int THE_FAST_MAX_CELLS_PER_CIRCLE = 16;
++//! Upper bound of the fine grid's cell count.
++const int THE_FAST_MAX_CELLS = 1 << 22;
++//! The grid is rebuilt when its node array holds more than this many nodes per triangle.
++const double THE_FAST_MAX_NODES_PER_TRIANGLE = 16.;
++//! Number of grid levels at most (each 4 x 4 times coarser than the previous one).
++const int THE_FAST_NB_LEVELS = 8;
++
++//! Read access to the stock cell filter (members are protected in NCollection_CellFilter).
++struct CircleCellFilterAccess : public IMeshData::CircleCellFilter
++{
++  static const NCollection_Array1<double>& CellSize(const IMeshData::CircleCellFilter& theFilter)
++  {
++    return theFilter.*(&CircleCellFilterAccess::myCellSize);
++  }
++
++  //! Calls theFunc (cellX, cellY, isFirstOfCell, index) for every entry of every cell, in list
++  //! order. theFunc returns 0 to keep the entry, 1 to purge it (unlinked as
++  //! NCollection_CellFilter::inspect does on CellFilter_Purge), -1 to stop. Returns false if
++  //! stopped.
++  template <class Func>
++  static bool ForEachEntry(IMeshData::CircleCellFilter& theFilter, Func theFunc)
++  {
++    CellMap& aCells = theFilter.*(&CircleCellFilterAccess::myCells);
++    for (CellMap::Iterator aCellIt(aCells); aCellIt.More(); aCellIt.Next())
++    {
++      Cell& aCell = (Cell&)aCellIt.Key();
++      if (aCell.index.Size() != 2)
++      {
++        return false;
++      }
++      bool      isFirst = true;
++      ListNode* aPrev   = NULL;
++      for (ListNode* aNode = aCell.Objects; aNode != NULL;)
++      {
++        ListNode* aNext    = aNode->Next;
++        const int anAction = theFunc(aCell.index[0], aCell.index[1], isFirst, aNode->Object);
++        isFirst            = false;
++        if (anAction < 0)
++        {
++          return false;
++        }
++        if (anAction == 1)
++        {
++          aNode->Object.~Target();
++          (aPrev ? aPrev->Next : aCell.Objects) = aNext;
++        }
++        else
++        {
++          aPrev = aNode;
++        }
++        aNode = aNext;
++      }
++    }
++    return true;
++  }
++};
++
++//! Cell index of the stock grid: the expression of NCollection_CellFilter::Cell.
++inline int stockCell(const double theCoord, const double theSize)
++{
++  double aVal = (double)(theCoord / theSize);
++  return int((aVal > INT_MAX - 1)   ? fmod(aVal, (double)INT_MAX)
++             : (aVal < INT_MIN + 1) ? fmod(aVal, (double)INT_MIN)
++                                    : aVal);
++}
++
++//! Stock clamped box of a circle: the expressions of BRepMesh_CircleTool::bind.
++inline void stockBox(const gp_XY& theLoc,
++                     const double theRadius,
++                     const gp_XY& theFaceMin,
++                     const gp_XY& theFaceMax,
++                     gp_XY&       theMin,
++                     gp_XY&       theMax)
++{
++  double aMaxX = std::min(theLoc.X() + theRadius, theFaceMax.X());
++  double aMinX = std::max(theLoc.X() - theRadius, theFaceMin.X());
++  double aMaxY = std::min(theLoc.Y() + theRadius, theFaceMax.Y());
++  double aMinY = std::max(theLoc.Y() - theRadius, theFaceMin.Y());
++  theMin.SetCoord(aMinX, aMinY);
++  theMax.SetCoord(aMaxX, aMaxY);
++}
++
++//! Cell index of the fine grid; monotone in theV (NaN goes to 0).
++inline int fineCell(const double theV, const double theV0, const double theInv, const int theN)
++{
++  const double aF = std::floor((theV - theV0) * theInv);
++  if (!(aF >= 0.))
++  {
++    return 0;
++  }
++  if (aF >= (double)theN)
++  {
++    return theN - 1;
++  }
++  return (int)aF;
++}
++
++//! A superset of BRepMesh_CircleInspector::Inspect's test (which the tool builds with tol =
++//! PConfusion): the same expression against a bound 10^6 x tol^2 plus 1e-12 r^2, far above any
++//! rounding difference.
++inline bool mayShoot(const BRepMesh_Circle& theCircle, const gp_XY& thePoint)
++{
++  static const double THE_SQ_TOL_BOUND = 1.e6 * Precision::PConfusion() * Precision::PConfusion();
++  const double        aRadius          = theCircle.Radius();
++  const double        aDX              = thePoint.X() - theCircle.Location().X();
++  const double        aDY              = thePoint.Y() - theCircle.Location().Y();
++  return !((aDX * aDX + aDY * aDY) - (aRadius * aRadius)
++           > THE_SQ_TOL_BOUND + 1.e-12 * (aRadius * aRadius));
++}
++
++struct FastNode
++{
++  int Circle;
++  int Next;
++};
++
++//! One level of the fine grid: NX x NY cells over the face box, each a list of nodes.
++struct FastLevel
++{
++  double           X0, Y0, InvX, InvY;
++  int              NX, NY;
++  std::vector<int> Heads; //!< first node of each cell, -1 = empty
++
++  FastLevel()
++      : X0(0.),
++        Y0(0.),
++        InvX(0.),
++        InvY(0.),
++        NX(1),
++        NY(1)
++  {
++  }
++
++  int& Head(const gp_XY& thePoint)
++  {
++    const int aX = fineCell(thePoint.X(), X0, InvX, NX);
++    const int aY = fineCell(thePoint.Y(), Y0, InvY, NY);
++    return Heads[(size_t)aY * (size_t)NX + (size_t)aX];
++  }
++};
++
++//! The fast-mode state of one BRepMesh_CircleTool during one createTrianglesOnNewVertices call.
++//! Level 0 has about one cell per two triangles; each next level is 4 x 4 times coarser. A circle
++//! lives on the finest level where it covers at most THE_FAST_MAX_CELLS_PER_CIRCLE cells, else in
++//! Big.
++struct FastGrid
++{
++  const BRepMesh_CircleTool* Owner;
++  double                     SX, SY; //!< stock cell sizes
++  gp_XY                      FaceMin, FaceMax;
++  FastLevel                  Levels[THE_FAST_NB_LEVELS];
++  int                        NbLevels;
++  std::vector<FastNode>      Nodes;
++  int                        FreeNode;
++  std::vector<int>           Big;          //!< circles covering many cells on every level
++  std::vector<int>           OutLo, OutHi; //!< circles whose grown disk reaches beyond the x range
++  std::vector<int>           Bound;        //!< circles bound while the fast mode is on, ascending
++  std::vector<int>           Candidates;   //!< scratch of Select
++  double                     DomainSlack;  //!< x range of the grid: face box +- DomainSlack
++
++  FastGrid()
++      : Owner(NULL),
++        SX(0.),
++        SY(0.),
++        NbLevels(1),
++        FreeNode(-1),
++        DomainSlack(0.)
++  {
++  }
++
++  //! True if thePoint.X() lies in the x range the grid covers (false for NaN).
++  bool InDomain(const gp_XY& thePoint) const
++  {
++    return thePoint.X() >= FaceMin.X() - DomainSlack && thePoint.X() <= FaceMax.X() + DomainSlack;
++  }
++
++  double NbCells0() const { return (double)Levels[0].NX * (double)Levels[0].NY; }
++
++  //! Sizes the grid for about theTarget cells on level 0 over the face box.
++  void Layout(const double theTarget)
++  {
++    const double aW  = FaceMax.X() - FaceMin.X();
++    const double aH  = FaceMax.Y() - FaceMin.Y();
++    const bool   isW = (aW > 0. && aW < RealLast());
++    const bool   isH = (aH > 0. && aH < RealLast());
++    double       aNX = 1., aNY = 1.;
++    if (isW && isH)
++    {
++      aNX = Ceiling(Sqrt(theTarget * (aW / aH)));
++      aNX = Max(1., Min(aNX, (double)THE_FAST_MAX_CELLS));
++      aNY = Ceiling(theTarget / aNX);
++      aNY = Max(1., Min(aNY, (double)THE_FAST_MAX_CELLS / aNX));
++      aNY = Max(1., Floor(aNY));
++    }
++    else if (isW)
++    {
++      aNX = Max(1., Min(Ceiling(theTarget), (double)THE_FAST_MAX_CELLS));
++    }
++    else if (isH)
++    {
++      aNY = Max(1., Min(Ceiling(theTarget), (double)THE_FAST_MAX_CELLS));
++    }
++    DomainSlack = 1.e-10 * (Abs(FaceMin.X()) + Abs(FaceMax.X())) + 1.e-300;
++    int aCurNX = (int)aNX, aCurNY = (int)aNY;
++    NbLevels = 0;
++    for (;;)
++    {
++      FastLevel& aLevel = Levels[NbLevels++];
++      aLevel.NX         = aCurNX;
++      aLevel.NY         = aCurNY;
++      aLevel.X0         = FaceMin.X();
++      aLevel.Y0         = FaceMin.Y();
++      aLevel.InvX       = isW ? aCurNX / aW : 0.;
++      aLevel.InvY       = isH ? aCurNY / aH : 0.;
++      aLevel.Heads.assign((size_t)aCurNX * (size_t)aCurNY, -1);
++      if ((aCurNX == 1 && aCurNY == 1) || NbLevels == THE_FAST_NB_LEVELS)
++      {
++        break;
++      }
++      aCurNX = (aCurNX + 3) / 4;
++      aCurNY = (aCurNY + 3) / 4;
++    }
++    Nodes.clear();
++    FreeNode = -1;
++    Big.clear();
++    OutLo.clear();
++    OutHi.clear();
++  }
++
++  //! Puts the circle at the head of a cell list.
++  void Link(int& theHead, const int theIndex)
++  {
++    int aNode = FreeNode;
++    if (aNode >= 0)
++    {
++      FreeNode = Nodes[aNode].Next;
++    }
++    else
++    {
++      aNode = (int)Nodes.size();
++      Nodes.push_back(FastNode());
++    }
++    Nodes[aNode].Circle = theIndex;
++    Nodes[aNode].Next   = theHead;
++    theHead             = aNode;
++  }
++
++  //! Counts (thePass == 0, stops above THE_FAST_MAX_CELLS_PER_CIRCLE) or fills (thePass == 1) the
++  //! cells of theLevel that a point passing the stock test for the circle can lie in. Returns the
++  //! count, or -1 when the circle must go to Big (NaN).
++  long long Cover(FastLevel&   theLevel,
++                  const int    thePass,
++                  const int    theIndex,
++                  const gp_XY& theLoc,
++                  const double theRadius)
++  {
++    // BRepMesh_CircleInspector::Inspect accepts |P - loc|^2 - r^2 <= tol^2 (tol = PConfusion), i.e.
++    // |P - loc| <= r + tol + a few ulps of r. The reach adds a margin of 100 x tol plus 1e-12
++    // relative.
++    const double aMargin = 1.e-7 + 1.e-12 * (Abs(theLoc.X()) + Abs(theLoc.Y()) + Abs(theRadius));
++    const double aReach  = theRadius + aMargin;
++    if (!(aReach >= 0.))
++    {
++      return -1;
++    }
++    const int aX0 = fineCell(theLoc.X() - aReach, theLevel.X0, theLevel.InvX, theLevel.NX);
++    const int aX1 = fineCell(theLoc.X() + aReach, theLevel.X0, theLevel.InvX, theLevel.NX);
++
++    // Per column of cells, only the rows the disk (grown by the margin) reaches inside that column:
++    // for a huge circle whose centre lies far outside the face (triangles of the sweep front joined
++    // to the super-triangle vertices) this is a short chord instead of the whole face. The x range
++    // of a column is widened by DomainSlack (far above the rounding of fineCell); the border
++    // columns end at the face box plus DomainSlack - Select takes points beyond that through the
++    // full list (selectOutside).
++    const double aSlack  = DomainSlack + 1.e-10 * Abs(theLoc.X());
++    const double aReach2 = aReach * aReach;
++    long long    aSpan   = 0;
++    for (int aX = aX0; aX <= aX1; ++aX)
++    {
++      const double aLo = (aX == 0 || !(theLevel.InvX > 0.))
++                           ? FaceMin.X() - DomainSlack
++                           : theLevel.X0 + aX / theLevel.InvX - aSlack;
++      const double aHi = (aX == theLevel.NX - 1 || !(theLevel.InvX > 0.))
++                           ? FaceMax.X() + DomainSlack
++                           : theLevel.X0 + (aX + 1) / theLevel.InvX + aSlack;
++      double       aDX = 0.;
++      if (theLoc.X() < aLo)
++      {
++        aDX = aLo - theLoc.X();
++      }
++      else if (theLoc.X() > aHi)
++      {
++        aDX = theLoc.X() - aHi;
++      }
++      aDX = Max(0., aDX * (1. - 1.e-10) - aSlack);
++      // h^2 = reach^2 - dx^2 rounds with an absolute error of a few ulps of reach^2 + dx^2 (large
++      // next to h^2 near the tangent column): the slack of 1e-12 of that sum keeps h^2 an upper
++      // bound
++      const double aDX2 = aDX * aDX;
++      const double aH2  = (aReach2 - aDX2) + 1.e-12 * (aReach2 + aDX2);
++      if (!(aH2 >= 0.))
++      {
++        if (aH2 < 0.)
++        {
++          continue; // the disk does not reach this column
++        }
++        return -1; // NaN
++      }
++      const double aH  = Sqrt(aH2) * (1. + 1.e-10) + aMargin;
++      const int    aY0 = fineCell(theLoc.Y() - aH, theLevel.Y0, theLevel.InvY, theLevel.NY);
++      const int    aY1 = fineCell(theLoc.Y() + aH, theLevel.Y0, theLevel.InvY, theLevel.NY);
++      aSpan += (long long)(aY1 - aY0 + 1);
++      if (thePass == 0)
++      {
++        if (aSpan > THE_FAST_MAX_CELLS_PER_CIRCLE)
++        {
++          return aSpan;
++        }
++        continue;
++      }
++      for (int aY = aY0; aY <= aY1; ++aY)
++      {
++        Link(theLevel.Heads[(size_t)aY * (size_t)theLevel.NX + (size_t)aX], theIndex);
++      }
++    }
++    return aSpan;
++  }
++
++  //! Registers a live circle on the finest level where it covers few cells, or in Big.
++  void Register(const int theIndex, const gp_XY& theLoc, const double theRadius)
++  {
++    // a point beyond the x range of the grid can only lie in these disks (Select, !InDomain)
++    {
++      const double aReach =
++        theRadius + 1.e-7 + 1.e-12 * (Abs(theLoc.X()) + Abs(theLoc.Y()) + Abs(theRadius));
++      if (!(theLoc.X() - aReach >= FaceMin.X() - DomainSlack))
++      {
++        OutLo.push_back(theIndex);
++      }
++      if (!(theLoc.X() + aReach <= FaceMax.X() + DomainSlack))
++      {
++        OutHi.push_back(theIndex);
++      }
++    }
++    // most circles are small: the cells of the box of the grown disk on level 0 (a superset of the
++    // cells Cover finds) when there are few of them
++    {
++      FastLevel&   aLevel = Levels[0];
++      const double aReach =
++        theRadius + 1.e-7 + 1.e-12 * (Abs(theLoc.X()) + Abs(theLoc.Y()) + Abs(theRadius));
++      if (aReach >= 0.)
++      {
++        const int aX0 = fineCell(theLoc.X() - aReach, aLevel.X0, aLevel.InvX, aLevel.NX);
++        const int aX1 = fineCell(theLoc.X() + aReach, aLevel.X0, aLevel.InvX, aLevel.NX);
++        const int aY0 = fineCell(theLoc.Y() - aReach, aLevel.Y0, aLevel.InvY, aLevel.NY);
++        const int aY1 = fineCell(theLoc.Y() + aReach, aLevel.Y0, aLevel.InvY, aLevel.NY);
++        if ((long long)(aX1 - aX0 + 1) * (long long)(aY1 - aY0 + 1)
++            <= THE_FAST_MAX_CELLS_PER_CIRCLE)
++        {
++          for (int aY = aY0; aY <= aY1; ++aY)
++          {
++            for (int aX = aX0; aX <= aX1; ++aX)
++            {
++              Link(aLevel.Heads[(size_t)aY * (size_t)aLevel.NX + (size_t)aX], theIndex);
++            }
++          }
++          return;
++        }
++      }
++    }
++    for (int aLevel = 0; aLevel < NbLevels; ++aLevel)
++    {
++      const long long aSpan = Cover(Levels[aLevel], 0, theIndex, theLoc, theRadius);
++      if (aSpan < 0)
++      {
++        break;
++      }
++      if (aSpan <= THE_FAST_MAX_CELLS_PER_CIRCLE)
++      {
++        Cover(Levels[aLevel], 1, theIndex, theLoc, theRadius);
++        return;
++      }
++    }
++    Big.push_back(theIndex);
++  }
++
++  //! True if the stock grid holds the circle in the stock cell (theSX, theSY).
++  bool InStockCell(const BRepMesh_Circle& theCircle, const int theSX, const int theSY) const
++  {
++    gp_XY aMin, aMax;
++    stockBox(theCircle.Location(), theCircle.Radius(), FaceMin, FaceMax, aMin, aMax);
++    return stockCell(aMin.X(), SX) <= theSX && theSX <= stockCell(aMax.X(), SX)
++           && stockCell(aMin.Y(), SY) <= theSY && theSY <= stockCell(aMax.Y(), SY);
++  }
++
++  //! Collects the live circles of the grid (each once), ascending.
++  void LiveCircles(const IMeshData::VectorOfCircle& theCircles, std::vector<int>& theOut) const
++  {
++    // every node is in a cell list or in the free list; a node is freed only when its circle is
++    // dead, so a plain pass over the node array, Big, OutLo and OutHi, followed by the liveness
++    // test, gives the registered live circles
++    std::vector<char> aSeen((size_t)Max(theCircles.Length(), 0), 0);
++    for (size_t aNode = 0; aNode < Nodes.size(); ++aNode)
++    {
++      aSeen[(size_t)Nodes[aNode].Circle] = 1;
++    }
++    for (size_t i = 0; i < Big.size(); ++i)
++    {
++      aSeen[(size_t)Big[i]] = 1;
++    }
++    // a circle whose disk lies wholly beyond the x range of the grid is linked in no cell, only in
++    // OutLo or OutHi (review t4 #1)
++    for (size_t i = 0; i < OutLo.size(); ++i)
++    {
++      aSeen[(size_t)OutLo[i]] = 1;
++    }
++    for (size_t i = 0; i < OutHi.size(); ++i)
++    {
++      aSeen[(size_t)OutHi[i]] = 1;
++    }
++    theOut.clear();
++    for (size_t anIdx = 0; anIdx < aSeen.size(); ++anIdx)
++    {
++      if (aSeen[anIdx] && !(theCircles.Value((int)anIdx).Radius() < 0.))
++      {
++        theOut.push_back((int)anIdx);
++      }
++    }
++  }
++};
++
++thread_local FastGrid* THE_FAST_GRID = NULL;
++
++//! Returns the fast grid of theTool on this thread, or NULL.
++inline FastGrid* fastGridOf(const BRepMesh_CircleTool* theTool)
++{
++  FastGrid* aGrid = THE_FAST_GRID;
++  return (aGrid != NULL && aGrid->Owner == theTool) ? aGrid : NULL;
++}
++} // namespace
++
+ //=================================================================================================
+ 
+ BRepMesh_CircleTool::BRepMesh_CircleTool(const occ::handle<NCollection_IncAllocator>& theAllocator)
+@@ -48,6 +540,39 @@ void BRepMesh_CircleTool::bind(const int theIndex, const gp_XY& theLocation, con
+ {
+   BRepMesh_Circle aCirle(theLocation, theRadius);
+ 
++  // defect 012: in the fast mode a new circle goes to the fine grid; it reaches the cell filter
++  // when the fast mode ends. The order argument (see the top of this file) needs a fresh index,
++  // above every index the tool has seen (BRepMesh_Delaun binds new triangle indices only):
++  // otherwise the fast mode ends first and the stock path takes over.
++  if (FastGrid* aFast = fastGridOf(this))
++  {
++    if (theIndex >= mySelector.Circles().Length())
++    {
++      mySelector.Bind(theIndex, aCirle);
++      try
++      {
++        aFast->Bound.push_back(theIndex);
++        aFast->Register(theIndex, theLocation, theRadius);
++        return;
++      }
++      catch (const std::bad_alloc&)
++      {
++        // out of memory in the fast structures: back to the stock path (the stock structures
++        // allocate through OCCT and fail as they always did)
++        const bool isListed = !aFast->Bound.empty() && aFast->Bound.back() == theIndex;
++        fastSelectEnd();
++        if (isListed)
++        {
++          return;
++        }
++      }
++    }
++    else
++    {
++      fastSelectEnd();
++    }
++  }
++
+   // compute coords
+   double aMaxX = std::min(theLocation.X() + theRadius, myFaceMax.X());
+   double aMinX = std::max(theLocation.X() - theRadius, myFaceMin.X());
+@@ -167,10 +692,323 @@ void BRepMesh_CircleTool::Delete(const int theIndex)
+ IMeshData::ListOfInteger& BRepMesh_CircleTool::Select(const gp_XY& thePoint)
+ {
+   mySelector.SetPoint(thePoint);
+-  myCellFilter.Inspect(thePoint, mySelector);
++  FastGrid* aFast = fastGridOf(this);
++  if (aFast == NULL)
++  {
++    myCellFilter.Inspect(thePoint, mySelector);
++    return mySelector.GetShotCircles();
++  }
++
++  try
++  {
++    return fastSelect(thePoint);
++  }
++  catch (const std::bad_alloc&)
++  {
++    // out of memory in the fast structures: back to the stock path
++    fastSelectEnd();
++    mySelector.SetPoint(thePoint);
++    myCellFilter.Inspect(thePoint, mySelector);
++    return mySelector.GetShotCircles();
++  }
++}
++
++//=======================================================================
++// function : fastSelect
++// purpose  : defect 012
++//=======================================================================
++IMeshData::ListOfInteger& BRepMesh_CircleTool::fastSelect(const gp_XY& thePoint)
++{
++  // the circles the stock cell of thePoint holds, found through the cells of thePoint in the finer
++  // grid (dead circles leave the lists here, as CellFilter_Purge does in the stock lists), in
++  // descending index order = the stock list order, then the stock test. mayShoot only skips circles
++  // the stock test rejects.
++  FastGrid*                        aFast    = fastGridOf(this);
++  const IMeshData::VectorOfCircle& aCircles = mySelector.Circles();
++  const int                        aSX      = stockCell(thePoint.X(), aFast->SX);
++  const int                        aSY      = stockCell(thePoint.Y(), aFast->SY);
++  std::vector<int>&                aCand    = aFast->Candidates;
++  aCand.clear();
++
++  if (!aFast->InDomain(thePoint))
++  {
++    // a point beyond the x range of the grid: the candidates are the disks that reach beyond it on
++    // that side; a NaN x passes no test (the stock result is empty)
++    if (thePoint.X() < aFast->FaceMin.X() - aFast->DomainSlack
++        || thePoint.X() > aFast->FaceMax.X() + aFast->DomainSlack)
++    {
++      std::vector<int>& anOut =
++        thePoint.X() < aFast->FaceMin.X() - aFast->DomainSlack ? aFast->OutLo : aFast->OutHi;
++      size_t aKeepOut = 0;
++      for (size_t i = 0; i < anOut.size(); ++i)
++      {
++        const int              anIdx   = anOut[i];
++        const BRepMesh_Circle& aCircle = aCircles.Value(anIdx);
++        if (aCircle.Radius() < 0.)
++        {
++          continue;
++        }
++        anOut[aKeepOut++] = anIdx;
++        if (mayShoot(aCircle, thePoint) && aFast->InStockCell(aCircle, aSX, aSY))
++        {
++          aCand.push_back(anIdx);
++        }
++      }
++      anOut.resize(aKeepOut);
++      std::sort(aCand.begin(), aCand.end(), std::greater<int>());
++      for (size_t i = 0; i < aCand.size(); ++i)
++      {
++        mySelector.Inspect(aCand[i]);
++      }
++    }
++    return mySelector.GetShotCircles();
++  }
++  for (int aLevel = 0; aLevel < aFast->NbLevels; ++aLevel)
++  {
++    int* aLink = &aFast->Levels[aLevel].Head(thePoint);
++    while (*aLink >= 0)
++    {
++      const int              aNodeIdx = *aLink;
++      FastNode&              aNode    = aFast->Nodes[aNodeIdx];
++      const BRepMesh_Circle& aCircle  = aCircles.Value(aNode.Circle);
++      if (aCircle.Radius() < 0.)
++      {
++        *aLink          = aNode.Next;
++        aNode.Next      = aFast->FreeNode;
++        aFast->FreeNode = aNodeIdx;
++        continue;
++      }
++      if (mayShoot(aCircle, thePoint) && aFast->InStockCell(aCircle, aSX, aSY))
++      {
++        aCand.push_back(aNode.Circle);
++      }
++      aLink = &aNode.Next;
++    }
++  }
++
++  std::vector<int>& aBig  = aFast->Big;
++  size_t            aKeep = 0;
++  for (size_t i = 0; i < aBig.size(); ++i)
++  {
++    const int              anIdx   = aBig[i];
++    const BRepMesh_Circle& aCircle = aCircles.Value(anIdx);
++    if (aCircle.Radius() < 0.)
++    {
++      continue;
++    }
++    aBig[aKeep++] = anIdx;
++    if (mayShoot(aCircle, thePoint) && aFast->InStockCell(aCircle, aSX, aSY))
++    {
++      aCand.push_back(anIdx);
++    }
++  }
++  aBig.resize(aKeep);
++
++  std::sort(aCand.begin(), aCand.end(), std::greater<int>());
++  for (size_t i = 0; i < aCand.size(); ++i)
++  {
++    mySelector.Inspect(aCand[i]);
++  }
+   return mySelector.GetShotCircles();
+ }
+ 
++//=======================================================================
++// function : fastSelectUpdate
++// purpose  : defect 012
++//=======================================================================
++bool BRepMesh_CircleTool::fastSelectUpdate(const int theNbTriangles, const int theNbToInsert)
++{
++  if (FastGrid* aFast = fastGridOf(this))
++  {
++    // Rebuild the grid (i) larger when it holds more than 4 triangles per cell, (ii) at the same
++    // size when the node array is mostly garbage: a node is freed only when a Select meets its dead
++    // circle, and the cells the insertion front has left behind are seldom visited again.
++    const double aNbCells = aFast->NbCells0();
++    const bool   toGrow =
++      (double)theNbTriangles > 4. * aNbCells && aNbCells < (double)THE_FAST_MAX_CELLS;
++    const bool toClean =
++      (double)aFast->Nodes.size() > THE_FAST_MAX_NODES_PER_TRIANGLE
++                                      * Max((double)theNbTriangles, (double)THE_FAST_MIN_TRIANGLES);
++    if (toGrow || toClean)
++    {
++      try
++      {
++        std::vector<int> aLive;
++        aFast->LiveCircles(mySelector.Circles(), aLive);
++        aFast->Layout(toGrow ? theNbTriangles / 2. : aNbCells);
++        const IMeshData::VectorOfCircle& aCircles = mySelector.Circles();
++        for (size_t i = 0; i < aLive.size(); ++i)
++        {
++          const BRepMesh_Circle& aCircle = aCircles.Value(aLive[i]);
++          aFast->Register(aLive[i], aCircle.Location(), aCircle.Radius());
++        }
++      }
++      catch (const std::bad_alloc&)
++      {
++        fastSelectEnd(); // Bound is intact: the stock lists are completed
++        return false;
++      }
++    }
++    return true;
++  }
++
++  try
++  {
++    return fastSelectStart(theNbTriangles, theNbToInsert);
++  }
++  catch (const std::bad_alloc&)
++  {
++    return false; // nothing installed; the stock lists lost only dead entries
++  }
++}
++
++//=======================================================================
++// function : fastSelectStart
++// purpose  : defect 012
++//=======================================================================
++bool BRepMesh_CircleTool::fastSelectStart(const int theNbTriangles, const int theNbToInsert)
++{
++  if (THE_FAST_GRID != NULL) // another tool of this thread is in the fast mode
++  {
++    return false;
++  }
++  const NCollection_Array1<double>& aCellSize = CircleCellFilterAccess::CellSize(myCellFilter);
++  if (aCellSize.Size() != 2)
++  {
++    return false;
++  }
++  const double aSX = aCellSize(aCellSize.Lower());
++  const double aSY = aCellSize(aCellSize.Lower() + 1);
++  if (!(aSX > 0.) || !(aSY > 0.))
++  {
++    return false;
++  }
++
++  // Worth it? The pass ends with about theNbTriangles + 2 theNbToInsert triangles. The stock grid
++  // has aStockCells cells over the face box; a stock Select walks about triangles / aStockCells
++  // circles, and starting costs about one pass over the triangles: start for a face that ends with
++  // many triangles per stock cell and a pass that still inserts several nodes per stock cell.
++  const double anExpected = (double)theNbTriangles + 2. * (double)theNbToInsert;
++  const double aStockCells =
++    ((double)stockCell(myFaceMax.X(), aSX) - (double)stockCell(myFaceMin.X(), aSX) + 1.)
++    * ((double)stockCell(myFaceMax.Y(), aSY) - (double)stockCell(myFaceMin.Y(), aSY) + 1.);
++  if (anExpected < (double)THE_FAST_MIN_TRIANGLES || !(aStockCells >= 1.)
++      || anExpected <= 4. * aStockCells
++      || (double)theNbToInsert < THE_FAST_MIN_NODES_PER_CELL * aStockCells)
++  {
++    return false;
++  }
++
++  std::unique_ptr<FastGrid> aFast(new FastGrid());
++  aFast->Owner   = this;
++  aFast->SX      = aSX;
++  aFast->SY      = aSY;
++  aFast->FaceMin = myFaceMin;
++  aFast->FaceMax = myFaceMax;
++
++  // Read the stock lists: every live entry must be where the stock expressions put it, each cell's
++  // live entries must be in strictly descending index order, and each live circle must sit in
++  // exactly as many cells as its stock range has. Otherwise the stock path stays.
++  const IMeshData::VectorOfCircle& aCircles   = mySelector.Circles();
++  const int                        aNbCircles = aCircles.Length();
++  std::vector<int>                 aCount((size_t)Max(aNbCircles, 0), 0);
++  int                              aPrev        = INT_MAX;
++  const FastGrid&                  aGrid        = *aFast;
++  const bool                       isConsistent = CircleCellFilterAccess::ForEachEntry(
++    myCellFilter,
++    [&](const int theCellX, const int theCellY, const bool isFirst, const int theIndex) -> int {
++      if (isFirst)
++      {
++        aPrev = INT_MAX;
++      }
++      if (theIndex < 0 || theIndex >= aNbCircles)
++      {
++        return -1;
++      }
++      const BRepMesh_Circle& aCircle = aCircles.Value(theIndex);
++      if (aCircle.Radius() < 0.)
++      {
++        // dead: never passes the test, and a BRepMesh_Delaun never binds its index again (fresh
++        // triangle indices; InitCirclesTool resets the filter first) - purged as the stock Inspect
++        // would purge it
++        return 1;
++      }
++      if (theIndex >= aPrev || !aGrid.InStockCell(aCircle, theCellX, theCellY))
++      {
++        return -1;
++      }
++      aPrev = theIndex;
++      ++aCount[(size_t)theIndex];
++      return 0;
++    });
++  if (!isConsistent)
++  {
++    return false;
++  }
++
++  for (int anIdx = 0; anIdx < aNbCircles; ++anIdx)
++  {
++    if (aCount[(size_t)anIdx] == 0)
++    {
++      continue;
++    }
++    const BRepMesh_Circle& aCircle = aCircles.Value(anIdx);
++    gp_XY                  aMin, aMax;
++    stockBox(aCircle.Location(), aCircle.Radius(), myFaceMin, myFaceMax, aMin, aMax);
++    const long long aNbX =
++      (long long)stockCell(aMax.X(), aFast->SX) - stockCell(aMin.X(), aFast->SX) + 1;
++    const long long aNbY =
++      (long long)stockCell(aMax.Y(), aFast->SY) - stockCell(aMin.Y(), aFast->SY) + 1;
++    if (aNbX <= 0 || aNbY <= 0 || aNbX * aNbY != (long long)aCount[(size_t)anIdx])
++    {
++      return false;
++    }
++  }
++
++  aFast->Layout(Max((double)theNbTriangles, (double)THE_FAST_MIN_TRIANGLES) / 2.);
++  for (int anIdx = 0; anIdx < aNbCircles; ++anIdx)
++  {
++    if (aCount[(size_t)anIdx] != 0)
++    {
++      const BRepMesh_Circle& aCircle = aCircles.Value(anIdx);
++      aFast->Register(anIdx, aCircle.Location(), aCircle.Radius());
++    }
++  }
++  THE_FAST_GRID = aFast.release();
++  return true;
++}
++
++//=======================================================================
++// function : fastSelectEnd
++// purpose  : defect 012
++//=======================================================================
++void BRepMesh_CircleTool::fastSelectEnd()
++{
++  FastGrid* aGrid = fastGridOf(this);
++  if (aGrid == NULL)
++  {
++    return;
++  }
++  THE_FAST_GRID = NULL;
++  std::unique_ptr<FastGrid> aFast(aGrid);
++
++  // The circles bound meanwhile are newer than every circle of the cell filter: added in ascending
++  // order, each cell's list is again newest first, as if Bind had added them one by one.
++  const IMeshData::VectorOfCircle& aCircles = mySelector.Circles();
++  for (size_t i = 0; i < aFast->Bound.size(); ++i)
++  {
++    const int              anIdx   = aFast->Bound[i];
++    const BRepMesh_Circle& aCircle = aCircles.Value(anIdx);
++    if (aCircle.Radius() < 0.)
++    {
++      continue;
++    }
++    gp_XY aMin, aMax;
++    stockBox(aCircle.Location(), aCircle.Radius(), aFast->FaceMin, aFast->FaceMax, aMin, aMax);
++    myCellFilter.Add(anIdx, aMin, aMax);
++  }
++}
++
+ //=================================================================================================
+ 
+ void BRepMesh_CircleTool::MocBind(const int theIndex)
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_CircleTool.hxx b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_CircleTool.hxx
+index b625e0f8..3acf485b 100644
+--- a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_CircleTool.hxx
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_CircleTool.hxx
+@@ -124,6 +124,30 @@ private:
+   //! @param theRadius radius of a circle.
+   void bind(const int theIndex, const gp_XY& theLocation, const double theRadius);
+ 
++  // defect 012: fast selection on faces with many triangles. While BRepMesh_Delaun inserts nodes,
++  // the circles may be kept in a finer grid that lives outside this object (a per-thread structure
++  // owned by one call of BRepMesh_Delaun::createTrianglesOnNewVertices); Select then returns the
++  // same circles in the same order as the grid of SetCellSize. The data layout of this class is
++  // unchanged.
++  friend class BRepMesh_Delaun;
++
++  //! Starts the fast selection (or regrows its grid) when the circle grid holds too many triangles
++  //! per cell. Returns TRUE if the fast selection is active afterwards.
++  //! @param theNbTriangles triangles of the domain; @param theNbToInsert nodes the pass has still
++  //! to insert.
++  bool fastSelectUpdate(const int theNbTriangles, const int theNbToInsert);
++
++  //! Ends the fast selection: the circles bound meanwhile are registered in the cell filter, as
++  //! Bind would have.
++  void fastSelectEnd();
++
++  //! Starts the fast selection if the grid is worth it and the cell filter is as expected
++  //! (fastSelectUpdate).
++  bool fastSelectStart(const int theNbTriangles, const int theNbToInsert);
++
++  //! Select through the fast structures (Select).
++  IMeshData::ListOfInteger& fastSelect(const gp_XY& thePoint);
++
+ private:
+   double                                myTolerance;
+   occ::handle<NCollection_IncAllocator> myAllocator;
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Classifier.cxx b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Classifier.cxx
+index 85745471..e3665e7f 100644
+--- a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Classifier.cxx
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Classifier.cxx
+@@ -17,7 +17,7 @@
+ 
+ #include <Precision.hxx>
+ #include <gp_Pnt2d.hxx>
+-#include <CSLib_Class2d.hxx>
++#include <BRepMesh_BucketClass2d.hxx>
+ #include <NCollection_Array1.hxx>
+ 
+ IMPLEMENT_STANDARD_RTTIEXT(BRepMesh_Classifier, Standard_Transient)
+@@ -115,13 +115,14 @@ void BRepMesh_Classifier::RegisterWire(const NCollection_Sequence<const gp_Pnt2d
+     anAngle = 0.0;
+   }
+ 
+-  myTabClass.Append(new CSLib_Class2d(aPClass,
+-                                      theTolUV.first,
+-                                      theTolUV.second,
+-                                      theRangeU.first,
+-                                      theRangeV.first,
+-                                      theRangeU.second,
+-                                      theRangeV.second));
++  // defect 012: same answers as CSLib_Class2d, without scanning every segment per query
++  myTabClass.Append(new BRepMesh_BucketClass2d(aPClass,
++                                               theTolUV.first,
++                                               theTolUV.second,
++                                               theRangeU.first,
++                                               theRangeV.first,
++                                               theRangeU.second,
++                                               theRangeV.second));
+ 
+   myTabOrient.Append(!(anAngle < 0.0));
+ }
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Classifier.hxx b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Classifier.hxx
+index 2c2dd9e4..b792ee6d 100644
+--- a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Classifier.hxx
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Classifier.hxx
+@@ -22,7 +22,7 @@
+ #include <memory>
+ 
+ class gp_Pnt2d;
+-class CSLib_Class2d;
++class BRepMesh_BucketClass2d;
+ 
+ //! Auxiliary class intended for classification of points
+ //! regarding internals of discrete face.
+@@ -56,8 +56,8 @@ public:
+   DEFINE_STANDARD_RTTIEXT(BRepMesh_Classifier, Standard_Transient)
+ 
+ private:
+-  NCollection_DynamicArray<NCollection_Handle<CSLib_Class2d>> myTabClass;
+-  IMeshData::VectorOfBoolean                                  myTabOrient;
++  NCollection_DynamicArray<NCollection_Handle<BRepMesh_BucketClass2d>> myTabClass;
++  IMeshData::VectorOfBoolean                                     myTabOrient;
+ };
+ 
+ #endif
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Delaun.cxx b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Delaun.cxx
+index faaa1abf..1fc7c3af 100644
+--- a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Delaun.cxx
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_Delaun.cxx
+@@ -626,6 +626,36 @@ void BRepMesh_Delaun::createTrianglesOnNewVertices(IMeshData::VectorOfInteger&
+   int                   anIndex = theVertexIndexes.Lower();
+   int                   anUpper = theVertexIndexes.Upper();
+   Message_ProgressScope aPS(theRange, "Create triangles on new vertices", anUpper);
++
++  // defect 012: on a face with many triangles the circle tool selects through a finer grid owned by
++  // this call (same circles, same order - see BRepMesh_CircleTool.cxx); it is released on every way
++  // out of this call.
++  class FastSelectScope
++  {
++  public:
++    explicit FastSelectScope(BRepMesh_CircleTool& theTool)
++        : myTool(theTool)
++    {
++    }
++
++    ~FastSelectScope()
++    {
++      try
++      {
++        myTool.fastSelectEnd();
++      }
++      catch (...)
++      {
++      }
++    }
++
++    FastSelectScope(const FastSelectScope&)            = delete;
++    FastSelectScope& operator=(const FastSelectScope&) = delete;
++
++  private:
++    BRepMesh_CircleTool& myTool;
++  } aFastSelectScope(myCircles);
++
+   for (; anIndex <= anUpper; ++anIndex, aPS.Next())
+   {
+     if (!aPS.More())
+@@ -633,6 +663,11 @@ void BRepMesh_Delaun::createTrianglesOnNewVertices(IMeshData::VectorOfInteger&
+       return;
+     }
+     aAllocator->Reset(false);
++
++    if (myInitCircles && ((anIndex - theVertexIndexes.Lower()) & 1023) == 0)
++    {
++      myCircles.fastSelectUpdate(myMeshData->ElementsOfDomain().Extent(), anUpper - anIndex + 1);
++    }
+     IMeshData::MapOfIntegerInteger aLoopEdges(10, aAllocator);
+ 
+     int                    aVertexIdx = theVertexIndexes(anIndex);
+@@ -700,6 +735,7 @@ void BRepMesh_Delaun::createTrianglesOnNewVertices(IMeshData::VectorOfInteger&
+     }
+   }
+ 
++  myCircles.fastSelectEnd();
+   ProcessConstraints();
+ }
+ 
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_FaceChecker.cxx b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_FaceChecker.cxx
+index 26b05c27..5def04cf 100644
+--- a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_FaceChecker.cxx
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_FaceChecker.cxx
+@@ -18,6 +18,21 @@
+ #include <IMeshData_Edge.hxx>
+ #include <OSD_Parallel.hxx>
+ #include <BRepMesh_GeomTool.hxx>
++#include <NCollection_BaseAllocator.hxx>
++#include <Standard_OutOfMemory.hxx>
++
++#include <algorithm>
++#include <cmath>
++#include <new>
++#include <vector>
++
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++  #include <atomic>
++  #include <cstdio>
++  #include <cstdlib>
++  #include <cstring>
++  #include <mutex>
++#endif
+ 
+ IMPLEMENT_STANDARD_RTTIEXT(BRepMesh_FaceChecker, Standard_Transient)
+ 
+@@ -204,6 +219,392 @@ private:
+   Bnd_Box2d                              myBox;
+   IMeshData::VectorOfInteger             myIndices;
+ };
++
++//! Defect 012, Task 4b: the body of BRepMesh_FaceChecker::perform() (lines 266-298 @V7_8_1)
++//! unchanged, over the wires *theWires (ascending, each >= theWireIndex) instead of every wire
++//! theWireIndex..theNbWires-1; theWires = NULL is the stock loop over every one of them (no list,
++//! nothing allocated). theLog (the verification build only; NULL otherwise) receives every key in
++//! the order it is added to the map.
++void checkWire(const int                                      theWireIndex,
++               const int                                      theNbWires,
++               const double                                   theTolerance,
++               const BRepMesh_FaceChecker::ArrayOfSegments&   theWiresSegments,
++               const BRepMesh_FaceChecker::ArrayOfBndBoxTree& theWiresBndBoxTree,
++               Handle(IMeshData::MapOfIEdgePtr)&              aIntersections,
++               const std::vector<int>*                        theWires,
++               std::vector<IMeshData::IEdgePtr>*              theLog = NULL)
++{
++  const Handle(BRepMesh_FaceChecker::Segments)& aSegments1 = theWiresSegments.Value(theWireIndex);
++
++  BndBox2dTreeSelector aSelector(theTolerance);
++  const size_t         aNbCandidates =
++    (theWires != NULL) ? theWires->size() : (size_t)(theNbWires - theWireIndex);
++  for (size_t aCandIt = 0; aCandIt < aNbCandidates; ++aCandIt)
++  {
++    const int aWireIt = (theWires != NULL) ? (*theWires)[aCandIt] : theWireIndex + (int)aCandIt;
++    const Handle(IMeshData::BndBox2dTree)&        aBndBoxTree2 = theWiresBndBoxTree.Value(aWireIt);
++    const Handle(BRepMesh_FaceChecker::Segments)& aSegments2   = theWiresSegments.Value(aWireIt);
++
++    aSelector.SetSegments(aSegments2);
++    for (int aSegmentIt = 0; aSegmentIt < aSegments1->Size(); ++aSegmentIt)
++    {
++      const BRepMesh_FaceChecker::Segment& aSegment1 = aSegments1->Value(aSegmentIt);
++      aSelector.Reset(&aSegment1, (aWireIt == theWireIndex) ? aSegmentIt : -1);
++      if (aBndBoxTree2->Select(aSelector) != 0)
++      {
++        if (aIntersections.IsNull())
++        {
++          aIntersections = new IMeshData::MapOfIEdgePtr;
++        }
++
++        aIntersections->Add(aSegment1.EdgePtr);
++        if (theLog != NULL)
++          theLog->push_back(aSegment1.EdgePtr);
++
++        const IMeshData::VectorOfInteger& aSegments = aSelector.Indices();
++        for (int aSelIt = 0; aSelIt < aSegments.Size(); ++aSelIt)
++        {
++          const BRepMesh_FaceChecker::Segment& aSegment2 = aSegments2->Value(aSegments(aSelIt));
++          aIntersections->Add(aSegment2.EdgePtr);
++          if (theLog != NULL)
++            theLog->push_back(aSegment2.EdgePtr);
++        }
++      }
++    }
++  }
++}
++
++//! Defect 012, Task 4b: collects the wires whose root box is not IsOut() of a given box.
++class WireBoxSelector : public IMeshData::BndBox2dTree::Selector
++{
++public:
++  WireBoxSelector(const Bnd_Box2d& theBox, const int theFirst, std::vector<int>& theOut)
++      : myBox(theBox),
++        myFirst(theFirst),
++        myOut(theOut)
++  {
++  }
++
++  virtual bool Reject(const Bnd_Box2d& theBox) const override { return myBox.IsOut(theBox); }
++
++  virtual bool Accept(const int& theWire) override
++  {
++    if (theWire < myFirst)
++    {
++      return false;
++    }
++    myOut.push_back(theWire);
++    return true;
++  }
++
++private:
++  WireBoxSelector& operator=(const WireBoxSelector&);
++
++  Bnd_Box2d         myBox;
++  int               myFirst;
++  std::vector<int>& myOut;
++};
++
++//! Defect 012, Task 4b. perform(i) queries, for every segment s of wire i and every wire j >= i,
++//! the segment tree of wire j: S*W/2 tree queries on a face with S segments and W wires (18.4 % of
++//! the holes1024 top face after Task 4 of plan B). Select() first calls Reject(root box R_j) =
++//! s.IsOut(R_j) and returns 0 without any Accept() when it is true (NCollection_UBTree.hxx:267-268,
++//! 416). The boxes of the segments of wire i lie inside R_i - the union of the same boxes (built
++//! from the same two points, Enlarge(Confusion), the same Gap; Bnd_Box2d::Add keeps the max Gap) -
++//! and for finite boxes without open sides IsOut() (Bnd_Box2d.cxx:331-346) only gets truer when its
++//! own box shrinks: Xmin - Gap and Xmax + Gap move inwards, and the rounding of - and + is
++//! monotone. So R_i.IsOut(R_j) proves that every Select() of the pair (i, j) returns 0 at the root:
++//! the pair adds nothing to the maps, in any order, and is skipped. The candidates j come from one
++//! more UBTree over the root boxes: a node box contains the boxes below it, so a node rejected by
++//! R_i.IsOut() only holds wires j with R_i.IsOut(R_j) (the same monotonicity, on the second box),
++//! and a leaf is reached only when no node above it is rejected. Candidates are therefore exactly
++//! the wires j >= i with !R_i.IsOut(R_j). They are returned ascending - the order of perform()'s
++//! loop - so the queries and the insertions into the maps are the loop's own. Not filtered: a wire
++//! with a non-finite segment coordinate (NaN makes the comparisons false, the lemma does not hold)
++//! queries every wire j >= i and is queried by every wire - as before. A wire without segments has
++//! an empty tree (Select() returns 0, UBTree.hxx:268) and, as wire i, nothing to query. A face with
++//! at most 3 wires (almost every face) builds no tree: every wire j >= i is a candidate - the stock
++//! loop. Out of memory (review of Task 4b, M1; the rule of Task 5, finding 3): the wire tree, the
++//! flags and the candidate lists are extra memory that stock never asks for. If one of them cannot
++//! be allocated (std::bad_alloc from std::vector, Standard_OutOfMemory from Standard::Allocate), it
++//! is dropped and that wire - or, for the tree, every wire of the face - runs the stock loop over
++//! every wire j >= i, which needs no list: the same queries, maps and statuses as stock, and no new
++//! exception type reaches BRepMesh_ModelHealer::process. What the loop itself allocates (the maps)
++//! fails as in stock: Standard_OutOfMemory, which ModelHealer::process catches, marking that face
++//! alone IMeshData_Failure. The wire tree and its filler use the common allocator
++//! (Standard::Allocate throws Standard_OutOfMemory) instead of an NCollection_IncAllocator, whose
++//! new block (Standard::AllocateOptimal, a plain malloc here) is used unchecked. Test hooks
++//! (verification build only, FC4B_OOM) make these allocations fail for real: an impossible request
++//! to operator new or to Standard::Allocate.
++class WireCandidates
++{
++public:
++  WireCandidates(const BRepMesh_FaceChecker::ArrayOfSegments&   theWiresSegments,
++                 const BRepMesh_FaceChecker::ArrayOfBndBoxTree& theWiresBndBoxTree)
++      : myNbWires(theWiresBndBoxTree.Length())
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++        ,
++        myFallbacks(0),
++        myOomWild(false),
++        myOomTree(false),
++        myOomList(false)
++#endif
++  {
++    if (myNbWires <= 3)
++    {
++      return; // no tree: Get() gives every wire j >= i (the stock loop)
++    }
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++    // test hooks (verification build only): FC4B_OOM holds any of "wild", "tree", "list" - the
++    // allocation of the flags, of the wire tree, of every candidate list fails for real
++    if (const char* anOom = std::getenv("FC4B_OOM"))
++    {
++      myOomWild = std::strstr(anOom, "wild") != NULL;
++      myOomTree = std::strstr(anOom, "tree") != NULL;
++      myOomList = std::strstr(anOom, "list") != NULL;
++    }
++#endif
++    try
++    {
++      build(theWiresSegments, theWiresBndBoxTree);
++    }
++    catch (const std::bad_alloc&) // OOM-FALLBACK
++    {
++      dropTree();
++    }
++    catch (const Standard_OutOfMemory&) // OOM-FALLBACK
++    {
++      dropTree();
++    }
++  }
++
++  //! The wires j >= theWireIndex that perform(theWireIndex) must query. Returns true with them in
++  //! theWires, ascending; false when every wire j >= theWireIndex is to be queried - the stock
++  //! loop, theWires left empty.
++  bool Get(const int                              theWireIndex,
++           const Handle(IMeshData::BndBox2dTree)& theTree,
++           std::vector<int>&                      theWires) const
++  {
++    theWires.clear();
++    if (theTree->IsEmpty())
++    {
++      return true; // no segment to query with
++    }
++    if (myTree.IsNull() || myIsWild[(size_t)theWireIndex])
++    {
++      return false; // as before: every wire
++    }
++    try
++    {
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++      if (myOomList)
++      {
++        theWires.reserve(std::size_t(1)
++                         << 60); // operator new cannot serve 4 EiB: a real std::bad_alloc
++      }
++#endif
++      WireBoxSelector aSelector(theTree->Root().Bnd(), theWireIndex, theWires);
++      myTree->Select(aSelector);
++      for (size_t k = 0; k < myWild.size(); ++k)
++      {
++        if (myWild[k] >= theWireIndex)
++        {
++          theWires.push_back(myWild[k]); // wild wires are queried by everyone
++        }
++      }
++    }
++    catch (const std::bad_alloc&) // OOM-FALLBACK
++    {
++      // the list only saves queries whose answer is 0; the stock loop gives the same maps without
++      // it
++      std::vector<int>().swap(theWires);
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++      ++myFallbacks;
++#endif
++      return false;
++    }
++    std::sort(theWires.begin(), theWires.end());
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++    // negative control (verification build only): FC4B_BREAK=drop removes the last candidate of a
++    // list with more than one entry, FC4B_BREAK=swap reverses the list; Step 5a checks that the
++    // comparison below catches both
++    if (const char* aBreak = std::getenv("FC4B_BREAK"))
++    {
++      if (std::strcmp(aBreak, "drop") == 0 && theWires.size() > 1)
++        theWires.pop_back();
++      if (std::strcmp(aBreak, "swap") == 0)
++        std::reverse(theWires.begin(), theWires.end());
++    }
++#endif
++    return true;
++  }
++
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++  //! Verification build only: allocations that failed and fell back to the stock loop (the tree: 1,
++  //! per list: 1).
++  int Fallbacks() const { return myFallbacks; }
++#endif
++
++private:
++  WireCandidates(const WireCandidates&);
++  WireCandidates& operator=(const WireCandidates&);
++
++  void build(const BRepMesh_FaceChecker::ArrayOfSegments&   theWiresSegments,
++             const BRepMesh_FaceChecker::ArrayOfBndBoxTree& theWiresBndBoxTree)
++  {
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++    if (myOomWild)
++    {
++      myIsWild.reserve(std::size_t(1)
++                       << 60); // operator new cannot serve 1 EiB: a real std::bad_alloc
++    }
++#endif
++    myIsWild.assign((size_t)myNbWires, 0);
++    const occ::handle<NCollection_BaseAllocator>& anAlloc =
++      NCollection_BaseAllocator::CommonBaseAllocator();
++    Handle(IMeshData::BndBox2dTree) aTree = new IMeshData::BndBox2dTree(anAlloc);
++    IMeshData::BndBox2dTreeFiller   aFiller(*aTree, anAlloc);
++    try
++    {
++      for (int aWireIt = 0; aWireIt < myNbWires; ++aWireIt)
++      {
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++        if (myOomTree && aWireIt == myNbWires / 2)
++        {
++          Standard::Allocate(std::size_t(1)
++                             << 62); // the OCCT allocator's own failure: Standard_OutOfMemory
++        }
++#endif
++        const Handle(IMeshData::BndBox2dTree)& aWireTree = theWiresBndBoxTree.Value(aWireIt);
++        if (aWireTree->IsEmpty())
++        {
++          continue;
++        }
++        if (!isFinite(*theWiresSegments.Value(aWireIt)))
++        {
++          myIsWild[(size_t)aWireIt] = 1;
++          myWild.push_back(aWireIt);
++          continue;
++        }
++        aFiller.Add(aWireIt, aWireTree->Root().Bnd());
++      }
++      aFiller.Fill();
++    }
++    catch (...)
++    {
++      aFiller
++        .Reset(); // else its destructor would Fill() - allocate again - while the exception unwinds
++      throw;
++    }
++    myTree = aTree;
++  }
++
++  //! Out of memory while building: no tree, no flags - Get() gives every wire j >= i (the stock
++  //! loop).
++  void dropTree()
++  {
++    myTree.Nullify();
++    std::vector<char>().swap(myIsWild);
++    std::vector<int>().swap(myWild);
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++    ++myFallbacks;
++#endif
++  }
++
++  static bool isFinite(const BRepMesh_FaceChecker::Segments& theSegments)
++  {
++    for (int k = 0; k < theSegments.Size(); ++k)
++    {
++      const BRepMesh_FaceChecker::Segment& aSeg = theSegments.Value(k);
++      if (!std::isfinite(aSeg.Point1->X()) || !std::isfinite(aSeg.Point1->Y())
++          || !std::isfinite(aSeg.Point2->X()) || !std::isfinite(aSeg.Point2->Y()))
++      {
++        return false;
++      }
++    }
++    return true;
++  }
++
++  int                             myNbWires;
++  std::vector<char>               myIsWild;
++  std::vector<int>                myWild;
++  Handle(IMeshData::BndBox2dTree) myTree;
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++  mutable std::atomic<int> myFallbacks;
++  bool                     myOomWild;
++  bool                     myOomTree;
++  bool                     myOomList;
++#endif
++};
++
++//! Defect 012, Task 4b: the functor of the wire loop of Perform() - perform(i) over WireCandidates
++//! only.
++class WireChecker
++{
++public:
++  WireChecker(const IMeshData::IFaceHandle&                  theDFace,
++              const BRepMesh_FaceChecker::ArrayOfSegments&   theWiresSegments,
++              const BRepMesh_FaceChecker::ArrayOfBndBoxTree& theWiresBndBoxTree,
++              BRepMesh_FaceChecker::ArrayOfMapOfIEdgePtr&    theWiresIntersectingEdges,
++              const WireCandidates&                          theCandidates)
++      : myDFace(theDFace),
++        myWiresSegments(theWiresSegments),
++        myWiresBndBoxTree(theWiresBndBoxTree),
++        myWiresIntersectingEdges(theWiresIntersectingEdges),
++        myCandidates(theCandidates)
++  {
++  }
++
++  void operator()(const int theWireIndex) const
++  {
++    std::vector<int> aWires; // empty: allocated only inside Get()
++    const bool       aHaveList =
++      myCandidates.Get(theWireIndex, myWiresBndBoxTree.Value(theWireIndex), aWires);
++    // TODO (stock): Tolerance is set to twice value of face deflection in order to fit regressions.
++    checkWire(theWireIndex,
++              myDFace->WiresNb(),
++              2 * myDFace->GetDeflection(),
++              myWiresSegments,
++              myWiresBndBoxTree,
++              myWiresIntersectingEdges.ChangeValue(theWireIndex),
++              aHaveList ? &aWires : NULL);
++  }
++
++private:
++  WireChecker& operator=(const WireChecker&);
++
++  const IMeshData::IFaceHandle&                  myDFace;
++  const BRepMesh_FaceChecker::ArrayOfSegments&   myWiresSegments;
++  const BRepMesh_FaceChecker::ArrayOfBndBoxTree& myWiresBndBoxTree;
++  BRepMesh_FaceChecker::ArrayOfMapOfIEdgePtr&    myWiresIntersectingEdges;
++  const WireCandidates&                          myCandidates;
++};
++
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++//! Verification build only: the same keys in the same iteration order (the order of insertion
++//! decides it).
++static bool sameMap(const Handle(IMeshData::MapOfIEdgePtr)& theA,
++                    const Handle(IMeshData::MapOfIEdgePtr)& theB)
++{
++  if (theA.IsNull() || theB.IsNull())
++  {
++    return theA.IsNull() == theB.IsNull();
++  }
++  if (theA->Extent() != theB->Extent())
++  {
++    return false;
++  }
++  IMeshData::MapOfIEdgePtr::Iterator anItA(*theA), anItB(*theB);
++  for (; anItA.More() && anItB.More(); anItA.Next(), anItB.Next())
++  {
++    if (anItA.Key() != anItB.Key())
++    {
++      return false;
++    }
++  }
++  return !anItA.More() && !anItB.More();
++}
++#endif
+ } // namespace
+ 
+ //=================================================================================================
+@@ -226,8 +627,119 @@ bool BRepMesh_FaceChecker::Perform()
+   myIntersectingEdges = new IMeshData::MapOfIEdgePtr;
+   collectSegments();
+ 
+-  OSD_Parallel::For(0, myDFace->WiresNb(), *this, !isParallel());
++  // defect 012, Task 4b: only the wire pairs whose root boxes are not apart (WireCandidates, proof
++  // there). The stock loop over every pair is perform() - what operator() runs, and the reference
++  // of the verification build below.
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++  int aFallbacks = 0;
++#endif
++  {
++    const WireCandidates aCandidates(*myWiresSegments, *myWiresBndBoxTree);
++    const WireChecker    aChecker(myDFace,
++                               *myWiresSegments,
++                               *myWiresBndBoxTree,
++                               *myWiresIntersectingEdges,
++                               aCandidates);
++    OSD_Parallel::For(0, myDFace->WiresNb(), aChecker, !isParallel());
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++    aFallbacks = aCandidates.Fallbacks();
++#endif
++  }
+   collectResult();
++#ifdef BREPMESH_FACECHECKER_VERIFY_4B
++  {
++    // Verification build only (defect 012, Task 4b). Two comparisons with the stock loop over every
++    // pair:
++    //  1) perform() (the stock code itself), serial, into fresh maps: every per-wire map and the
++    //  united map must hold
++    //     the same keys in the same iteration order;
++    //  2) per wire, the SEQUENCE of insertions: checkWire() over every wire j >= i (= the stock
++    //  loop body) against
++    //     checkWire() over the candidates - catches an order change that the map layout would hide.
++    // A difference ends the process with code 9 (_Exit: no abort(), no Windows error dialog;
++    // run_cmp.py treats 9 as a result, not as memory). FC4B_STATS=<file> appends per face:
++    // "<wires>\t<pairs of the stock loop>\t<pairs queried>\t<intersecting edges>\t<1 = same>\t<OOM
++    // fallbacks>" (the last one: allocations of the prefilter that failed - FC4B_OOM - and fell
++    // back to the stock loop).
++    Handle(IMeshData::MapOfIEdgePtr)  aFiltered        = myIntersectingEdges;
++    occ::handle<ArrayOfMapOfIEdgePtr> aFilteredPerWire = myWiresIntersectingEdges;
++    myIntersectingEdges                                = new IMeshData::MapOfIEdgePtr;
++    myWiresIntersectingEdges = new ArrayOfMapOfIEdgePtr(0, myDFace->WiresNb() - 1);
++    OSD_Parallel::For(0, myDFace->WiresNb(), *this, true);
++    collectResult();
++    bool aSame = sameMap(aFiltered, myIntersectingEdges);
++    for (int aWireIt = 0; aWireIt < myDFace->WiresNb(); ++aWireIt)
++    {
++      aSame =
++        aSame
++        && sameMap(aFilteredPerWire->Value(aWireIt), myWiresIntersectingEdges->Value(aWireIt));
++    }
++    long long aPairs = 0, aQueried = 0;
++    {
++      const WireCandidates aCandidates(*myWiresSegments, *myWiresBndBoxTree);
++      std::vector<int>     aWires;
++      const int            aNbWires = myDFace->WiresNb();
++      for (int aWireIt = 0; aWireIt < aNbWires; ++aWireIt)
++      {
++        const Handle(IMeshData::BndBox2dTree)& aTree = myWiresBndBoxTree->Value(aWireIt);
++        if (!aTree->IsEmpty())
++        {
++          aPairs += aNbWires - aWireIt;
++        }
++        const bool aHaveList = aCandidates.Get(aWireIt, aTree, aWires);
++        aQueried += aHaveList ? (long long)aWires.size() : (long long)(aNbWires - aWireIt);
++        Handle(IMeshData::MapOfIEdgePtr) aMapStock, aMapFiltered;
++        std::vector<IMeshData::IEdgePtr> aLogStock, aLogFiltered;
++        checkWire(aWireIt,
++                  aNbWires,
++                  2 * myDFace->GetDeflection(),
++                  *myWiresSegments,
++                  *myWiresBndBoxTree,
++                  aMapStock,
++                  NULL,
++                  &aLogStock);
++        checkWire(aWireIt,
++                  aNbWires,
++                  2 * myDFace->GetDeflection(),
++                  *myWiresSegments,
++                  *myWiresBndBoxTree,
++                  aMapFiltered,
++                  aHaveList ? &aWires : NULL,
++                  &aLogFiltered);
++        aSame = aSame && aLogStock == aLogFiltered;
++      }
++    }
++    const char* aStatsPath = std::getenv("FC4B_STATS");
++    if (aStatsPath != NULL)
++    {
++      static std::mutex           THE_STATS_MUTEX;
++      std::lock_guard<std::mutex> aLock(THE_STATS_MUTEX);
++      if (FILE* aFile = std::fopen(aStatsPath, "a"))
++      {
++        std::fprintf(aFile,
++                     "%d\t%lld\t%lld\t%d\t%d\t%d\n",
++                     myDFace->WiresNb(),
++                     aPairs,
++                     aQueried,
++                     myIntersectingEdges->Extent(),
++                     aSame ? 1 : 0,
++                     aFallbacks); // written before _Exit on a mismatch
++        std::fclose(aFile);
++      }
++    }
++    if (!aSame)
++    {
++      std::fprintf(stderr,
++                   "FC4B MISMATCH: wires %d, intersecting edges filtered %d, stock %d\n",
++                   myDFace->WiresNb(),
++                   aFiltered.IsNull() ? -1 : aFiltered->Extent(),
++                   myIntersectingEdges->Extent());
++      std::fflush(stderr);
++      std::_Exit(9);
++    }
++    myIntersectingEdges = aFiltered;
++  }
++#endif
+ 
+   myWiresBndBoxTree.Nullify();
+   myWiresSegments.Nullify();
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/FILES.cmake b/src/ModelingAlgorithms/TKMesh/BRepMesh/FILES.cmake
+index b3ede088..5fb5b689 100644
+--- a/src/ModelingAlgorithms/TKMesh/BRepMesh/FILES.cmake
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/FILES.cmake
+@@ -7,6 +7,7 @@ set(OCCT_BRepMesh_FILES
+   BRepMesh_ConstrainedBaseMeshAlgo.hxx
+   BRepMesh_ConstrainedBaseMeshAlgo.cxx
+   BRepMesh_BoundaryParamsRangeSplitter.hxx
++  BRepMesh_BucketClass2d.hxx
+   BRepMesh_Circle.hxx
+   BRepMesh_CircleInspector.hxx
+   BRepMesh_CircleTool.cxx
+-- 
+2.52.0.windows.1
+

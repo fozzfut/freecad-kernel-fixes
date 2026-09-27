@@ -1,0 +1,49 @@
+From fbdb28bdb34f368a6c28d3091ccdfea7c8cfbc3d Mon Sep 17 00:00:00 2001
+From: mig <mig@local>
+Date: Fri, 25 Sep 2026 22:14:02 +0700
+Subject: [PATCH 3/5] 
+ 0001-PartGui-013-BRepTools-Clean-F-DLV1-D-25.09-Modified-.patch
+
+---
+ src/Mod/Part/Gui/DisplayMeshReuse.cpp | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/src/Mod/Part/Gui/DisplayMeshReuse.cpp b/src/Mod/Part/Gui/DisplayMeshReuse.cpp
+index 4d7fc24..1823448 100644
+--- a/src/Mod/Part/Gui/DisplayMeshReuse.cpp
++++ b/src/Mod/Part/Gui/DisplayMeshReuse.cpp
+@@ -38,6 +38,7 @@
+ #include <TopoDS_Compound.hxx>
+ #include <TopoDS_Edge.hxx>
+ #include <TopoDS_Face.hxx>
++#include <TopoDS_LockedShape.hxx>
+ #include <TopoDS_TShape.hxx>
+ #include <TopoDS_Vertex.hxx>
+ 
+@@ -281,6 +282,23 @@ DisplayMeshReuse::Stats DisplayMeshReuse::prepare(const TopoDS_Shape& shape, con
+             judgeFace(entry == reg.entries.end() ? nullptr : &entry->second, face, triangulation, location, params);
+         tally(stats, verdict);
+         if (verdict == ReuseVerdict::Keep) {
++            // The face keeps its triangulation and its edges keep their polygons on it, but gets everything else
++            // BRepTools::Clean would have done to it (finding F-DLV1): BRep_Builder::UpdateEdge on each edge (a polygon
++            // on this triangulation is removed: the edge is checked for a lock, then Modified) and
++            // BRep_Builder::UpdateFace (lock check, then Modified). Modified(Standard_True) also resets the Checked flag
++            // (TopoDS_TShape.hxx), so the face reads, is saved and is later treated (BRepTools::Update(face) looks at
++            // Checked) exactly as after the stock clean. judgeFace(), fingerprint() and BRepMesh read neither flag.
++            for (TopExp_Explorer xe(face, TopAbs_EDGE); xe.More(); xe.Next()) {
++                const Handle(TopoDS_TShape)& tedge = xe.Current().TShape();
++                if (tedge->Locked()) {
++                    throw TopoDS_LockedShape("BRep_Builder::UpdateEdge");
++                }
++                tedge->Modified(Standard_True);
++            }
++            if (face.TShape()->Locked()) {
++                throw TopoDS_LockedShape("BRep_Builder::UpdateFace");
++            }
++            face.TShape()->Modified(Standard_True);
+             kept.insert(triangulation.get());
+             continue;
+         }
+-- 
+2.52.0.windows.1
+

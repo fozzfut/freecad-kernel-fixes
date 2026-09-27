@@ -1,0 +1,45 @@
+From 8a01227d1f1b770cd5c7a00dd3c9745a15e82014 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 06:24:37 +0700
+Subject: [PATCH 2/3] 031 (TKFillet): no empty obstacle curve after StartSol
+ finds no arc on the neighbour face
+
+ChFi3d_Builder::StartSol, the branch where the fillet runs into an arc of the
+neighbour face (c1obstacle): when that arc is not found among the edges of the
+neighbour face, StartSol returned false but left c1obstacle = true and HC as an
+empty BRepAdaptor_Curve2d. PerformSetOfSurfOnElSpine then took the obstacle path
+(RstRst / CS walk) and evaluated the empty curve: access violation in
+Geom2dAdaptor_Curve::EvalD0 (BRepBlend_RstRstConstRad::Value).
+
+Now that branch clears c1obstacle and HC, like the other "no neighbour" returns:
+the walk continues with the tangent plane or stops with "Chaining is impossible"
+(a Standard_Failure the caller reports), instead of crashing.
+
+Found by the downstream check of issue 031 round 2: a second fillet of a long
+concave edge that ends in a flanked fillet corner (issue 5829 model) crashed the
+stock TKFillet with 0xC0000005; with this change it is NOTDONE, as on the stock
+corner. No other result changed in the DRAW blend group or in the own sweeps.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_2.cxx | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_2.cxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_2.cxx
+index 9a6c5801..67d46717 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_2.cxx
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_2.cxx
+@@ -1557,6 +1557,10 @@ bool ChFi3d_Builder::StartSol(
+         }
+         else
+         {
++          // the arc is not found on the neighbour face: there is no obstacle to follow. HC
++          // must not stay an empty curve flagged as an obstacle (the walk would evaluate it)
++          c1obstacle = false;
++          HC.Nullify();
+           prepareDefaultReturn();
+           return false;
+         }
+-- 
+2.52.0.windows.1
+

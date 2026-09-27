@@ -1,0 +1,364 @@
+From fecbbeeba4ea66df9ecf47ece68e4574a33281ae Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 02:00:01 +0700
+Subject: [PATCH 1/3] 031 (TKFillet): corner of two fillets that end on the
+ sharp edges between them
+
+ChFi3d_Builder::PerformMoreThreeCorner, the !inters branch. When the fillets on both
+sides of a sharp (not filleted) edge both end ON that edge at different points (a
+vertical edge fillet running into two concave chamfer faces, filleted together with
+the chamfers' miter edge), the stock code cut every stripe back to one common setback
+distance: the nearer fillet's end left the edge, the corner got a G0 batten across
+each chamfer face and the GeomPlate patch folded along it (owner's part: creases up
+to 92 deg, edge tolerance 6.4e-2, 16.7 deg G1 break to the fillets).
+
+Now, for rolling-ball fillets only (FilSpine), when every neighbour of such stripes is
+such an edge and each stripe is the farther or the nearer one on both of its edges:
+- the nearer stripe keeps its end; the corner border to it is the piece of the edge
+  between the two ends (the contact set of the rolling ball on the edge);
+- the farther stripe is set back by the gap along the edge (setback vertex blend,
+  Varady-Rockwood CAD 1997), its border line on the face is continued to the edge and
+  is a G1 border of the plate.
+Otherwise (and for chamfers) the stock path is taken unchanged.
+
+Owner's part: valid, BOP check OK, edge tol 7.2e-3, G1 break to the fillets 1.2 deg,
+no folds. Identity: DRAW blend group 475/475 byte-identical; own sweep of 9870
+fillet/chamfer operations on 17 shapes differs only in the flanked-edge corners
+(70 cases, all better by validity/check/folds/G1/tolerance).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx  | 258 +++++++++++++++++-
+ 1 file changed, 256 insertions(+), 2 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx
+index 3e645a11..2ef0e4f5 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx
+@@ -49,6 +49,7 @@
+ #include <ChFi3d_Builder_0.hxx>
+ #include <ChFiDS_CommonPoint.hxx>
+ #include <ChFiDS_FaceInterference.hxx>
++#include <ChFiDS_FilSpine.hxx>
+ #include <ChFiDS_SurfData.hxx>
+ #include <NCollection_Sequence.hxx>
+ #include <NCollection_HSequence.hxx>
+@@ -1229,6 +1230,29 @@ static TopAbs_Orientation PlateOrientation(
+   }
+ }
+ 
++//=======================================================================
++// function : StripeEndOnEdge
++// purpose  : true when the common point that ends the stripe on its side jfposit lies on
++//           the edge E; gives its parameter on E
++//=======================================================================
++
++static bool StripeEndOnEdge(const occ::handle<ChFiDS_Stripe>& stripe,
++                            const int                         sensS,
++                            const int                         jfposit,
++                            const int                         indice,
++                            const TopoDS_Edge&                E,
++                            double&                           par)
++{
++  const ChFiDS_CommonPoint& cp =
++    stripe->SetOfSurfData()->Value(indice)->Vertex(sensS == 1, jfposit);
++  if (!cp.IsOnArc() || !cp.Arc().IsSame(E))
++  {
++    return false;
++  }
++  par = cp.ParameterOnArc();
++  return true;
++}
++
+ //=======================================================================
+ // function : PerformMoreThreeCorner
+ // purpose  : Process case of a top with n edges.
+@@ -1999,6 +2023,25 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+     }
+   }
+ 
++  // flank(ic): sharp edge ic on which the stripes on both sides of it end (parameters of their
++  // ends on it: parflm from the stripe icmoins, parflp from the stripe icplus);
++  // keepend(ic): stripe ic whose both neighbours are such edges (see below)
++  NCollection_Array1<bool>   flank(0, size);
++  NCollection_Array1<bool>   keepend(0, size);
++  NCollection_Array1<double> parflm(0, size);
++  NCollection_Array1<double> parflp(0, size);
++  NCollection_Array1<bool>   farplus(0, size); // flanked edge: the stripe icplus ends farther
++  NCollection_Array1<double> setback(0, size); // kept stripe: how far it is cut back
++  for (ic = 0; ic <= size; ic++)
++  {
++    farplus.SetValue(ic, false);
++    setback.SetValue(ic, 0.);
++    flank.SetValue(ic, false);
++    keepend.SetValue(ic, false);
++    parflm.SetValue(ic, 0.);
++    parflp.SetValue(ic, 0.);
++  }
++
+   // case if there are only intersections
+   // the parametres on Pcurves are the extremities of the stripe
+   double para;
+@@ -2062,6 +2105,133 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+       }
+     }
+ 
++    // A rolling ball whose fillet ends on a sharp (not filleted) edge touches that edge there.
++    // When the fillets on both sides of a sharp edge both end on it at different points, the
++    // corner's boundary between them is the piece of the edge between these two points (the
++    // contact set of the rolling ball). Cutting the fillets back to one common setback distance
++    // below would move their ends off the edge onto the faces and leave the plate a G0 curve
++    // across a face there, along which it can fold. So such stripes are not cut back that way
++    // when every neighbour of theirs is such an edge, and such an edge is cut where the farther
++    // of its two fillets ends (below).
++    if (!deuxconges && !deuxcgnontg)
++    {
++      for (ic = 0; ic < nedge; ic++)
++      {
++        Indices(nedge, ic, icplus, icmoins);
++        if (!sharp.Value(ic) || sharp.Value(icplus) || sharp.Value(icmoins) || samedge.Value(ic)
++            || oksea.Value(ic) || oksea.Value(icmoins) || icplus == icmoins)
++        {
++          continue;
++        }
++        // rolling-ball fillets only: a chamfer has no ball touching the edge
++        if (occ::handle<ChFiDS_FilSpine>::DownCast(CD.Value(icmoins)->Spine()).IsNull()
++            || occ::handle<ChFiDS_FilSpine>::DownCast(CD.Value(icplus)->Spine()).IsNull())
++        {
++          continue;
++        }
++        const TopoDS_Edge& Eflank = TopoDS::Edge(Evive.Value(ic));
++        double             parm = 0., parp = 0.;
++        if (StripeEndOnEdge(CD.Value(icmoins),
++                            sens.Value(icmoins),
++                            jf.Value(icmoins),
++                            i.Value(icmoins, ic),
++                            Eflank,
++                            parm)
++            && StripeEndOnEdge(CD.Value(icplus),
++                               sens.Value(icplus),
++                               3 - jf.Value(icplus),
++                               i.Value(icplus, ic),
++                               Eflank,
++                               parp))
++        {
++          BRepAdaptor_Curve Cflank(Eflank);
++          if (Cflank.Value(parm).Distance(Cflank.Value(parp)) > tolapp)
++          {
++            flank.SetValue(ic, true);
++            parflm.SetValue(ic, parm);
++            parflp.SetValue(ic, parp);
++          }
++        }
++      }
++      bool changed = true;
++      while (changed)
++      {
++        changed = false;
++        for (ic = 0; ic < nedge; ic++)
++        {
++          Indices(nedge, ic, icplus, icmoins);
++          if (!sharp.Value(ic))
++          {
++            keepend.SetValue(ic, flank.Value(icplus) && flank.Value(icmoins));
++          }
++        }
++        for (ic = 0; ic < nedge; ic++)
++        {
++          Indices(nedge, ic, icplus, icmoins);
++          if (flank.Value(ic) && !(keepend.Value(icplus) && keepend.Value(icmoins)))
++          {
++            flank.SetValue(ic, false);
++            changed = true;
++          }
++        }
++      }
++      // The farther stripe on a flanked edge ends with its cross tangent along the edge's faces,
++      // the nearer one with its cross tangent pointing across: between the two ends the corner
++      // must turn by the angle between them within the gap along the edge. With both ends kept,
++      // no G1 surface between them is fair (its section needs an inflection), so the farther
++      // stripe is set back by that gap, as the setback vertex blends do (Varady-Rockwood), and
++      // its line on the face down to the edge becomes a G1 border of the corner. A stripe must be
++      // the farther one, or the nearer one, on both of its edges; otherwise nothing changes.
++      bool coherent = true;
++      for (ic = 0; ic < nedge; ic++)
++      {
++        if (flank.Value(ic))
++        {
++          Indices(nedge, ic, icplus, icmoins);
++          BRepAdaptor_Curve Cflank(TopoDS::Edge(Evive.Value(ic)));
++          const gp_Pnt      Pm = Cflank.Value(parflm.Value(ic));
++          const gp_Pnt      Pp = Cflank.Value(parflp.Value(ic));
++          farplus.SetValue(ic, Pp.Distance(som) > Pm.Distance(som));
++          const int    ifar = farplus.Value(ic) ? icplus : icmoins;
++          const double gap  = Pm.Distance(Pp);
++          if (gap > setback.Value(ifar))
++          {
++            setback.SetValue(ifar, gap);
++          }
++        }
++      }
++      for (ic = 0; ic < nedge; ic++)
++      {
++        if (keepend.Value(ic))
++        {
++          Indices(nedge, ic, icplus, icmoins);
++          // this stripe is icplus of the edge icmoins and icmoins of the edge icplus
++          const bool farm = farplus.Value(icmoins);
++          const bool farp = !farplus.Value(icplus);
++          if (farm != farp)
++          {
++            coherent = false;
++          }
++          // the setback must stay well inside the stripe's last piece
++          const ChFiDS_FaceInterference& fi =
++            CD.Value(ic)->SetOfSurfData()->Value(i.Value(ic, icplus))->InterferenceOnS1();
++          if (setback.Value(ic) >= 0.5 * std::abs(fi.LastParameter() - fi.FirstParameter()))
++          {
++            coherent = false;
++          }
++        }
++      }
++      if (!coherent)
++      {
++        for (ic = 0; ic <= size; ic++)
++        {
++          flank.SetValue(ic, false);
++          keepend.SetValue(ic, false);
++          setback.SetValue(ic, 0.);
++        }
++      }
++    }
++
+     //  calculate max distance to the top at each point
+     NCollection_Array1<double> dist1(0, size);
+     NCollection_Array1<double> dist2(0, size);
+@@ -2139,6 +2309,10 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+           // it is necessary to be on to remain on the edge
+           p.SetValue(ic, icplus, p.Value(ic, icmoins));
+         }
++        else if (keepend.Value(ic))
++        {
++          // its own end, or its setback: set below, after the common points are looked at
++        }
+         else if (!distmini)
+         {
+           dist = dist1.Value(ic);
+@@ -2316,6 +2490,36 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+     }
+   }
+ 
++  // a sharp edge with fillets ending on it on both sides is cut where the farther one ended;
++  // the connection to that one is a line on the face (it is set back), the one to the nearer
++  // one is the piece of the edge
++  for (ic = 0; ic < nedge; ic++)
++  {
++    if (flank.Value(ic))
++    {
++      Indices(nedge, ic, icplus, icmoins);
++      para = farplus.Value(ic) ? parflp.Value(ic) : parflm.Value(ic);
++      p.SetValue(ic, icmoins, para);
++      p.SetValue(ic, icplus, para);
++      // the farther stripe is set back: both connections are curves
++      ponctuel.SetValue(ic, false);
++      ponctuel.SetValue(icmoins, false);
++    }
++  }
++  for (ic = 0; ic < nedge; ic++)
++  {
++    if (keepend.Value(ic))
++    {
++      Indices(nedge, ic, icplus, icmoins);
++      isfirst         = (sens.Value(ic) == 1);
++      const double ec = isfirst ? setback.Value(ic) : -setback.Value(ic);
++      Calcul_Param(CD.Value(ic), jf.Value(ic), i.Value(ic, icplus), isfirst, para);
++      p.SetValue(ic, icplus, para + ec);
++      Calcul_Param(CD.Value(ic), 3 - jf.Value(ic), i.Value(ic, icmoins), isfirst, para);
++      p.SetValue(ic, icmoins, para + ec);
++    }
++  }
++
+   // in case of a free border the parameter corresponding
+   // to the common point on the free edge is chosen.
+ 
+@@ -2860,6 +3064,12 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+       /*gp_Pnt*/ PE = C.Value(p.Value(ic, icplus));
+       TopOpeBRepDS_Point TPE(PE, BRep_Tool::Tolerance(TopoDS::Edge(Evive.Value(ic))));
+       ChFiDS_CommonPoint cp;
++      if (flank.Value(ic))
++      {
++        indpoint.SetValue(ic, 0, DStr.AddPoint(TPE));
++        indpoint.SetValue(ic, 1, indpoint.Value(ic, 0));
++        continue;
++      }
+       if (deuxconges)
+       {
+         IVtx = DStr.AddShape(V1);
+@@ -3047,11 +3257,51 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+         }
+         else
+         { // the connection is a straight line, projection or batten
+-          if (ratio > 10 && nconges == 1)
++          // or, next to a sharp edge on which both fillets end, the piece of that edge
++          bool alongedge = false, wallline = false;
++          if ((sharp.Value(ic) && flank.Value(ic)) || (sharp.Value(icplus) && flank.Value(icplus)))
++          {
++            const bool onic = sharp.Value(ic) && flank.Value(ic);
++            if (onic ? farplus.Value(ic) : !farplus.Value(icplus))
++            {
++              // to the set-back stripe: its border line on the face, continued to the edge
++              CalculDroite(p2d1, xdir, ydir, pcurve);
++              wallline      = true;
++              raccordbatten = false;
++            }
++          }
++          if (!wallline
++              && ((sharp.Value(ic) && flank.Value(ic))
++                  || (sharp.Value(icplus) && flank.Value(icplus))))
++          {
++            const bool                      onic = sharp.Value(ic) && flank.Value(ic);
++            const occ::handle<Geom2d_Curve> ce   = onic ? curv2d1 : curv2d2;
++            const double pa = onic ? p.Value(ic, icplus) : parflm.Value(icplus);
++            const double pb = onic ? parflp.Value(ic) : p.Value(icplus, ic);
++            if (std::abs(pb - pa) > Precision::PConfusion())
++            {
++              if (pa < pb)
++              {
++                pcurve = new Geom2d_TrimmedCurve(ce, pa, pb);
++              }
++              else
++              {
++                pcurve = new Geom2d_TrimmedCurve(ce->Reversed(),
++                                                 ce->ReversedParameter(pa),
++                                                 ce->ReversedParameter(pb));
++              }
++              alongedge     = true;
++              raccordbatten = false;
++            }
++          }
++          if (!alongedge && !wallline && ratio > 10 && nconges == 1)
+           {
+             raccordbatten = true;
+           }
+-          if (ratio > 10 && raccordbatten)
++          if (alongedge || wallline)
++          {
++          }
++          else if (ratio > 10 && raccordbatten)
+           {
+             CalculDroite(p2d1, xdir, ydir, pcurve);
+             raccordbatten = false;
+@@ -3166,6 +3416,10 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+           {
+             Order.SetValue(n3d, 1);
+           }
++          if (wallline)
++          {
++            Order.SetValue(n3d, 1);
++          }
+           occ::handle<GeomPlate_CurveConstraint> Cont =
+             new GeomPlate_CurveConstraint(HCons, Order.Value(n3d), 10, tolapp3d, angular, 0.1);
+           PSurf.Add(Cont);
+-- 
+2.52.0.windows.1
+

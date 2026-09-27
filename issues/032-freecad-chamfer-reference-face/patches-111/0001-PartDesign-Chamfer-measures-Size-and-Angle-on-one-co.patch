@@ -1,0 +1,496 @@
+From fe4381496c9e343f30036d1af7ffffab6c681c91 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 01:07:41 +0700
+Subject: [PATCH 1/2] PartDesign: Chamfer measures Size and Angle on one
+ consistent face per edge
+
+Two distances / Distance and Angle handed BRepFilletAPI_MakeChamfer the
+first adjacent face of each edge in TopExp ancestor order (FlipDirection:
+the last). OCCT measures Dis1 / Dis on that face and the angle from it,
+exactly (checked against the analytic normal-section triangle, 0 difference
+between OCCT 7.8.1 and 8.0.1), so the topology order alone decided which
+face got Size: the side face of a pad's top edge, the cylinder of a boss
+rim, and on an imported part's face rim three edges on the face and one on
+the wall. 51 of 94 ground-truth rows were wrong.
+
+New property ReferenceMode:
+- Consistent (new chamfers): a face picked in Base, else the face shared
+  by the most chamfered edges (the face the chain runs around), else a
+  planar face, else the larger face; FlipDirection takes the other face of
+  every edge. Size / Size2 / Angle go to Add(d1, d2, E, F) / AddDA(d, a, E, F).
+- Legacy: the old topology-order choice, same geometry as before. Restore()
+  sets Legacy first, so documents saved without the property keep their
+  geometry.
+
+New output property ReferenceFaces ("EdgeN:FaceM", not saved) records the
+face each edge was measured on. The task panel puts the Size gizmo on that
+face and re-places the gizmos after a type change, so the gizmo, the
+result and the record agree.
+
+Distance and Angle that can never reach the other face (angle plus the
+dihedral angle >= 180 deg) now fails with a message naming the edge, the
+faces and both angles instead of "BRep_API: command not done".
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/PartDesign/App/FeatureChamfer.cpp     | 323 +++++++++++++++++-
+ src/Mod/PartDesign/App/FeatureChamfer.h       |   9 +
+ .../PartDesign/Gui/TaskChamferParameters.cpp  |  21 +-
+ 3 files changed, 343 insertions(+), 10 deletions(-)
+
+diff --git a/src/Mod/PartDesign/App/FeatureChamfer.cpp b/src/Mod/PartDesign/App/FeatureChamfer.cpp
+index fdec798..540dc6a 100644
+--- a/src/Mod/PartDesign/App/FeatureChamfer.cpp
++++ b/src/Mod/PartDesign/App/FeatureChamfer.cpp
+@@ -20,10 +20,22 @@
+  *                                                                         *
+  ***************************************************************************/
+ 
++#include <algorithm>
++#include <cmath>
+ #include <limits>
++#include <sstream>
++#include <string>
+ 
++#include <BRepAdaptor_Curve.hxx>
++#include <BRepAdaptor_Surface.hxx>
+ #include <BRepAlgo.hxx>
++#include <BRepClass_FaceClassifier.hxx>
+ #include <BRepFilletAPI_MakeChamfer.hxx>
++#include <BRepGProp.hxx>
++#include <BRep_Tool.hxx>
++#include <GProp_GProps.hxx>
++#include <Geom2d_Curve.hxx>
++#include <TopTools_IndexedMapOfShape.hxx>
+ #include <TopExp.hxx>
+ #include <TopoDS.hxx>
+ #include <TopoDS_Edge.hxx>
+@@ -34,10 +46,12 @@
+ #include <Standard_Version.hxx>
+ 
+ 
++#include <Base/Console.h>
+ #include <Base/Exception.h>
+ #include <Base/Reader.h>
+ #include <Base/Tools.h>
+ #include <Mod/Part/App/TopoShape.h>
++#include <Mod/Part/App/TopoShapeOpCode.h>
+ 
+ #include "FeatureChamfer.h"
+ 
+@@ -50,6 +64,7 @@ using namespace PartDesign;
+ PROPERTY_SOURCE(PartDesign::Chamfer, PartDesign::DressUp)
+ 
+ const char* ChamferTypeEnums[] = {"Equal distance", "Two distances", "Distance and Angle", nullptr};
++const char* ChamferReferenceModeEnums[] = {"Consistent", "Legacy", nullptr};
+ const App::PropertyQuantityConstraint::Constraints Chamfer::floatSize
+     = {0.0, std::numeric_limits<float>::max(), 0.1};
+ const App::PropertyAngle::Constraints Chamfer::floatAngle = {0.0, 180.0, 1.0};
+@@ -89,6 +104,25 @@ Chamfer::Chamfer()
+         "dialog.\n"
+     );
+ 
++    ADD_PROPERTY_TYPE(
++        ReferenceMode,
++        (0L),
++        "Chamfer",
++        App::Prop_None,
++        "Which adjacent face of each edge carries Size and Angle.\n"
++        "Consistent: a face picked in Base, else the face shared by the most chamfered edges,\n"
++        "else a planar face, else the larger face - the same rule for every edge.\n"
++        "Legacy: the first adjacent face in topology order (FreeCAD 1.1 behaviour)."
++    );
++    ReferenceMode.setEnums(ChamferReferenceModeEnums);
++    ADD_PROPERTY_TYPE(
++        ReferenceFaces,
++        (),
++        "Chamfer",
++        App::PropertyType(App::Prop_Output | App::Prop_Transient | App::Prop_ReadOnly),
++        "EdgeN:FaceM per chamfered edge: the base face Size and Angle are measured on"
++    );
++
+     updateProperties();
+ }
+ 
+@@ -110,12 +144,212 @@ short Chamfer::mustExecute() const
+             break;
+     }
+ 
++    if (chamferType != 0 && ReferenceMode.isTouched()) {
++        touched = true;
++    }
++
+     if (Placement.isTouched() || touched) {
+         return 1;
+     }
+     return DressUp::mustExecute();
+ }
+ 
++namespace
++{
++
++bool isPlanar(const TopoDS_Face& face)
++{
++    BRepAdaptor_Surface surf(face, Standard_False);
++    return surf.GetType() == GeomAbs_Plane;
++}
++
++double faceArea(const TopoDS_Face& face)
++{
++    GProp_GProps props;
++    BRepGProp::SurfaceProperties(face, props);
++    return props.Mass();
++}
++
++// The adjacent face of every edge that Size (and the Angle) is measured on. OCCT's
++// BRepFilletAPI_MakeChamfer::Add(Dis1, Dis2, E, F) / AddDA(Dis, Angle, E, F) measure Dis1 / Dis on F
++// and the angle from F (BlendFunc_ChAsym), so this choice alone decides which face gets which value.
++// Legacy: the first ancestor (FlipDirection: the last), as TopoShape::makeElementChamfer does.
++// Consistent: the better of the two faces by (picked in Base, number of chamfered edges it bounds,
++// planar, larger area); a full tie keeps the first ancestor. FlipDirection takes the other face.
++std::vector<TopoDS_Shape> chooseReferenceFaces(
++    const Part::TopoShape& shape,
++    const std::vector<Part::TopoShape>& edges,
++    const TopTools_IndexedMapOfShape& picked,
++    bool consistent,
++    bool flip
++)
++{
++    std::vector<std::pair<TopoDS_Shape, TopoDS_Shape>> adjacent;
++    adjacent.reserve(edges.size());
++    TopTools_IndexedMapOfShape faceIndex;
++    std::vector<int> count;
++    auto countFace = [&](const TopoDS_Shape& f) {
++        const int i = faceIndex.Add(f);
++        if (i > static_cast<int>(count.size())) {
++            count.push_back(0);
++        }
++        ++count[i - 1];
++    };
++    for (const auto& e : edges) {
++        const auto faces = shape.findAncestorsShapes(e.getShape(), TopAbs_FACE);
++        if (faces.empty()) {
++            FC_THROWM(Base::CADKernelError, "chamfer edge has no adjacent face");
++        }
++        adjacent.emplace_back(faces.front(), faces.back());
++        countFace(faces.front());
++        if (!faces.back().IsSame(faces.front())) {
++            countFace(faces.back());
++        }
++    }
++
++    std::vector<double> area(count.size(), -1.0);
++    std::vector<int> planar(count.size(), -1);
++    auto areaOf = [&](int i) {
++        if (area[i - 1] < 0.0) {
++            area[i - 1] = faceArea(TopoDS::Face(faceIndex.FindKey(i)));
++        }
++        return area[i - 1];
++    };
++    auto planarOf = [&](int i) {
++        if (planar[i - 1] < 0) {
++            planar[i - 1] = isPlanar(TopoDS::Face(faceIndex.FindKey(i))) ? 1 : 0;
++        }
++        return planar[i - 1];
++    };
++    // true: the first face wins
++    auto firstWins = [&](const TopoDS_Shape& a, const TopoDS_Shape& b) {
++        const int ia = faceIndex.FindIndex(a);
++        const int ib = faceIndex.FindIndex(b);
++        const bool pa = picked.Contains(a);
++        const bool pb = picked.Contains(b);
++        if (pa != pb) {
++            return pa;
++        }
++        if (count[ia - 1] != count[ib - 1]) {
++            return count[ia - 1] > count[ib - 1];
++        }
++        if (planarOf(ia) != planarOf(ib)) {
++            return planarOf(ia) > planarOf(ib);
++        }
++        const double aa = areaOf(ia);
++        const double ab = areaOf(ib);
++        if (std::abs(aa - ab) > 1e-9 * std::max(aa, ab)) {
++            return aa > ab;
++        }
++        return true;
++    };
++
++    std::vector<TopoDS_Shape> ref;
++    ref.reserve(edges.size());
++    for (const auto& [first, last] : adjacent) {
++        if (!consistent || first.IsSame(last)) {
++            ref.push_back(flip ? last : first);
++            continue;
++        }
++        const bool takeFirst = firstWins(first, last);
++        ref.push_back((takeFirst != flip) ? first : last);
++    }
++    return ref;
++}
++
++// Unit direction in `face`, perpendicular to the edge at parameter t, pointing into the face.
++// False when it cannot be found (then no diagnosis is made).
++bool intoFace(const TopoDS_Edge& edge, const TopoDS_Face& face, double t, gp_Vec& dir)
++{
++    double f = 0.0;
++    double l = 0.0;
++    Handle(Geom2d_Curve) pc = BRep_Tool::CurveOnSurface(edge, face, f, l);
++    if (pc.IsNull()) {
++        return false;
++    }
++    gp_Pnt2d uv;
++    gp_Vec2d d2;
++    pc->D1(t, uv, d2);
++    if (d2.Magnitude() < 1e-15) {
++        return false;
++    }
++    gp_Vec2d n2(-d2.Y(), d2.X());
++    n2.Normalize();
++    BRepAdaptor_Surface surf(face, Standard_False);
++    gp_Pnt p;
++    gp_Vec du;
++    gp_Vec dv;
++    surf.D1(uv.X(), uv.Y(), p, du, dv);
++    gp_Vec w = du * n2.X() + dv * n2.Y();
++    BRepAdaptor_Curve curve(edge);
++    gp_Pnt pe;
++    gp_Vec tangent;
++    curve.D1(t, pe, tangent);
++    if (w.Magnitude() < 1e-15 || tangent.Magnitude() < 1e-15) {
++        return false;
++    }
++    tangent.Normalize();
++    const double eps = 1e-4 / w.Magnitude();  // about 0.1 um across the face
++    for (double sign : {1.0, -1.0}) {
++        BRepClass_FaceClassifier cls(face, gp_Pnt2d(uv.X() + sign * eps * n2.X(), uv.Y() + sign * eps * n2.Y()), 1e-9);
++        if (cls.State() == TopAbs_IN) {
++            gp_Vec d = w * sign;
++            d -= tangent * d.Dot(tangent);
++            if (d.Magnitude() < 1e-15) {
++                return false;
++            }
++            dir = d.Normalized();
++            return true;
++        }
++    }
++    return false;
++}
++
++// "Distance and Angle": the first edge whose chamfer can never reach the other face, because the
++// angle from the reference face plus the angle between the two faces (at the middle of the edge)
++// is 180 degrees or more. Empty when none is found.
++std::string diagnoseAngle(
++    const Part::TopoShape& shape,
++    const std::vector<Part::TopoShape>& edges,
++    const std::vector<TopoDS_Shape>& ref,
++    double angleDeg
++)
++{
++    for (size_t i = 0; i < edges.size() && i < ref.size(); ++i) {
++        const TopoDS_Edge& e = TopoDS::Edge(edges[i].getShape());
++        const auto faces = shape.findAncestorsShapes(e, TopAbs_FACE);
++        if (faces.size() != 2 || faces.front().IsSame(faces.back())) {
++            continue;
++        }
++        const TopoDS_Face& fr = TopoDS::Face(ref[i]);
++        const TopoDS_Face& fo = TopoDS::Face(faces.front().IsSame(fr) ? faces.back() : faces.front());
++        double f = 0.0;
++        double l = 0.0;
++        if (BRep_Tool::Curve(e, f, l).IsNull()) {
++            continue;
++        }
++        const double t = 0.5 * (f + l);
++        gp_Vec u1;
++        gp_Vec u2;
++        if (!intoFace(e, fr, t, u1) || !intoFace(e, fo, t, u2)) {
++            continue;
++        }
++        const double dihedral = Base::toDegrees(u1.Angle(u2));
++        if (dihedral + angleDeg >= 180.0 - 1e-9) {
++            std::stringstream str;
++            str.precision(6);
++            str << "The angle " << angleDeg << " deg from Face" << shape.findShape(fr) << " and the "
++                << dihedral << " deg between the faces of Edge" << shape.findShape(e)
++                << " add up to 180 deg or more: the chamfer never meets Face" << shape.findShape(fo)
++                << ". Use a smaller angle or flip the direction.";
++            return str.str();
++        }
++    }
++    return {};
++}
++
++}  // namespace
++
+ App::DocumentObjectExecReturn* Chamfer::execute()
+ {
+     if (onlyHaveRefined()) {
+@@ -156,17 +390,86 @@ App::DocumentObjectExecReturn* Chamfer::execute()
+     if (static_cast<Part::ChamferType>(chamferType) == Part::ChamferType::distanceAngle) {
+         size2 = angle;
+     }
++    const bool consistent = ReferenceMode.getValue() == 0;
++    std::vector<TopoDS_Shape> refFaces;
+     try {
+         TopoShape shape(0);
+-        shape.makeElementChamfer(
+-            TopShape,
+-            edges,
+-            static_cast<Part::ChamferType>(chamferType),
+-            size,
+-            size2,
+-            nullptr,
+-            flipDirection ? Part::Flip::flip : Part::Flip::none
+-        );
++        if (chamferType != 0) {
++            TopTools_IndexedMapOfShape picked;
++            for (const auto& v : Base.getShadowSubs()) {
++                const auto& ref = v.newName.size() ? v.newName : v.oldName;
++                TopoDS_Shape sub = TopShape.getSubShape(ref.c_str(), true);
++                if (!sub.IsNull() && sub.ShapeType() == TopAbs_FACE) {
++                    picked.Add(sub);
++                }
++            }
++            refFaces = chooseReferenceFaces(TopShape, edges, picked, consistent, flipDirection);
++            std::vector<std::string> names;
++            names.reserve(edges.size());
++            for (size_t i = 0; i < edges.size(); ++i) {
++                names.push_back(
++                    "Edge" + std::to_string(TopShape.findShape(edges[i].getShape())) + ":Face"
++                    + std::to_string(TopShape.findShape(refFaces[i]))
++                );
++            }
++            if (ReferenceFaces.getValues() != names) {
++                ReferenceFaces.setValues(names);
++            }
++        }
++        else if (!ReferenceFaces.getValues().empty()) {
++            ReferenceFaces.setValues(std::vector<std::string>());
++        }
++
++        if (!consistent || chamferType == 0) {
++            // stock path, unchanged
++            shape.makeElementChamfer(
++                TopShape,
++                edges,
++                static_cast<Part::ChamferType>(chamferType),
++                size,
++                size2,
++                nullptr,
++                flipDirection ? Part::Flip::flip : Part::Flip::none
++            );
++        }
++        else {
++            BRepFilletAPI_MakeChamfer mkChamfer(TopShape.getShape());
++            for (size_t i = 0; i < edges.size(); ++i) {
++                const auto& edge = edges[i].getShape();
++                if (edges[i].isNull()) {
++                    FC_THROWM(Part::NullShapeException, "Null input shape");
++                }
++                if (!TopShape.findShape(edge)) {
++                    FC_THROWM(Base::CADKernelError, "edge does not belong to the shape");
++                }
++                if (BRep_Tool::Degenerated(TopoDS::Edge(edge))) {
++                    FC_THROWM(Base::CADKernelError, "chamfer edge is degenerated");
++                }
++                if (chamferType == 1) {
++                    mkChamfer.Add(size, size2, TopoDS::Edge(edge), TopoDS::Face(refFaces[i]));
++                }
++                else {
++                    mkChamfer.AddDA(
++                        size,
++                        Base::toRadians(angle),
++                        TopoDS::Edge(edge),
++                        TopoDS::Face(refFaces[i])
++                    );
++                }
++            }
++            try {
++                shape.makeElementShape(mkChamfer, TopShape, Part::OpCodes::Chamfer);
++            }
++            catch (Standard_Failure&) {
++                if (chamferType == 2) {
++                    std::string why = diagnoseAngle(TopShape, edges, refFaces, angle);
++                    if (!why.empty()) {
++                        return new App::DocumentObjectExecReturn(why);
++                    }
++                }
++                throw;
++            }
++        }
+         if (shape.isNull()) {
+             return new App::DocumentObjectExecReturn(
+                 QT_TRANSLATE_NOOP("Exception", "Failed to create chamfer")
+@@ -206,6 +509,8 @@ App::DocumentObjectExecReturn* Chamfer::execute()
+ 
+ void Chamfer::Restore(Base::XMLReader& reader)
+ {
++    // A document saved before ReferenceMode existed keeps the faces it was built with.
++    ReferenceMode.setValue(1L);
+     DressUp::Restore(reader);
+ 
+     migrateFlippedProperties(reader);
+diff --git a/src/Mod/PartDesign/App/FeatureChamfer.h b/src/Mod/PartDesign/App/FeatureChamfer.h
+index a11f363..1494b5b 100644
+--- a/src/Mod/PartDesign/App/FeatureChamfer.h
++++ b/src/Mod/PartDesign/App/FeatureChamfer.h
+@@ -44,6 +44,15 @@ public:
+     App::PropertyAngle Angle;
+     App::PropertyBool FlipDirection;
+     App::PropertyBool UseAllEdges;
++    /// Which adjacent face of each edge carries Size (and the Angle). "Consistent": the same rule
++    /// for every edge - a face picked in Base, else the face shared by the most chamfered edges,
++    /// else a planar face, else the larger face; FlipDirection takes the other face of every edge.
++    /// "Legacy": the first adjacent face in the shape's topology order (FlipDirection: the last),
++    /// FreeCAD 1.1 / 26.3 stock; documents saved without this property keep it.
++    App::PropertyEnumeration ReferenceMode;
++    /// Output, not saved: "EdgeN:FaceM" per chamfered edge (base shape numbering), the face that
++    /// Size and Angle are measured on. Empty for "Equal distance".
++    App::PropertyStringList ReferenceFaces;
+ 
+     /** @name methods override feature */
+     //@{
+diff --git a/src/Mod/PartDesign/Gui/TaskChamferParameters.cpp b/src/Mod/PartDesign/Gui/TaskChamferParameters.cpp
+index fe6da1c..a6049a4 100644
+--- a/src/Mod/PartDesign/Gui/TaskChamferParameters.cpp
++++ b/src/Mod/PartDesign/Gui/TaskChamferParameters.cpp
+@@ -220,6 +220,8 @@ void TaskChamferParameters::onTypeChanged(int index)
+         chamfer->recomputeFeature();
+         // hide the chamfer if there was a computation error
+         hideOnError();
++        // the recompute has just (re)written ReferenceFaces, which decides the gizmos' faces
++        setGizmoPositions();
+     }
+ }
+ 
+@@ -410,9 +412,26 @@ void TaskChamferParameters::setGizmoPositions()
+     Part::TopoShape edge = shapes[0];
+     auto [face1, face2] = getAdjacentFacesFromEdge(edge, baseShape);
+ 
++    // The feature records the face it measured Size (and the Angle) on for every edge
++    // ("EdgeN:FaceM", FlipDirection already applied): put the first gizmo on that face. Without the
++    // record (Equal distance, or an older feature) fall back to the first adjacent face + Flip.
++    bool fromRecord = false;
++    const std::string edgeKey = "Edge" + std::to_string(baseShape.findShape(edge.getShape())) + ":";
++    for (const auto& rec : chamfer->ReferenceFaces.getValues()) {
++        if (rec.rfind(edgeKey, 0) != 0) {
++            continue;
++        }
++        TopoDS_Shape ref = baseShape.getSubShape(rec.substr(edgeKey.size()).c_str(), true);
++        if (!ref.IsNull() && ref.IsSame(face2) && !face1.IsSame(face2)) {
++            std::swap(face1, face2);
++        }
++        fromRecord = !ref.IsNull();
++        break;
++    }
++
+     DraggerPlacementProps props = getDraggerPlacementFromEdgeAndFace(edge, face1);
+     DraggerPlacementProps props2 = getDraggerPlacementFromEdgeAndFace(edge, face2);
+-    if (ui->flipDirection->isChecked()) {
++    if (!fromRecord && ui->flipDirection->isChecked()) {
+         std::swap(props, props2);
+     }
+ 
+-- 
+2.52.0.windows.1
+

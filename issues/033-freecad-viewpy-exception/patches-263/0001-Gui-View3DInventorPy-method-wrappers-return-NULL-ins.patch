@@ -1,0 +1,134 @@
+From 3f929008882bf130d2d081c4cac4c1d30fe91600 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 05:11:34 +0700
+Subject: [PATCH] Gui: View3DInventorPy method wrappers return NULL instead of
+ throwing
+
+View3DInventorPy::method_varargs_ext_handler and View3DInventorViewerPy's
+varargs/keyword ext handlers replace ml_meth of the PyCXX method objects, so
+the Python interpreter calls them directly. They turned a Base::Exception or
+std::exception into 'throw Py::RuntimeError(...)': a C++ exception thrown out
+of a function the interpreter called unwinds through the interpreter's own C
+frames, which are never cleaned up. The Python call stack above is lost and the
+exception is caught far away (GUIApplication::notify on 26.3, the unit-test
+GUI's message box on 1.1.1): a script or test that calls, e.g., view.saveImage
+when the offscreen render fails ("Offscreen rendering failed") never returns.
+
+Set the Python error (same RuntimeError, same message) and return NULL.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/View3DPy.cpp       | 15 +++++++++++----
+ src/Gui/View3DViewerPy.cpp | 30 ++++++++++++++++++++++--------
+ 2 files changed, 33 insertions(+), 12 deletions(-)
+
+diff --git a/src/Gui/View3DPy.cpp b/src/Gui/View3DPy.cpp
+index 16b5b75..03bed77 100644
+--- a/src/Gui/View3DPy.cpp
++++ b/src/Gui/View3DPy.cpp
+@@ -391,21 +391,28 @@ View3DInventorPy::method_varargs_handler View3DInventorPy::pycxx_handler = nullp
+ 
+ PyObject* View3DInventorPy::method_varargs_ext_handler(PyObject* _self_and_name_tuple, PyObject* _args)
+ {
++    // The Python interpreter calls this function itself (it replaces ml_meth of the PyCXX
++    // method object), so no C++ exception may leave it: thrown from here it unwinds through the
++    // interpreter's own C frames, which are never cleaned up - the whole Python call stack above
++    // is lost and the exception lands in QApplication::notify (e.g. saveImage when the offscreen
++    // render fails: a running script or test never returns). Set the Python error and return
++    // NULL instead; the exception type and message are the ones the throw produced.
+     try {
+         return pycxx_handler(_self_and_name_tuple, _args);
+     }
+     catch (const Base::Exception& e) {
+-        throw Py::RuntimeError(e.what());
++        PyErr_SetString(PyExc_RuntimeError, e.what());
+     }
+     catch (const std::exception& e) {
+-        throw Py::RuntimeError(e.what());
++        PyErr_SetString(PyExc_RuntimeError, e.what());
+     }
+     catch (const Py::Exception&) {
+-        throw;
++        // the Python error is already set
+     }
+     catch (...) {
+-        throw Py::RuntimeError("Unknown C++ exception");
++        PyErr_SetString(PyExc_RuntimeError, "Unknown C++ exception");
+     }
++    return nullptr;
+ }
+ 
+ // Since with PyCXX it's not possible to make a sub-class of MDIViewPy
+diff --git a/src/Gui/View3DViewerPy.cpp b/src/Gui/View3DViewerPy.cpp
+index b897854..f434d4e 100644
+--- a/src/Gui/View3DViewerPy.cpp
++++ b/src/Gui/View3DViewerPy.cpp
+@@ -232,21 +232,28 @@ PyObject* View3DInventorViewerPy::method_varargs_ext_handler(
+     PyObject* _args
+ )
+ {
++    // The Python interpreter calls this function itself (it replaces ml_meth of the PyCXX
++    // method object), so no C++ exception may leave it: thrown from here it unwinds through the
++    // interpreter's own C frames, which are never cleaned up - the whole Python call stack above
++    // is lost and the exception lands in QApplication::notify (e.g. saveImage when the offscreen
++    // render fails: a running script or test never returns). Set the Python error and return
++    // NULL instead; the exception type and message are the ones the throw produced.
+     try {
+         return pycxx_handler(_self_and_name_tuple, _args);
+     }
+     catch (const Base::Exception& e) {
+-        throw Py::RuntimeError(e.what());
++        PyErr_SetString(PyExc_RuntimeError, e.what());
+     }
+     catch (const std::exception& e) {
+-        throw Py::RuntimeError(e.what());
++        PyErr_SetString(PyExc_RuntimeError, e.what());
+     }
+     catch (const Py::Exception&) {
+-        throw;
++        // the Python error is already set
+     }
+     catch (...) {
+-        throw Py::RuntimeError("Unknown C++ exception");
++        PyErr_SetString(PyExc_RuntimeError, "Unknown C++ exception");
+     }
++    return nullptr;
+ }
+ 
+ PyObject* View3DInventorViewerPy::method_keyword_ext_handler(
+@@ -255,21 +262,28 @@ PyObject* View3DInventorViewerPy::method_keyword_ext_handler(
+     PyObject* _keywords
+ )
+ {
++    // The Python interpreter calls this function itself (it replaces ml_meth of the PyCXX
++    // method object), so no C++ exception may leave it: thrown from here it unwinds through the
++    // interpreter's own C frames, which are never cleaned up - the whole Python call stack above
++    // is lost and the exception lands in QApplication::notify (e.g. saveImage when the offscreen
++    // render fails: a running script or test never returns). Set the Python error and return
++    // NULL instead; the exception type and message are the ones the throw produced.
+     try {
+         return pycxx_keyword_handler(_self_and_name_tuple, _args, _keywords);
+     }
+     catch (const Base::Exception& e) {
+-        throw Py::RuntimeError(e.what());
++        PyErr_SetString(PyExc_RuntimeError, e.what());
+     }
+     catch (const std::exception& e) {
+-        throw Py::RuntimeError(e.what());
++        PyErr_SetString(PyExc_RuntimeError, e.what());
+     }
+     catch (const Py::Exception&) {
+-        throw;
++        // the Python error is already set
+     }
+     catch (...) {
+-        throw Py::RuntimeError("Unknown C++ exception");
++        PyErr_SetString(PyExc_RuntimeError, "Unknown C++ exception");
+     }
++    return nullptr;
+ }
+ 
+ Py::Object View3DInventorViewerPy::getattr(const char* attr)
+-- 
+2.52.0.windows.1
+

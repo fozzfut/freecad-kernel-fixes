@@ -1,0 +1,58 @@
+LITERATURE / STANDARDS - lane chamfer (26.09.2026). What a chamfer's distances and angle mean, and how the kernel builds it.
+Status per source: [full] read in full / fetched, [abstract] only the abstract or a search summary, [std] standard text not
+freely available - its rule is taken from the official summary/extract named.
+
+1. GOST 2.307-2011 ESKD "Нанесение размеров и предельных отклонений" (docs.cntd.ru/document/1200086238). [std, extract]
+   Idea: a 45 deg chamfer is dimensioned "c x 45"; chamfers at other angles "по общим правилам - линейным и угловым
+   размерами или двумя линейными размерами". The linear dimension is the leg along one face (for a shaft: along the axis),
+   the angle is drawn from that same face/axis.
+   Applied: the ground truth reads "distance + angle" as distance along the reference face and the angle between the
+   chamfer and that same face (tests/chamfer_truth.py expected(): d_other = d sin a / sin(theta + a)); "two distances"
+   as the two legs, each measured along its own face.
+
+2. ISO 129-1:2018 Technical product documentation - Presentation of dimensions and tolerances - Part 1. [std]
+   Idea: chamfers are dimensioned by two linear dimensions or by a linear and an angular dimension (same reading as 1).
+   Applied: as 1. ISO 13715:2019 (edges of undefined shape) covers only unspecified burr/undercut edges - not used,
+   noted to show that a chamfer with explicit values is always defined by legs/angle in the normal section.
+
+3. J. Vida, R.R. Martin, T. Varady, "A survey of blending methods that use parametric surfaces", Computer-Aided Design
+   26(5):341-365, 1994. doi:10.1016/0010-4485(94)90023-X. Venue: CAD (specialist journal, full source). [abstract]
+   Idea: blend terminology - spine, cross-section in the plane normal to the spine, contact (trim) curves on each
+   primary surface; a chamfer is the blend with a linear cross-section.
+   Applied: the ground truth and the measurement work in the edge's normal section (chamfer_truth.measure: section plane
+   spanned by the two in-face directions); legs are distances from the spine point to the two contact points.
+
+4. B.K. Choi, S.Y. Ju, "Constant-radius blending in surface modelling", Computer-Aided Design 21(4):213-227, 1989.
+   doi:10.1016/0010-4485(89)90046-7. Venue: CAD. [abstract]
+   Idea: blends are defined by contact curves at a constant offset on each surface, per section along the spine.
+   Applied: chamfer = the same construction with a straight profile; for the curved (boss/hole) cases the normal section
+   of a plane and a coaxial cylinder is two straight rays, so the exact removed volume follows from Pappus.
+
+5. OCCT 8.0.1 / 7.8.1 source: BRepFilletAPI_MakeChamfer.hxx ("The face F identifies the side where Dis1 is measured"),
+   ChFi3d_ChBuilder::AddDA, BlendFunc_ChAsym::ComputeValues (FX(3) = dist1^2 - |P1 - spine point|^2, FX(4) = tan(angle)
+   - tan(angle between the chamfer line s1s2 and the surface-1 tangent in the section plane)). [full]
+   Idea: Dis / Dis1 is the chord from the spine point along surface 1 = the face F given, and the angle is measured
+   from surface 1 = F.
+   Applied: proves the kernel already implements the drawing convention exactly (0 differences to the analytic truth,
+   7.8.1 = 8.0.1, runs/stock-w.txt = runs/stock-o.txt); the defect is only WHICH face FreeCAD passes as F.
+
+6. Autodesk Fusion Help, "Create a chamfer" (help.autodesk.com/cloudhelp/ENU/Fusion-Model/files/SLD-CHAMFER-SOLID.htm).
+   [full] Idea: Equal distance / Two distances ("Flip ... flips the first and second sides") / Distance and angle,
+   manipulator handles on the model show the sides; tangent chains are one selection.
+   Applied: Flip = the other face for every edge of the selection; the panel shows the side in the 3D view
+   (highlighted face) because Fusion shows it with its manipulators.
+
+7. Autodesk Inventor Help, "Create chamfer with distance and angle" (help.autodesk.com/cloudhelp/2014/ENU/Inventor/files/
+   GUID-B49A89EF-...). [full] Idea: "Click the face from which the chamfer is angled, and then click one or more edges on
+   the face" - the reference face is explicit and common to the edges.
+   Applied: rule step 1 (a face picked in Base is the reference of its edges) and step 2 (the face shared by the most
+   chamfered edges - the face the chain runs around - is the reference).
+
+8. SOLIDWORKS Help, Chamfer PropertyManager (help.solidworks.com/2023/English/SolidWorks/sldworks/r_chamfer_pm.htm).
+   [abstract - page content not retrievable; search summary] Idea: Angle distance: the distance is measured in the
+   direction of the arrow on the selected face, the angle from that face; Flip direction moves it to the other face.
+   Applied: same as 6/7; supporting only.
+
+No journal paper was found that prescribes a DEFAULT side for a chamfer without a picked face; the default in this lane
+(face shared by most edges > planar > larger area; recorded as decision CH2 in the ledger) is a design choice, made to
+match the drawing habit (the chamfer of a pad/pocket/boss/hole rim is dimensioned on the face it runs around).

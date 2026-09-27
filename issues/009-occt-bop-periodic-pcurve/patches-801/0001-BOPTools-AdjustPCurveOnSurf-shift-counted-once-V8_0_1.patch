@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fozzfut <14357576+fozzfut@users.noreply.github.com>
+Date: Sat, 26 Sep 2026 00:47:43 +0700
+Subject: [PATCH] =?UTF-8?q?009=20(TKBO):=20AdjustPCurveOnSurf=20=E2=80=94?=
+ =?UTF-8?q?=20=D1=81=D0=B4=D0=B2=D0=B8=D0=B3=20=D0=BF=D0=B5=D1=80=D0=B8?=
+ =?UTF-8?q?=D0=BE=D0=B4=D0=B0=20=D1=83=D1=87=D0=B8=D1=82=D1=8B=D0=B2=D0=B0?=
+ =?UTF-8?q?=D0=B5=D1=82=D1=81=D1=8F=20=D0=BE=D0=B4=D0=B8=D0=BD=20=D1=80?=
+ =?UTF-8?q?=D0=B0=D0=B7?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Перенос patches/0001-BOPTools-AdjustPCurveOnSurf-shift-counted-once.patch
+(freecad-kernel-fixes, дефект 009) с OCCT 7.8.1 на 8.0.1 без конфликтов.
+GeomInt::AdjustPeriodic перезаписывал u2 уже сдвинутым значением, и проверка
+u2 + du ниже сдвигала второй раз: на грани периодической поверхности шире
+периода p-кривая секущей оставалась в чужой копии периода, булева операция
+молча теряла инструмент. Сдвинутое значение теперь пишется в отдельную
+переменную.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../TKBO/BOPTools/BOPTools_AlgoTools2D.cxx                   | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/ModelingAlgorithms/TKBO/BOPTools/BOPTools_AlgoTools2D.cxx b/src/ModelingAlgorithms/TKBO/BOPTools/BOPTools_AlgoTools2D.cxx
+index 4ba27198..524de277 100644
+--- a/src/ModelingAlgorithms/TKBO/BOPTools/BOPTools_AlgoTools2D.cxx
++++ b/src/ModelingAlgorithms/TKBO/BOPTools/BOPTools_AlgoTools2D.cxx
+@@ -287,7 +287,10 @@ void BOPTools_AlgoTools2D::AdjustPCurveOnSurf(const BRepAdaptor_Surface&       a
+       u2 = UMin + aUPeriod;
+     }
+     // b. compute du again using clarified value of u2
+-    GeomInt::AdjustPeriodic(u2, UMin, UMax, aUPeriod, u2, du, 0.);
++    // The shifted parameter must not overwrite u2: the classification below
++    // tests u2 + du, which would count the shift twice.
++    double aU2Shifted;
++    GeomInt::AdjustPeriodic(u2, UMin, UMax, aUPeriod, aU2Shifted, du, 0.);
+     //
+     if (du == 0.)
+     {
+-- 
+2.52.0.windows.1
+

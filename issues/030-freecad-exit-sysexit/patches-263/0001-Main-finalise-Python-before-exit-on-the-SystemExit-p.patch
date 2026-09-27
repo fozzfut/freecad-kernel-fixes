@@ -1,0 +1,43 @@
+From 38b2411ef9138a5355a20272f2fe632a6c0903eb Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 21:15:35 +0700
+Subject: [PATCH] Main: finalise Python before exit() on the SystemExit path
+
+sys.exit() (the -t test runner, the Python console, macros) leaves the event
+loop through Base::SystemExitException, and main() then called exit() while
+Python was still initialised. With PySide 6.11 / Python 3.14 the DLL static
+destructors (shiboken's BindingManager, Qt's global QObjects) then tear down
+wrappers of widgets that were already deleted: access violation in
+shiboken6 during process exit, reported as "Abnormal program termination" /
+"Break signal occurred" plus a crash report. The normal exit path finalises
+Python in App::Application::destruct() and does not crash.
+
+Finalise the interpreter before exit() on this path. Preferences are still not
+saved on sys.exit(), as before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Main/MainGui.cpp | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/Main/MainGui.cpp b/src/Main/MainGui.cpp
+index fba42a6..28af056 100644
+--- a/src/Main/MainGui.cpp
++++ b/src/Main/MainGui.cpp
+@@ -347,6 +347,13 @@ int main(int argc, char** argv)
+         }
+     }
+     catch (const Base::SystemExitException& e) {
++        // sys.exit() (the -t test runner, the Python console, a macro) leaves the event loop
++        // through this exception. exit() alone would run the DLL static destructors while
++        // Python is still initialised: shiboken's binding manager and Qt's global objects
++        // then tear down wrappers of widgets that are already deleted, which aborts the
++        // process ("Abnormal program termination"). Finalise Python first, as the normal
++        // exit path does in App::Application::destruct().
++        Base::Interpreter().finalize();
+         exit(e.getExitCode());
+     }
+     catch (const Base::Exception& e) {
+-- 
+2.52.0.windows.1
+

@@ -1,0 +1,43 @@
+From a24de8ffdff568f5e22d5eda3f5e1e81954ae6a2 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 22:59:38 +0700
+Subject: [PATCH] PartDesign: Body reuses a settled tip copy only while Shape
+ holds it (issue 029)
+
+Review fix. After an undo or redo had pasted an older value into the Body's
+Shape, the view provider had last rendered that older shape. The next
+recompute with the same tip handed the settled copy back to Shape, the view
+provider then meshed it anew, and its deflection came from a bounding box read
+off the copy's own triangulation (Part::Tools::getBounds), where stock meshes
+an untriangulated new copy: a different Body mesh and different stored
+triangulations (reviewer probe: 634 vs stock 618 triangles). The settled copy
+is now reused only while the Body's Shape is still a partner of it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/PartDesign/App/Body.cpp | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/Mod/PartDesign/App/Body.cpp b/src/Mod/PartDesign/App/Body.cpp
+index d31638d..2da144c 100644
+--- a/src/Mod/PartDesign/App/Body.cpp
++++ b/src/Mod/PartDesign/App/Body.cpp
+@@ -870,9 +870,14 @@ App::DocumentObjectExecReturn* setTipCopy(Body& body, Part::TopoShape& tipShape,
+             recordState(memo.result.getShape(), now);
+             double placement[16];
+             readTransform(body.Placement.getValue().toMatrix(), placement);
++            // A settled copy is reused only while the Body's Shape still holds it: the view provider then last
++            // rendered this copy and takes its unchanged-shape path. Once Shape holds another shape (an undo or redo
++            // pasted an older value), the view provider would mesh the settled copy anew, and its deflection comes
++            // from a bounding box read off the copy's triangulation, where stock meshes an untriangulated new copy.
+             reuse = now.sameAs(memo.madeState)
+                 || (body.Visibility.getValue() && now.sameAs(memo.settledState)
+-                    && std::memcmp(memo.settledPlacement, placement, sizeof(placement)) == 0);
++                    && std::memcmp(memo.settledPlacement, placement, sizeof(placement)) == 0
++                    && body.Shape.getValue().IsPartner(memo.result.getShape()));
+         }
+         if (reuse) {
+             tipShape = memo.result;
+-- 
+2.52.0.windows.1
+

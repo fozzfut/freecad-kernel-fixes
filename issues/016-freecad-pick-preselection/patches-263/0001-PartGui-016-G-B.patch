@@ -1,0 +1,1544 @@
+From a3c8b972e2c573aeb7cfb14aa781fd88637ca78e Mon Sep 17 00:00:00 2001
+From: mig <mig@local>
+Date: Sat, 26 Sep 2026 06:06:27 +0700
+Subject: [PATCH 1/2] =?UTF-8?q?PartGui:=20=D1=83=D1=81=D0=BA=D0=BE=D1=80?=
+ =?UTF-8?q?=D0=B5=D0=BD=D0=BD=D1=8B=D0=B9=20=D0=B2=D1=8B=D0=B1=D0=BE=D1=80?=
+ =?UTF-8?q?=20=D0=BB=D1=83=D1=87=D0=BE=D0=BC=20=D0=B3=D1=80=D0=B0=D0=BD?=
+ =?UTF-8?q?=D0=B5=D0=B9=20=D0=B8=20=D1=80=D1=91=D0=B1=D0=B5=D1=80=20(?=
+ =?UTF-8?q?=D0=B4=D0=B5=D1=84=D0=B5=D0=BA=D1=82=20016,=20=D0=BF=D0=BB?=
+ =?UTF-8?q?=D0=B0=D0=BD=20G=20=D0=B7=D0=B0=D0=B4=D0=B0=D1=87=D0=B0=20B)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+SoBrepFaceSet::generatePrimitives и новый SoBrepEdgeSet::rayPick при выборе лучом
+в больших наборах (от 256 треугольников / отрезков) порождают только примитивы,
+до которых может достать луч (грани) или конус выбора (рёбра), через те же вызовы
+Coin (beginShape/shapeVertex/endShape), с теми же данными вершин, деталями и в том
+же порядке, что SoIndexedFaceSet/SoIndexedLineSet::generatePrimitives. Индекс
+(BVH по боксам примитивов) строится при втором выборе той же геометрии и живёт в
+таблице по узлу (раскладка классов не меняется); датчик поля coordIndex и id узла
+координат сбрасывают его. Всё, что путь не воспроизводит точно (текстуры,
+vertexProperty, не только треугольники, привязки по отрезкам, неаффинная матрица,
+не GUI-поток, стиль выбора по боксу), идёт стоковым путём Coin.
+Параметр Mod/Part/PickBVH (по умолчанию true), PartGui.setPickAccel(),
+PartGui.pickAccelStatus().
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/Part/Gui/AppPartGui.cpp      |  49 ++
+ src/Mod/Part/Gui/CMakeLists.txt      |   2 +
+ src/Mod/Part/Gui/SoBrepEdgeSet.cpp   | 205 +++++++++
+ src/Mod/Part/Gui/SoBrepEdgeSet.h     |   1 +
+ src/Mod/Part/Gui/SoBrepFaceSet.cpp   | 169 +++++++
+ src/Mod/Part/Gui/SoBrepPickAccel.cpp | 647 +++++++++++++++++++++++++++
+ src/Mod/Part/Gui/SoBrepPickAccel.h   | 278 ++++++++++++
+ 7 files changed, 1351 insertions(+)
+ create mode 100644 src/Mod/Part/Gui/SoBrepPickAccel.cpp
+ create mode 100644 src/Mod/Part/Gui/SoBrepPickAccel.h
+
+diff --git a/src/Mod/Part/Gui/AppPartGui.cpp b/src/Mod/Part/Gui/AppPartGui.cpp
+index f4465b8..f04fa44 100644
+--- a/src/Mod/Part/Gui/AppPartGui.cpp
++++ b/src/Mod/Part/Gui/AppPartGui.cpp
+@@ -23,6 +23,7 @@
+  *                                                                         *
+  ***************************************************************************/
+ 
++#include <App/Application.h>
+ #include <Base/Console.h>
+ #include <Base/Interpreter.h>
+ #include <Base/PyObjectBase.h>
+@@ -44,6 +45,7 @@
+ #include "PreviewUpdateScheduler.h"
+ #include "SoBrepEdgeSet.h"
+ #include "SoBrepFaceSet.h"
++#include "SoBrepPickAccel.h"
+ #include "SoBrepPointSet.h"
+ #include "SoFCShapeObject.h"
+ #include "ViewProvider.h"
+@@ -105,10 +107,52 @@ public:
+     Module()
+         : Py::ExtensionModule<Module>("PartGui")
+     {
++        add_varargs_method(
++            "pickAccelStatus",
++            &Module::pickAccelStatus,
++            "pickAccelStatus() -> dict: counters of the face/edge ray-pick acceleration"
++        );
++        add_varargs_method(
++            "setPickAccel",
++            &Module::setPickAccel,
++            "setPickAccel(bool): switch the face/edge ray-pick acceleration on or off for this "
++            "session (default: parameter Mod/Part/PickBVH, true)"
++        );
+         initialize("This module is the PartGui module.");  // register with Python
+     }
+ 
+ private:
++    Py::Object pickAccelStatus(const Py::Tuple& args)
++    {
++        if (!PyArg_ParseTuple(args.ptr(), "")) {
++            throw Py::Exception();
++        }
++        const PickAccel::Stats& st = PickAccel::stats();
++        Py::Dict d;
++        d.setItem("enabled", Py::Boolean(PickAccel::enabled()));
++        auto put = [&d](const char* name, unsigned long long v) {
++            d.setItem(name, Py::asObject(PyLong_FromUnsignedLongLong(v)));
++        };
++        put("face_picks_fast", st.facePicksFast);
++        put("face_picks_stock", st.facePicksStock);
++        put("edge_picks_fast", st.edgePicksFast);
++        put("edge_picks_stock", st.edgePicksStock);
++        put("triangles_generated", st.trianglesGenerated);
++        put("segments_generated", st.segmentsGenerated);
++        put("builds", st.builds);
++        put("build_us", st.buildMicroseconds);
++        put("unsupported", st.unsupported);
++        return d;
++    }
++    Py::Object setPickAccel(const Py::Tuple& args)
++    {
++        PyObject* on = nullptr;
++        if (!PyArg_ParseTuple(args.ptr(), "O!", &PyBool_Type, &on)) {
++            throw Py::Exception();
++        }
++        PickAccel::enabledFlag() = (on == Py_True);
++        return Py::None();
++    }
+ };
+ 
+ PyObject* initModule()
+@@ -136,6 +180,11 @@ PyMOD_INIT_FUNC(PartGui)
+     }
+ 
+     PyObject* partGuiModule = PartGui::initModule();
++    PartGui::PickAccel::enabledFlag() = App::GetApplication()
++                                            .GetParameterGroupByPath(
++                                                "User parameter:BaseApp/Preferences/Mod/Part"
++                                            )
++                                            ->GetBool("PickBVH", true);
+ 
+     Base::Console().log("Loading GUI of Part module… done\n");
+ 
+diff --git a/src/Mod/Part/Gui/CMakeLists.txt b/src/Mod/Part/Gui/CMakeLists.txt
+index a35fab6..a790979 100644
+--- a/src/Mod/Part/Gui/CMakeLists.txt
++++ b/src/Mod/Part/Gui/CMakeLists.txt
+@@ -174,6 +174,8 @@ SET(PartGui_SRCS
+     SoBrepEdgeSet.h
+     SoBrepFaceSet.cpp
+     SoBrepFaceSet.h
++    SoBrepPickAccel.cpp
++    SoBrepPickAccel.h
+     SoBrepPointSet.cpp
+     SoBrepPointSet.h
+     ViewProvider.cpp
+diff --git a/src/Mod/Part/Gui/SoBrepEdgeSet.cpp b/src/Mod/Part/Gui/SoBrepEdgeSet.cpp
+index c73c34b..19269c9 100644
+--- a/src/Mod/Part/Gui/SoBrepEdgeSet.cpp
++++ b/src/Mod/Part/Gui/SoBrepEdgeSet.cpp
+@@ -29,23 +29,30 @@
+ #include <Inventor/SoPrimitiveVertex.h>
+ #include <Inventor/actions/SoGetBoundingBoxAction.h>
+ #include <Inventor/actions/SoGLRenderAction.h>
++#include <Inventor/actions/SoRayPickAction.h>
++#include <Inventor/caches/SoBoundingBoxCache.h>
+ #include <Inventor/details/SoLineDetail.h>
++#include <Inventor/details/SoPointDetail.h>
+ #include <Inventor/elements/SoCoordinateElement.h>
+ #include <Inventor/elements/SoDepthBufferElement.h>
+ #include <Inventor/elements/SoLazyElement.h>
+ #include <Inventor/elements/SoMaterialBindingElement.h>
++#include <Inventor/elements/SoNormalBindingElement.h>
+ #include <Inventor/elements/SoOverrideElement.h>
++#include <Inventor/elements/SoPickStyleElement.h>
+ #include <Inventor/elements/SoShapeStyleElement.h>
+ #include <Inventor/elements/SoTextureEnabledElement.h>
+ #include <Inventor/errors/SoDebugError.h>
+ #include <Inventor/misc/SoState.h>
+ #include <Inventor/nodes/SoGroup.h>
++#include <Inventor/nodes/SoVertexProperty.h>
+ #include <Inventor/actions/SoSearchAction.h>
+ 
+ #include <Gui/Selection/SoFCUnifiedSelection.h>
+ #include <Gui/Selection/Selection.h>
+ #include <Base/Color.h>
+ #include "SoBrepEdgeSet.h"
++#include "SoBrepPickAccel.h"
+ #include "ViewProviderExt.h"
+ 
+ #include <Gui/Inventor/So3DAnnotation.h>
+@@ -278,6 +285,7 @@ SoBrepEdgeSet::SoBrepEdgeSet()
+ 
+ SoBrepEdgeSet::~SoBrepEdgeSet()
+ {
++    PickAccel::forget(this);
+     if (overlayLineSet) {
+         overlayLineSet->unref();
+         overlayLineSet = nullptr;
+@@ -787,6 +795,203 @@ void SoBrepEdgeSet::doAction(SoAction* action)
+     inherited::doAction(action);
+ }
+ 
++void SoBrepEdgeSet::rayPick(SoRayPickAction* action)
++{
++    // Ray pick of a big edge set: SoShape::rayPick (pick style, object-space ray, bounding box
++    // cache test) followed by only the line segments the pick cone can reach, generated exactly as
++    // Coin's SoIndexedLineSet::generatePrimitives (line-strip branch) would generate them: same
++    // vertex data, details and ascending order, see SoBrepPickAccel.h. Everything else, and every
++    // case the fast path cannot reproduce, is Coin's own SoShape::rayPick.
++    SoState* state = action->getState();
++    const auto style = SoPickStyleElement::get(state);
++    if (!PickAccel::enabled() || this->coordIndex.getNum() < PickAccel::MinSegments
++        || this->vertexProperty.getValue() || this->getNodeType() == SoNode::VRML1
++        || (style != SoPickStyleElement::SHAPE && style != SoPickStyleElement::SHAPE_ON_TOP
++            && style != SoPickStyleElement::SHAPE_FRONTFACES)
++        || !PickAccel::isGuiThread()) {
++        inherited::rayPick(action);
++        return;
++    }
++    // bindings as SoIndexedLineSet::findMaterialBinding / findNormalBinding (Coin)
++    enum
++    {
++        OVERALL = 0,
++        PER_SEGMENT,
++        PER_SEGMENT_INDEXED,
++        PER_LINE,
++        PER_LINE_INDEXED,
++        PER_VERTEX,
++        PER_VERTEX_INDEXED,
++        UNKNOWN
++    };
++    static_assert(
++        int(SoNormalBindingElement::OVERALL) == int(SoMaterialBindingElement::OVERALL)
++            && int(SoNormalBindingElement::PER_PART) == int(SoMaterialBindingElement::PER_PART)
++            && int(SoNormalBindingElement::PER_PART_INDEXED) == int(SoMaterialBindingElement::PER_PART_INDEXED)
++            && int(SoNormalBindingElement::PER_FACE) == int(SoMaterialBindingElement::PER_FACE)
++            && int(SoNormalBindingElement::PER_FACE_INDEXED) == int(SoMaterialBindingElement::PER_FACE_INDEXED)
++            && int(SoNormalBindingElement::PER_VERTEX) == int(SoMaterialBindingElement::PER_VERTEX)
++            && int(SoNormalBindingElement::PER_VERTEX_INDEXED)
++                == int(SoMaterialBindingElement::PER_VERTEX_INDEXED),
++        "binding values"
++    );
++    auto mapBinding = [](int b) -> int {
++        switch (b) {
++            case SoMaterialBindingElement::OVERALL:
++                return OVERALL;
++            case SoMaterialBindingElement::PER_VERTEX:
++                return PER_VERTEX;
++            case SoMaterialBindingElement::PER_VERTEX_INDEXED:
++                return PER_VERTEX_INDEXED;
++            case SoMaterialBindingElement::PER_PART:
++                return PER_SEGMENT;
++            case SoMaterialBindingElement::PER_PART_INDEXED:
++                return PER_SEGMENT_INDEXED;
++            case SoMaterialBindingElement::PER_FACE:
++                return PER_LINE;
++            case SoMaterialBindingElement::PER_FACE_INDEXED:
++                return PER_LINE_INDEXED;
++            default:
++                return UNKNOWN;
++        }
++    };
++    int mbind = mapBinding(SoMaterialBindingElement::get(state));
++    int nbind = mapBinding(SoNormalBindingElement::get(state));
++    // per-segment bindings use Coin's LINES branch: not reproduced here
++    if (mbind == UNKNOWN || nbind == UNKNOWN || mbind == PER_SEGMENT || mbind == PER_SEGMENT_INDEXED
++        || nbind == PER_SEGMENT || nbind == PER_SEGMENT_INDEXED || !PickAccel::noTextures(state)) {
++        ++PickAccel::stats().edgePicksStock;
++        inherited::rayPick(action);
++        return;
++    }
++
++    // SoShape::rayPick: shouldRayPick() is TRUE for the SHAPE styles checked above
++    this->computeObjectSpaceRay(action);
++    const SoBoundingBoxCache* bboxcache = this->getBoundingBoxCache();
++    if (bboxcache && bboxcache->isValid(state)) {
++        const SbBox3f& box = bboxcache->getProjectedBox();
++        if (box.isEmpty() || !action->intersect(box, TRUE)) {
++            return;  // Coin skips generatePrimitives
++        }
++    }
++
++    static std::vector<uint32_t> candidates;  // GUI thread only
++    const PickAccel::Entry* entry = nullptr;
++    if (!PickAccel::edgeCandidates(this, &this->coordIndex, action, state, candidates, entry)) {
++        inherited::rayPick(action);  // the same object-space ray and box test, then Coin's loop
++        return;
++    }
++
++    const SoCoordinateElement* coords;
++    const SbVec3f* normals;
++    const int32_t* cindices;
++    int numindices;
++    const int32_t* normindices;
++    const int32_t* texindices;
++    const int32_t* matindices;
++    SbBool normalCacheUsed;
++    this->getVertexData(
++        state,
++        coords,
++        normals,
++        cindices,
++        normindices,
++        texindices,
++        matindices,
++        numindices,
++        TRUE,
++        normalCacheUsed
++    );
++    if (!normals) {
++        nbind = OVERALL;
++    }
++    if (mbind == PER_VERTEX_INDEXED && !matindices) {
++        matindices = cindices;
++    }
++    if (nbind == PER_VERTEX_INDEXED && !normindices) {
++        normindices = cindices;
++    }
++    if (mbind == PER_VERTEX || mbind == PER_LINE) {
++        matindices = nullptr;
++    }
++    if (nbind == PER_VERTEX || nbind == PER_LINE) {
++        normindices = nullptr;
++    }
++    if (nbind == OVERALL) {
++        normindices = nullptr;
++    }
++    if (mbind == OVERALL) {
++        matindices = nullptr;
++    }
++
++    SoPrimitiveVertex vertex;
++    SoPointDetail pointDetail;
++    SoLineDetail lineDetail;
++    vertex.setDetail(&pointDetail);
++    SbVec3f dummynormal(0.0f, 0.0f, 1.0f);
++    const SbVec3f* initialnormal = normals ? normals : &dummynormal;
++    if (nbind == OVERALL) {
++        vertex.setNormal(*initialnormal);
++    }
++
++    // Vertex k of polyline p, as Coin's line-strip loop sets it. The first vertex of a polyline
++    // takes matindices[moff] / matnr (and the normal likewise); later vertices advance per vertex
++    // only for PER_VERTEX(_INDEXED), otherwise they keep the first vertex's values.
++    auto setVertex = [&](uint32_t p, uint32_t k, SoPointDetail& pointDetail) {
++        const uint32_t start = entry->lineStart[p];
++        const int32_t i = cindices[start + k];
++        const bool perVertexM = mbind >= PER_VERTEX;
++        const uint32_t km = perVertexM ? k : 0;
++        if (matindices) {
++            const uint32_t off = (mbind == PER_VERTEX_INDEXED ? start : p) + km;
++            pointDetail.setMaterialIndex(matindices[off]);
++            vertex.setMaterialIndex(matindices[off]);
++        }
++        else if (mbind != OVERALL) {
++            const int32_t m = static_cast<int32_t>((mbind == PER_VERTEX ? entry->lineVertBefore[p] : p) + km);
++            pointDetail.setMaterialIndex(m);
++            vertex.setMaterialIndex(m);
++        }
++        const bool perVertexN = nbind >= PER_VERTEX;
++        const uint32_t kn = perVertexN ? k : 0;
++        const SbVec3f* currnormal = initialnormal;
++        if (normindices) {
++            const uint32_t off = (nbind == PER_VERTEX_INDEXED ? start : p) + kn;
++            pointDetail.setNormalIndex(normindices[off]);
++            currnormal = &normals[normindices[off]];
++        }
++        else if (nbind != OVERALL) {
++            const int32_t n = static_cast<int32_t>((nbind == PER_VERTEX ? entry->lineVertBefore[p] : p) + kn);
++            pointDetail.setNormalIndex(n);
++            currnormal = &normals[n];
++        }
++        vertex.setNormal(*currnormal);
++        pointDetail.setCoordinateIndex(i);
++        vertex.setPoint(coords->get3(i));
++    };
++
++    // Coin's line-strip primitive data keeps the point detail of the strip's FIRST vertex as
++    // point 0 of every segment's SoLineDetail (soshape_primdata::copyVertex copies point details
++    // only for face details), while the vertex data (point, normal, material) is the segment's
++    // own start vertex. The restarted strip below feeds that combination.
++    SoPointDetail firstDetail;
++    for (const uint32_t s : candidates) {
++        const uint32_t p = entry->segLine[s];
++        const uint32_t j = entry->segPos[s] - entry->lineStart[p];
++        this->beginShape(action, LINE_STRIP, &lineDetail);
++        setVertex(p, 0, firstDetail);
++        setVertex(p, j, pointDetail);
++        vertex.setDetail(&firstDetail);
++        this->shapeVertex(&vertex);
++        vertex.setDetail(&pointDetail);
++        setVertex(p, j + 1, pointDetail);
++        lineDetail.setLineIndex(static_cast<int>(p));
++        lineDetail.setPartIndex(static_cast<int>(entry->lineSegBefore[p] + j));
++        this->shapeVertex(&vertex);
++        this->endShape();
++    }
++}
++
+ SoDetail* SoBrepEdgeSet::createLineSegmentDetail(
+     SoRayPickAction* action,
+     const SoPrimitiveVertex* v1,
+diff --git a/src/Mod/Part/Gui/SoBrepEdgeSet.h b/src/Mod/Part/Gui/SoBrepEdgeSet.h
+index bebbc2f..4970dab 100644
+--- a/src/Mod/Part/Gui/SoBrepEdgeSet.h
++++ b/src/Mod/Part/Gui/SoBrepEdgeSet.h
+@@ -96,6 +96,7 @@ protected:
+     ) override;
+ 
+     void getBoundingBox(SoGetBoundingBoxAction* action) override;
++    void rayPick(SoRayPickAction* action) override;
+ 
+ private:
+     struct SelContext;
+diff --git a/src/Mod/Part/Gui/SoBrepFaceSet.cpp b/src/Mod/Part/Gui/SoBrepFaceSet.cpp
+index 1015c86..82b7c48 100644
+--- a/src/Mod/Part/Gui/SoBrepFaceSet.cpp
++++ b/src/Mod/Part/Gui/SoBrepFaceSet.cpp
+@@ -32,6 +32,7 @@
+ #include <Inventor/actions/SoRayPickAction.h>
+ #include <Inventor/bundles/SoMaterialBundle.h>
+ #include <Inventor/details/SoFaceDetail.h>
++#include <Inventor/details/SoPointDetail.h>
+ #include <Inventor/elements/SoCoordinateElement.h>
+ #include <Inventor/elements/SoDepthBufferElement.h>
+ #include <Inventor/elements/SoLazyElement.h>
+@@ -43,6 +44,7 @@
+ #include <Inventor/elements/SoPolygonOffsetElement.h>
+ #include <Inventor/errors/SoDebugError.h>
+ #include <Inventor/misc/SoState.h>
++#include <Inventor/nodes/SoVertexProperty.h>
+ 
+ #include <Base/Profiler.h>
+ 
+@@ -53,6 +55,7 @@
+ #include <Gui/Inventor/So3DAnnotation.h>
+ 
+ #include "SoBrepFaceSet.h"
++#include "SoBrepPickAccel.h"
+ #include "ViewProviderExt.h"
+ 
+ using namespace PartGui;
+@@ -207,6 +210,7 @@ SoBrepFaceSet::SoBrepFaceSet()
+ 
+ SoBrepFaceSet::~SoBrepFaceSet()
+ {
++    PickAccel::forget(this);
+     if (overlayFaceSet) {
+         overlayFaceSet->unref();
+         overlayFaceSet = nullptr;
+@@ -785,6 +789,171 @@ void SoBrepFaceSet::GLRenderBelowPath(SoGLRenderAction* action)
+ 
+ void SoBrepFaceSet::generatePrimitives(SoAction* action)
+ {
++    // Ray pick of a big face set: generate only the triangles the pick line can reach, exactly as
++    // Coin's SoIndexedFaceSet::generatePrimitives would generate them (same vertex data, details
++    // and ascending order), see SoBrepPickAccel.h. Everything else is Coin's own loop.
++    if (PickAccel::enabled() && action->isOfType(SoRayPickAction::getClassTypeId())
++        && this->coordIndex.getNum() >= 4 * PickAccel::MinTriangles
++        && !this->vertexProperty.getValue() && this->getNodeType() != SoNode::VRML1) {
++        SoState* state = action->getState();
++        // bindings as SoIndexedFaceSet::findMaterialBinding / findNormalBinding (Coin)
++        enum
++        {
++            OVERALL,
++            PER_FACE,
++            PER_FACE_INDEXED,
++            PER_VERTEX,
++            PER_VERTEX_INDEXED,
++            UNKNOWN
++        };
++        // SoNormalBindingElement uses the same values as SoMaterialBindingElement
++        static_assert(
++            int(SoNormalBindingElement::OVERALL) == int(SoMaterialBindingElement::OVERALL)
++            && int(SoNormalBindingElement::PER_PART) == int(SoMaterialBindingElement::PER_PART)
++            && int(SoNormalBindingElement::PER_PART_INDEXED) == int(SoMaterialBindingElement::PER_PART_INDEXED)
++            && int(SoNormalBindingElement::PER_FACE) == int(SoMaterialBindingElement::PER_FACE)
++            && int(SoNormalBindingElement::PER_FACE_INDEXED) == int(SoMaterialBindingElement::PER_FACE_INDEXED)
++            && int(SoNormalBindingElement::PER_VERTEX) == int(SoMaterialBindingElement::PER_VERTEX)
++            && int(SoNormalBindingElement::PER_VERTEX_INDEXED)
++                == int(SoMaterialBindingElement::PER_VERTEX_INDEXED),
++            "binding values"
++        );
++        auto mapBinding = [](int b) -> int {
++            switch (b) {
++                case SoMaterialBindingElement::OVERALL:
++                    return OVERALL;
++                case SoMaterialBindingElement::PER_VERTEX:
++                    return PER_VERTEX;
++                case SoMaterialBindingElement::PER_VERTEX_INDEXED:
++                    return PER_VERTEX_INDEXED;
++                case SoMaterialBindingElement::PER_PART:
++                case SoMaterialBindingElement::PER_FACE:
++                    return PER_FACE;
++                case SoMaterialBindingElement::PER_PART_INDEXED:
++                case SoMaterialBindingElement::PER_FACE_INDEXED:
++                    return PER_FACE_INDEXED;
++                default:
++                    return UNKNOWN;
++            }
++        };
++        int mbind = mapBinding(SoMaterialBindingElement::get(state));
++        int nbind = mapBinding(SoNormalBindingElement::get(state));
++        static std::vector<uint32_t> candidates;  // GUI thread only (faceCandidates checks)
++        if (mbind != UNKNOWN && nbind != UNKNOWN && PickAccel::noTextures(state)
++            && PickAccel::faceCandidates(
++                this,
++                &this->coordIndex,
++                static_cast<SoRayPickAction*>(action),
++                state,
++                candidates
++            )) {
++            const SoCoordinateElement* coords;
++            const SbVec3f* normals;
++            const int32_t* cindices;
++            int numindices;
++            const int32_t* nindices;
++            const int32_t* tindices;
++            const int32_t* mindices;
++            SbBool normalCacheUsed;
++            this->getVertexData(
++                state,
++                coords,
++                normals,
++                cindices,
++                nindices,
++                tindices,
++                mindices,
++                numindices,
++                TRUE,
++                normalCacheUsed
++            );
++            if (normalCacheUsed && nbind == PER_VERTEX) {
++                nbind = PER_VERTEX_INDEXED;
++            }
++            else if (normalCacheUsed && nbind == PER_FACE_INDEXED) {
++                nbind = PER_FACE;
++            }
++            if (nbind == PER_VERTEX_INDEXED && !nindices) {
++                nindices = cindices;
++            }
++            if (mbind == PER_VERTEX_INDEXED && !mindices) {
++                mindices = cindices;
++            }
++
++            SoPrimitiveVertex vertex;
++            SoPointDetail pointDetail;
++            SoFaceDetail faceDetail;
++            vertex.setDetail(&pointDetail);
++            SbVec3f dummynormal(0, 0, 1);
++            const SbVec3f* currnormal = normals ? normals : &dummynormal;
++            vertex.setNormal(*currnormal);
++
++            // State of Coin's loop at triangle t (pure triangles, 4 indices each): material and
++            // normal counters 3t+k (PER_VERTEX) or t (PER_FACE), index pointers 4t+k
++            // (PER_VERTEX_INDEXED) or t (PER_FACE_INDEXED), face and part index t. OVERALL never
++            // sets them (defaults stay).
++            this->beginShape(action, TRIANGLES, &faceDetail);
++            for (const uint32_t t : candidates) {
++                const size_t base = 4 * static_cast<size_t>(t);
++                faceDetail.setFaceIndex(static_cast<int>(t));
++                faceDetail.setPartIndex(static_cast<int>(t));
++                for (int k = 0; k < 3; ++k) {
++                    const int32_t idx = cindices[base + k];
++                    int32_t m = 0;
++                    switch (mbind) {
++                        case PER_VERTEX:
++                            m = static_cast<int32_t>(3 * t + k);
++                            break;
++                        case PER_FACE:
++                            m = static_cast<int32_t>(t);
++                            break;
++                        case PER_VERTEX_INDEXED:
++                            m = mindices[base + k];
++                            break;
++                        case PER_FACE_INDEXED:
++                            m = mindices[t];
++                            break;
++                        default:
++                            break;
++                    }
++                    if (mbind != OVERALL) {
++                        pointDetail.setMaterialIndex(m);
++                        vertex.setMaterialIndex(m);
++                    }
++                    int32_t n = 0;
++                    switch (nbind) {
++                        case PER_VERTEX:
++                            n = static_cast<int32_t>(3 * t + k);
++                            break;
++                        case PER_FACE:
++                            n = static_cast<int32_t>(t);
++                            break;
++                        case PER_VERTEX_INDEXED:
++                            n = nindices[base + k];
++                            break;
++                        case PER_FACE_INDEXED:
++                            n = nindices[t];
++                            break;
++                        default:
++                            break;
++                    }
++                    if (nbind != OVERALL) {
++                        pointDetail.setNormalIndex(n);
++                        currnormal = &normals[n];
++                        vertex.setNormal(*currnormal);
++                    }
++                    pointDetail.setCoordinateIndex(idx);
++                    vertex.setPoint(coords->get3(idx));
++                    this->shapeVertex(&vertex);
++                }
++            }
++            this->endShape();
++            if (normalCacheUsed) {
++                this->readUnlockNormalCache();
++            }
++            return;
++        }
++    }
+     inherited::generatePrimitives(action);
+ }
+ 
+diff --git a/src/Mod/Part/Gui/SoBrepPickAccel.cpp b/src/Mod/Part/Gui/SoBrepPickAccel.cpp
+new file mode 100644
+index 0000000..15c5b5e
+--- /dev/null
++++ b/src/Mod/Part/Gui/SoBrepPickAccel.cpp
+@@ -0,0 +1,647 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++// SPDX-FileNotice: Part of the FreeCAD project.
++
++/******************************************************************************
++ *                                                                            *
++ *   FreeCAD is free software: you can redistribute it and/or modify          *
++ *   it under the terms of the GNU Lesser General Public License as           *
++ *   published by the Free Software Foundation, either version 2.1 of the     *
++ *   License, or (at your option) any later version.                          *
++ *                                                                            *
++ *   FreeCAD is distributed in the hope that it will be useful, but           *
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of               *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
++ *   GNU Lesser General Public License for more details.                      *
++ *                                                                            *
++ *   You should have received a copy of the GNU Lesser General Public         *
++ *   License along with FreeCAD.  If not, see                                *
++ *   <https://www.gnu.org/licenses/>.                                         *
++ *                                                                            *
++ ******************************************************************************/
++
++#include <algorithm>
++#include <cfloat>
++#include <chrono>
++#include <cmath>
++#include <new>
++
++#include <QCoreApplication>
++#include <QThread>
++
++#include <Inventor/SbVec3d.h>
++#include <Inventor/SbViewVolume.h>
++#include <Inventor/SbViewportRegion.h>
++#include <Inventor/actions/SoRayPickAction.h>
++#include <Inventor/elements/SoCoordinateElement.h>
++#include <Inventor/elements/SoModelMatrixElement.h>
++#include <Inventor/elements/SoMultiTextureEnabledElement.h>
++#include <Inventor/elements/SoViewVolumeElement.h>
++#include <Inventor/elements/SoViewportRegionElement.h>
++#include <Inventor/fields/SoMFInt32.h>
++#include <Inventor/nodes/SoNode.h>
++#include <Inventor/sensors/SoFieldSensor.h>
++
++#include "SoBrepPickAccel.h"
++
++#ifdef PARTGUI_PICKACCEL_MUTANT
++// Negative-control build only (never shipped): G_MUT=edge0|shrink|order breaks the fast path.
++# include <cstdlib>
++# include <cstring>
++static bool mutant(const char* mode)
++{
++    const char* m = std::getenv("G_MUT");
++    return m && std::strcmp(m, mode) == 0;
++}
++#else
++static constexpr bool mutant(const char*)
++{
++    return false;
++}
++#endif
++
++namespace PartGui
++{
++namespace PickAccel
++{
++
++namespace
++{
++constexpr uint32_t LeafSize = 8;
++
++std::mutex& tableMutex()
++{
++    static std::mutex m;
++    return m;
++}
++
++std::unordered_map<const SoNode*, std::unique_ptr<Entry>>& table()
++{
++    static std::unordered_map<const SoNode*, std::unique_ptr<Entry>> t;
++    return t;
++}
++
++void sensorCB(void* data, SoSensor* /*sensor*/)
++{
++    static_cast<Entry*>(data)->dirty = true;
++}
++
++inline bool finite3(const SbVec3f& p)
++{
++    return std::isfinite(p[0]) && std::isfinite(p[1]) && std::isfinite(p[2]);
++}
++
++inline void addBox(std::vector<float>& boxes, size_t id, const SbVec3f* pts[], int n)
++{
++    float* b = &boxes[6 * id];
++    for (int k = 0; k < 3; ++k) {
++        float lo = (*pts[0])[k];
++        float hi = lo;
++        for (int i = 1; i < n; ++i) {
++            lo = std::min(lo, (*pts[i])[k]);
++            hi = std::max(hi, (*pts[i])[k]);
++        }
++        b[k] = lo;
++        b[3 + k] = hi;
++    }
++}
++
++double rootScale(const Entry& e)
++{
++    double s = 0.0;
++    for (int k = 0; k < 3; ++k) {
++        s = std::max({s, std::fabs(e.rootMn[k]), std::fabs(e.rootMx[k])});
++    }
++    return s;
++}
++
++void setRoot(Entry& e)
++{
++    if (e.bvh.empty()) {
++        return;
++    }
++    const Node& r = e.bvh.root();
++    for (int k = 0; k < 3; ++k) {
++        e.rootMn[k] = r.mn[k];
++        e.rootMx[k] = r.mx[k];
++    }
++}
++
++// Pad for float rounding: Coin tests with the double object-space line, we with its float copy
++// (relative error ~1e-7 of the coordinates involved); 1e-5 keeps a margin of two decades.
++inline double roundingPad(const Line& l, const Entry& e, double extra)
++{
++    return 1e-5 * (l.scale + rootScale(e) + extra) + 1e-30;
++}
++
++bool buildFaces(Entry& e, const int32_t* ci, int ni, const SbVec3f* coords, int numCoords)
++{
++    const int nt = (ni + 1) / 4;  // Coin reads 3 indices + a terminator per triangle
++    std::vector<float> boxes(static_cast<size_t>(nt) * 6);
++    std::vector<uint32_t> ids;
++    ids.reserve(nt);
++    for (int t = 0; t < nt; ++t) {
++        const int32_t* v = ci + 4 * static_cast<size_t>(t);
++        for (int k = 0; k < 3; ++k) {
++            if (v[k] < 0 || v[k] >= numCoords) {
++                return false;
++            }
++        }
++        if (4 * t + 3 < ni && v[3] >= 0) {
++            return false;  // quad or polygon: Coin's other modes
++        }
++        const SbVec3f* pts[3] = {&coords[v[0]], &coords[v[1]], &coords[v[2]]};
++        if (!finite3(*pts[0]) || !finite3(*pts[1]) || !finite3(*pts[2])) {
++            e.always.push_back(static_cast<uint32_t>(t));
++            continue;
++        }
++        addBox(boxes, t, pts, 3);
++        ids.push_back(static_cast<uint32_t>(t));
++    }
++    e.bvh.build(boxes, std::move(ids));
++    setRoot(e);
++    return true;
++}
++
++bool buildEdges(Entry& e, const int32_t* ci, int ni, const SbVec3f* coords, int numCoords)
++{
++    // the same walk as SoIndexedLineSet::generatePrimitives (line-strip branch)
++    int pos = 0;
++    uint32_t line = 0;
++    uint32_t vbefore = 0;
++    uint32_t sbefore = 0;
++    while (pos + 1 < ni) {
++        if (ci[pos] < 0 || ci[pos + 1] < 0) {
++            return false;  // polyline with < 2 vertices: not reproduced
++        }
++        const int start = pos;
++        pos += 2;
++        while (pos < ni && ci[pos] >= 0) {
++            ++pos;
++        }
++        const int nv = pos - start;
++        if (pos < ni) {
++            ++pos;  // terminator
++        }
++        for (int k = start; k < start + nv; ++k) {
++            if (ci[k] >= numCoords) {
++                return false;
++            }
++        }
++        e.lineStart.push_back(static_cast<uint32_t>(start));
++        e.lineVertBefore.push_back(vbefore);
++        e.lineSegBefore.push_back(sbefore);
++        for (int j = 0; j + 1 < nv; ++j) {
++            e.segPos.push_back(static_cast<uint32_t>(start + j));
++            e.segLine.push_back(line);
++        }
++        vbefore += static_cast<uint32_t>(nv);
++        sbefore += static_cast<uint32_t>(nv - 1);
++        ++line;
++    }
++    const size_t ns = e.segPos.size();
++    std::vector<float> boxes(ns * 6);
++    std::vector<uint32_t> ids;
++    ids.reserve(ns);
++    for (size_t s = 0; s < ns; ++s) {
++        const SbVec3f* pts[2] = {&coords[ci[e.segPos[s]]], &coords[ci[e.segPos[s] + 1]]};
++        if (!finite3(*pts[0]) || !finite3(*pts[1])) {
++            e.always.push_back(static_cast<uint32_t>(s));
++            continue;
++        }
++        addBox(boxes, s, pts, 2);
++        ids.push_back(static_cast<uint32_t>(s));
++    }
++    e.bvh.build(boxes, std::move(ids));
++    setRoot(e);
++    return true;
++}
++
++// Upper bound of Coin's pick-cone radius (SoRayPickAction::computeWorldSpaceRay, intersect(v0,v1)
++// and intersect(point)) at any ray point within that radius of the node's box, in object space.
++bool coneRadiusObjectSpace(SoRayPickAction* action, SoState* state, const Entry& e, double& ros)
++{
++    const SbViewVolume& vv = SoViewVolumeElement::get(state);
++    const SbViewportRegion& vp = SoViewportRegionElement::get(state);
++    const SbVec2s size = vp.getViewportSizePixels();
++    const double w = vv.getWidth();
++    const double h = vv.getHeight();
++    const double depth = vv.getDepth();
++    const double nearDist = vv.getNearDist();
++    const double rpx = action->getRadius();
++    if (size[0] <= 0 || size[1] <= 0 || !(w > 0.0) || !(h > 0.0) || !(depth > 0.0)
++        || !std::isfinite(w) || !std::isfinite(h) || !std::isfinite(depth)
++        || !std::isfinite(nearDist) || !std::isfinite(rpx) || rpx < 0.0) {
++        return false;
++    }
++    const double rs = h / double(size[1]) * rpx;
++    double delta = 0.0;
++    if (vv.getProjectionType() == SbViewVolume::PERSPECTIVE) {
++        SbVec3d dir(0.0, double(float(h) * 0.5f), nearDist);
++        if (dir.normalize() == 0.0 || dir[2] == 0.0) {
++            return false;
++        }
++        const SbVec3d upperfar = dir * (nearDist + depth) / dir[2];
++        const double farsize = (double(upperfar[1]) * 2.0 / double(size[1])) * rpx;
++        delta = (farsize - rs) / depth;
++    }
++    const double ad = std::fabs(delta);
++    if (!std::isfinite(ad) || ad >= 0.5) {
++        return false;
++    }
++    const double rsRay = std::min(w, h) * FLT_EPSILON;  // radius of a ray set with setRay()
++
++    const SbMatrix& m = SoModelMatrixElement::get(state);
++    if (m[0][3] != 0.0f || m[1][3] != 0.0f || m[2][3] != 0.0f || m[3][3] != 1.0f) {
++        return false;
++    }
++    for (int i = 0; i < 4; ++i) {
++        for (int j = 0; j < 4; ++j) {
++            if (!std::isfinite(m[i][j])) {
++                return false;
++            }
++        }
++    }
++    const SbVec3f pp = vv.getProjectionPoint();
++    SbVec3f pd = vv.getProjectionDirection();
++    double dl = std::sqrt(double(pd[0]) * pd[0] + double(pd[1]) * pd[1] + double(pd[2]) * pd[2]);
++    if (!(dl > 0.0) || !std::isfinite(dl)) {
++        return false;
++    }
++    double rpabs = 0.0;
++    for (int c = 0; c < 8; ++c) {
++        const double p[3] = {c & 1 ? e.rootMx[0] : e.rootMn[0],
++                             c & 2 ? e.rootMx[1] : e.rootMn[1],
++                             c & 4 ? e.rootMx[2] : e.rootMn[2]};
++        double rp = -nearDist;
++        for (int j = 0; j < 3; ++j) {
++            const double wj = p[0] * m[0][j] + p[1] * m[1][j] + p[2] * m[2][j] + m[3][j];
++            rp += (wj - pp[j]) * (pd[j] / dl);
++        }
++        rpabs = std::max(rpabs, std::fabs(rp));
++    }
++    double rw = (std::max(rs, rsRay) + ad * rpabs) / (1.0 - ad);
++    rw = rw * 1.5 + FLT_EPSILON * std::max(w, h);
++
++    // |v_object| <= |v_world| * ||L^-1||_F, L = linear part of the model matrix (row vectors)
++    const double a = m[0][0], b = m[0][1], c = m[0][2];
++    const double d = m[1][0], f = m[1][1], g = m[1][2];
++    const double k = m[2][0], l = m[2][1], n = m[2][2];
++    const double det = a * (f * n - g * l) - b * (d * n - g * k) + c * (d * l - f * k);
++    if (!std::isfinite(det) || std::fabs(det) < 1e-300) {
++        return false;
++    }
++    const double cof[9] = {f * n - g * l, c * l - b * n, b * g - c * f,
++                           g * k - d * n, a * n - c * k, c * d - a * g,
++                           d * l - f * k, b * k - a * l, a * f - b * d};
++    double fro = 0.0;
++    for (double v : cof) {
++        fro += v * v;
++    }
++    fro = std::sqrt(fro) / std::fabs(det);
++    ros = rw * fro;
++    return std::isfinite(ros);
++}
++
++// Common part of faceCandidates/edgeCandidates: entry, key, lazy build.
++template<class Build>
++Entry* prepare(const SoNode* node, SoMFInt32* index, SoState* state, const SbVec3f*& coords,
++               Build&& build)
++{
++    Key key;
++    if (!makeKey(state, *index, key, coords)) {
++        return nullptr;
++    }
++    Entry* e = entryFor(node, index);
++    if (e->dirty || !(e->key == key)) {
++        e->reset(key);
++    }
++    if (e->failed) {
++        return nullptr;
++    }
++    if (!e->built) {
++        if (++e->seen < 2) {
++            return nullptr;  // build on the second pick of the same geometry
++        }
++        const auto t0 = std::chrono::steady_clock::now();
++        bool ok = false;
++        try {
++            ok = build(*e, key.indexPtr, key.numIndex, coords, key.numCoords);
++        }
++        catch (const std::bad_alloc&) {
++            ok = false;
++        }
++        if (!ok) {
++            const Key k = e->key;
++            e->reset(k);
++            e->failed = true;
++            ++stats().unsupported;
++            return nullptr;
++        }
++        e->built = true;
++        ++stats().builds;
++        stats().buildMicroseconds += static_cast<unsigned long long>(
++            std::chrono::duration_cast<std::chrono::microseconds>(
++                std::chrono::steady_clock::now() - t0
++            )
++                .count()
++        );
++    }
++    return e;
++}
++
++}  // namespace
++
++Stats& stats()
++{
++    static Stats s;
++    return s;
++}
++
++bool& enabledFlag()
++{
++    static bool on = true;
++    return on;
++}
++
++bool isGuiThread()
++{
++    const QCoreApplication* app = QCoreApplication::instance();
++    return app && QThread::currentThread() == app->thread();
++}
++
++bool objectLine(SoRayPickAction* action, Line& line)
++{
++    const SbLine& l = action->getLine();
++    const SbVec3f& p = l.getPosition();
++    const SbVec3f& d = l.getDirection();
++    if (!finite3(p) || !finite3(d)) {
++        return false;
++    }
++    double len = 0.0;
++    line.scale = 0.0;
++    for (int k = 0; k < 3; ++k) {
++        line.o[k] = p[k];
++        line.d[k] = d[k];
++        len += line.d[k] * line.d[k];
++        line.scale = std::max(line.scale, std::fabs(line.o[k]));
++    }
++    return len > 0.99 && len < 1.01;
++}
++
++void BVH::build(const std::vector<float>& boxes, std::vector<uint32_t>&& ids)
++{
++    nodes.clear();
++    order = std::move(ids);
++    const uint32_t n = static_cast<uint32_t>(order.size());
++    if (n == 0) {
++        return;
++    }
++    nodes.reserve(2 * (n / LeafSize) + 2);
++    struct Task
++    {
++        uint32_t node, b, e;
++    };
++    std::vector<Task> todo;
++    todo.push_back({0, 0, n});
++    nodes.emplace_back();
++    while (!todo.empty()) {
++        const Task t = todo.back();
++        todo.pop_back();
++        float mn[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
++        float mx[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
++        float cmn[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
++        float cmx[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
++        for (uint32_t i = t.b; i < t.e; ++i) {
++            const float* bx = &boxes[6 * static_cast<size_t>(order[i])];
++            for (int k = 0; k < 3; ++k) {
++                mn[k] = std::min(mn[k], bx[k]);
++                mx[k] = std::max(mx[k], bx[3 + k]);
++                const float c = bx[k] + bx[3 + k];
++                cmn[k] = std::min(cmn[k], c);
++                cmx[k] = std::max(cmx[k], c);
++            }
++        }
++        for (int k = 0; k < 3; ++k) {
++            nodes[t.node].mn[k] = mn[k];
++            nodes[t.node].mx[k] = mx[k];
++        }
++        int axis = 0;
++        for (int k = 1; k < 3; ++k) {
++            if (cmx[k] - cmn[k] > cmx[axis] - cmn[axis]) {
++                axis = k;
++            }
++        }
++        if (t.e - t.b <= LeafSize || !(cmx[axis] - cmn[axis] > 0.0f)) {
++            nodes[t.node].a = t.b;
++            nodes[t.node].n = t.e - t.b;
++            continue;
++        }
++        const uint32_t mid = t.b + (t.e - t.b) / 2;
++        std::nth_element(
++            order.begin() + t.b,
++            order.begin() + mid,
++            order.begin() + t.e,
++            [&boxes, axis](uint32_t x, uint32_t y) {
++                return boxes[6 * static_cast<size_t>(x) + axis] + boxes[6 * static_cast<size_t>(x) + 3 + axis]
++                    < boxes[6 * static_cast<size_t>(y) + axis] + boxes[6 * static_cast<size_t>(y) + 3 + axis];
++            }
++        );
++        const uint32_t left = static_cast<uint32_t>(nodes.size());
++        nodes.emplace_back();
++        nodes.emplace_back();
++        nodes[t.node].a = left;
++        nodes[t.node].n = 0;
++        todo.push_back({left + 1, mid, t.e});
++        todo.push_back({left, t.b, mid});
++    }
++}
++
++Entry::~Entry()
++{
++    delete sensor;  // detaches from the field
++}
++
++void Entry::reset(const Key& k)
++{
++    key = k;
++    dirty = false;
++    seen = 0;
++    built = false;
++    failed = false;
++    bvh.clear();
++    always.clear();
++    segPos.clear();
++    segLine.clear();
++    lineStart.clear();
++    lineVertBefore.clear();
++    lineSegBefore.clear();
++    for (int i = 0; i < 3; ++i) {
++        rootMn[i] = rootMx[i] = 0.0;
++    }
++}
++
++Entry* entryFor(const SoNode* node, SoMFInt32* index)
++{
++    std::lock_guard<std::mutex> lock(tableMutex());
++    auto& slot = table()[node];
++    if (!slot) {
++        slot = std::make_unique<Entry>();
++        slot->sensor = new SoFieldSensor(sensorCB, slot.get());
++        slot->sensor->setPriority(0);  // immediate: every change of the index field marks the entry
++        slot->sensor->attach(index);
++    }
++    return slot.get();
++}
++
++void forget(const SoNode* node)
++{
++    std::unique_ptr<Entry> gone;
++    {
++        std::lock_guard<std::mutex> lock(tableMutex());
++        auto& t = table();
++        if (t.empty()) {
++            return;
++        }
++        auto it = t.find(node);
++        if (it == t.end()) {
++            return;
++        }
++        gone = std::move(it->second);
++        t.erase(it);
++    }
++}
++
++bool makeKey(SoState* state, const SoMFInt32& index, Key& key, const SbVec3f*& coords)
++{
++    const SoCoordinateElement* ce = SoCoordinateElement::getInstance(state);
++    if (!ce || !ce->is3D()) {
++        return false;
++    }
++    coords = ce->getArrayPtr3();
++    key.numCoords = ce->getNum();
++    if (!coords || key.numCoords <= 0) {
++        return false;
++    }
++    key.coordsId = ce->getNodeId();
++    if (key.coordsId == 0) {
++        return false;  // coordinates not set by a node: no change tracking
++    }
++    key.coordsPtr = coords;
++    key.indexPtr = index.getValues(0);
++    key.numIndex = index.getNum();
++    return key.indexPtr != nullptr;
++}
++
++bool noTextures(SoState* state)
++{
++    int lastenabled = -1;
++    const SbBool* multienabled = SoMultiTextureEnabledElement::getEnabledUnits(state, lastenabled);
++    return lastenabled < 0 && !multienabled;
++}
++
++bool faceCandidates(
++    const SoNode* node,
++    SoMFInt32* index,
++    SoRayPickAction* action,
++    SoState* state,
++    std::vector<uint32_t>& out
++)
++{
++    if (!isGuiThread()) {
++        return false;
++    }
++    Line line;
++    if (!objectLine(action, line)) {
++        ++stats().facePicksStock;
++        return false;
++    }
++    const SbVec3f* coords = nullptr;
++    Entry* e = prepare(node, index, state, coords, buildFaces);
++    if (!e) {
++        ++stats().facePicksStock;
++        return false;
++    }
++    const int32_t* ci = e->key.indexPtr;
++    const double pad = mutant("shrink") ? -1e-3 * rootScale(*e) : roundingPad(line, *e, 0.0);
++    out.clear();
++    e->bvh.query(line, pad, [&](uint32_t t) {
++        const int32_t* v = ci + 4 * static_cast<size_t>(t);
++        const SbVec3f& p0 = coords[v[0]];
++        const SbVec3f& p1 = coords[v[1]];
++        const SbVec3f& p2 = coords[v[2]];
++        double mn[3];
++        double mx[3];
++        for (int k = 0; k < 3; ++k) {
++            mn[k] = std::min({p0[k], p1[k], p2[k]});
++            mx[k] = std::max({p0[k], p1[k], p2[k]});
++        }
++        if (lineHitsBox(line, mn, mx, pad)) {
++            out.push_back(t);
++        }
++    });
++    out.insert(out.end(), e->always.begin(), e->always.end());
++    if (!mutant("order")) {
++        std::sort(out.begin(), out.end());
++    }
++    ++stats().facePicksFast;
++    stats().trianglesGenerated += out.size();
++    return true;
++}
++
++bool edgeCandidates(
++    const SoNode* node,
++    SoMFInt32* index,
++    SoRayPickAction* action,
++    SoState* state,
++    std::vector<uint32_t>& out,
++    const Entry*& entry
++)
++{
++    if (!isGuiThread()) {
++        return false;
++    }
++    Line line;
++    if (!objectLine(action, line)) {
++        ++stats().edgePicksStock;
++        return false;
++    }
++    const SbVec3f* coords = nullptr;
++    Entry* e = prepare(node, index, state, coords, buildEdges);
++    if (!e) {
++        ++stats().edgePicksStock;
++        return false;
++    }
++    double ros = 0.0;
++    if (!e->bvh.empty() && !coneRadiusObjectSpace(action, state, *e, ros)) {
++        ++stats().edgePicksStock;
++        return false;
++    }
++    const int32_t* ci = e->key.indexPtr;
++    if (mutant("edge0")) {
++        ros = 0.0;
++    }
++    const double pad = roundingPad(line, *e, ros) + ros;
++    out.clear();
++    e->bvh.query(line, pad, [&](uint32_t s) {
++        const SbVec3f& p0 = coords[ci[e->segPos[s]]];
++        const SbVec3f& p1 = coords[ci[e->segPos[s] + 1]];
++        double mn[3];
++        double mx[3];
++        for (int k = 0; k < 3; ++k) {
++            mn[k] = std::min(p0[k], p1[k]);
++            mx[k] = std::max(p0[k], p1[k]);
++        }
++        if (lineHitsBox(line, mn, mx, pad)) {
++            out.push_back(s);
++        }
++    });
++    out.insert(out.end(), e->always.begin(), e->always.end());
++    std::sort(out.begin(), out.end());
++    entry = e;
++    ++stats().edgePicksFast;
++    stats().segmentsGenerated += out.size();
++    return true;
++}
++
++}  // namespace PickAccel
++}  // namespace PartGui
+diff --git a/src/Mod/Part/Gui/SoBrepPickAccel.h b/src/Mod/Part/Gui/SoBrepPickAccel.h
+new file mode 100644
+index 0000000..0dd0489
+--- /dev/null
++++ b/src/Mod/Part/Gui/SoBrepPickAccel.h
+@@ -0,0 +1,278 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++// SPDX-FileNotice: Part of the FreeCAD project.
++
++/******************************************************************************
++ *                                                                            *
++ *   FreeCAD is free software: you can redistribute it and/or modify          *
++ *   it under the terms of the GNU Lesser General Public License as           *
++ *   published by the Free Software Foundation, either version 2.1 of the     *
++ *   License, or (at your option) any later version.                          *
++ *                                                                            *
++ *   FreeCAD is distributed in the hope that it will be useful, but           *
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of               *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
++ *   GNU Lesser General Public License for more details.                      *
++ *                                                                            *
++ *   You should have received a copy of the GNU Lesser General Public         *
++ *   License along with FreeCAD.  If not, see                                *
++ *   <https://www.gnu.org/licenses/>.                                         *
++ *                                                                            *
++ ******************************************************************************/
++
++#pragma once
++
++// Ray-pick acceleration for SoBrepFaceSet / SoBrepEdgeSet (defect 016, plan G task B).
++//
++// Coin picks an indexed face/line set by generating EVERY primitive and testing each against the
++// pick ray. The accelerated path generates only the primitives whose bounding boxes the ray can
++// reach, through the same Coin calls (beginShape/shapeVertex/endShape) with the same per-vertex
++// data and in the same (ascending) order as Coin's own SoIndexedFaceSet / SoIndexedLineSet
++// generatePrimitives. A primitive that is skipped cannot produce an intersection:
++//  - triangles: Coin intersects the central ray line only (SoRayPickAction::intersect(v0,v1,v2)),
++//    so a triangle whose box (padded for float rounding) misses the line cannot be hit;
++//  - segments: Coin tests the pick cone, so segment boxes are expanded by an upper bound of the
++//    cone radius (world radius over the node's depth range, mapped to object space).
++// Triangles/segments with a non-finite coordinate are always generated (Coin's tests on NaN
++// data are not predictable from a box). Anything the path cannot reproduce exactly (textures,
++// vertexProperty, non-triangle faces, per-segment line bindings, non-affine matrices, other
++// threads, ...) goes through the stock Coin code.
++//
++// State lives in side tables keyed by node (no change of the exported class layouts).
++
++#include <atomic>
++#include <cstdint>
++#include <memory>
++#include <mutex>
++#include <unordered_map>
++#include <vector>
++
++#include <Inventor/SbBasic.h>
++#include <Inventor/SbLinear.h>
++
++class SoNode;
++class SoState;
++class SoRayPickAction;
++class SoMFInt32;
++class SoFieldSensor;
++class SoCoordinateElement;
++
++namespace PartGui
++{
++namespace PickAccel
++{
++
++// ---- switches and counters ------------------------------------------------------------------
++
++struct Stats
++{
++    std::atomic<unsigned long long> facePicksFast {0};    // face set picks done by the fast path
++    std::atomic<unsigned long long> facePicksStock {0};   // big face set picks left to Coin
++    std::atomic<unsigned long long> edgePicksFast {0};
++    std::atomic<unsigned long long> edgePicksStock {0};
++    std::atomic<unsigned long long> trianglesGenerated {0};  // triangles sent to Coin by the fast path
++    std::atomic<unsigned long long> segmentsGenerated {0};
++    std::atomic<unsigned long long> builds {0};
++    std::atomic<unsigned long long> buildMicroseconds {0};
++    std::atomic<unsigned long long> unsupported {0};  // layouts/bindings the fast path refused
++};
++
++Stats& stats();
++bool& enabledFlag();
++inline bool enabled()
++{
++    return enabledFlag();
++}
++
++// Below these sizes Coin's own loop is cheap enough.
++constexpr int MinTriangles = 256;
++constexpr int MinSegments = 256;
++
++bool isGuiThread();
++
++// ---- object-space pick line -----------------------------------------------------------------
++
++struct Line
++{
++    double o[3];
++    double d[3];
++    double scale;  // max |o| component, for the rounding pad
++};
++
++// Reads action->getLine() (object space, set by computeObjectSpaceRay). False if not usable.
++bool objectLine(SoRayPickAction* action, Line& line);
++
++// ---- BVH over primitive boxes -----------------------------------------------------------------
++
++struct Node
++{
++    float mn[3];
++    float mx[3];
++    uint32_t a;  // internal: index of the left child (right = a + 1); leaf: first slot in order
++    uint32_t n;  // 0 for internal nodes, primitive count for leaves
++};
++
++class BVH
++{
++public:
++    // boxes: 6 floats per primitive (min xyz, max xyz), finite. ids: the primitives to index.
++    void build(const std::vector<float>& boxes, std::vector<uint32_t>&& ids);
++    bool empty() const
++    {
++        return nodes.empty();
++    }
++    // Calls leaf(id) for every indexed primitive in a leaf whose box, expanded by pad, the line
++    // crosses.
++    template<class F>
++    void query(const Line& l, double pad, F&& leaf) const;
++    const Node& root() const
++    {
++        return nodes.front();
++    }
++    void clear()
++    {
++        nodes.clear();
++        nodes.shrink_to_fit();
++        order.clear();
++        order.shrink_to_fit();
++    }
++
++private:
++    std::vector<Node> nodes;
++    std::vector<uint32_t> order;
++};
++
++// Slab test of the infinite line against [mn - pad, mx + pad].
++inline bool lineHitsBox(const Line& l, const double mn[3], const double mx[3], double pad)
++{
++    double t0 = -1e300;
++    double t1 = 1e300;
++    for (int k = 0; k < 3; ++k) {
++        const double lo = mn[k] - pad;
++        const double hi = mx[k] + pad;
++        if (l.d[k] == 0.0) {
++            if (l.o[k] < lo || l.o[k] > hi) {
++                return false;
++            }
++            continue;
++        }
++        const double inv = 1.0 / l.d[k];
++        double a = (lo - l.o[k]) * inv;
++        double b = (hi - l.o[k]) * inv;
++        if (a > b) {
++            std::swap(a, b);
++        }
++        if (a > t0) {
++            t0 = a;
++        }
++        if (b < t1) {
++            t1 = b;
++        }
++        if (t0 > t1) {
++            return false;
++        }
++    }
++    return true;
++}
++
++template<class F>
++void BVH::query(const Line& l, double pad, F&& leaf) const
++{
++    if (nodes.empty()) {
++        return;
++    }
++    uint32_t stack[128];
++    int sp = 0;
++    stack[sp++] = 0;
++    while (sp > 0) {
++        const Node& nd = nodes[stack[--sp]];
++        const double mn[3] = {nd.mn[0], nd.mn[1], nd.mn[2]};
++        const double mx[3] = {nd.mx[0], nd.mx[1], nd.mx[2]};
++        if (!lineHitsBox(l, mn, mx, pad)) {
++            continue;
++        }
++        if (nd.n) {
++            for (uint32_t i = 0; i < nd.n; ++i) {
++                leaf(order[nd.a + i]);
++            }
++            continue;
++        }
++        // depth is bounded by the median split (<= 34 levels for 2^32 primitives)
++        stack[sp++] = nd.a + 1;
++        stack[sp++] = nd.a;
++    }
++}
++
++// ---- per-node cache ---------------------------------------------------------------------------
++
++struct Key
++{
++    SbUniqueId coordsId {0};
++    const void* coordsPtr {nullptr};
++    int numCoords {-1};
++    const int32_t* indexPtr {nullptr};
++    int numIndex {-1};
++    bool operator==(const Key& o) const
++    {
++        return coordsId == o.coordsId && coordsPtr == o.coordsPtr && numCoords == o.numCoords
++            && indexPtr == o.indexPtr && numIndex == o.numIndex;
++    }
++};
++
++struct Entry
++{
++    ~Entry();
++    Key key;
++    std::atomic<bool> dirty {false};  // set by the coordIndex field sensor
++    int seen {0};                     // picks with this key before the index is built
++    bool built {false};
++    bool failed {false};              // layout not supported / build failed, for this key
++    BVH bvh;
++    std::vector<uint32_t> always;  // primitives with a non-finite coordinate
++    // edge sets: segment s starts at coordIndex position segPos[s] and belongs to polyline segLine[s]
++    std::vector<uint32_t> segPos;
++    std::vector<uint32_t> segLine;
++    // polylines: first coordIndex position, vertices before, segments before
++    std::vector<uint32_t> lineStart;
++    std::vector<uint32_t> lineVertBefore;
++    std::vector<uint32_t> lineSegBefore;
++    double rootMn[3] {0, 0, 0};
++    double rootMx[3] {0, 0, 0};
++    SoFieldSensor* sensor {nullptr};
++    void reset(const Key& k);
++};
++
++// Entry of a node; created (with a sensor on 'index') on first use. Only on the GUI thread.
++Entry* entryFor(const SoNode* node, SoMFInt32* index);
++// Called from the node destructors.
++void forget(const SoNode* node);
++
++// Key of the current coordinates + index field; false if the coordinates are not plain 3D.
++bool makeKey(SoState* state, const SoMFInt32& index, Key& key, const SbVec3f*& coords);
++
++// Faces: checks the pure-triangle layout "a b c <0" of 'index', builds the BVH (lazily, on the
++// second pick with the same key) and returns the ascending list of candidate triangles.
++// False = use the stock Coin path.
++bool faceCandidates(
++    const SoNode* node,
++    SoMFInt32* index,
++    SoRayPickAction* action,
++    SoState* state,
++    std::vector<uint32_t>& out
++);
++
++// Edges: polylines "a b [c ...] <0" (each with >= 2 vertices; a trailing single index is ignored
++// as Coin does). Out: ascending candidate segment ids; seg/line tables are in the entry.
++bool edgeCandidates(
++    const SoNode* node,
++    SoMFInt32* index,
++    SoRayPickAction* action,
++    SoState* state,
++    std::vector<uint32_t>& out,
++    const Entry*& entry
++);
++
++// True if no texture unit is enabled (SoTextureCoordinateBundle would not need coordinates).
++bool noTextures(SoState* state);
++
++}  // namespace PickAccel
++}  // namespace PartGui
+-- 
+2.52.0.windows.1
+

@@ -1,0 +1,1185 @@
+diff --git a/src/ModelingData/TKBRep/BRepGraph/BRepGraph_ShapesView.cxx b/src/ModelingData/TKBRep/BRepGraph/BRepGraph_ShapesView.cxx
+index a0c0b0cf..8c68f79d 100644
+--- a/src/ModelingData/TKBRep/BRepGraph/BRepGraph_ShapesView.cxx
++++ b/src/ModelingData/TKBRep/BRepGraph/BRepGraph_ShapesView.cxx
+@@ -29,12 +29,21 @@
+ #include <TopAbs_ShapeEnum.hxx>
+ #include <TopExp_Explorer.hxx>
+ #include <BRep_Builder.hxx>
++#include <NCollection_DataMap.hxx>
+ #include <NCollection_FlatMap.hxx>
++#include <TopTools_ShapeMapHasher.hxx>
+ #include <NCollection_Map.hxx>
+ #include <TopoDS_Compound.hxx>
+ #include <TopoDS_Iterator.hxx>
+ 
++#include <functional>
+ #include <shared_mutex>
++#include <utility>
++
++#ifdef BRepGraph_ALIAS_VERIFY
++  #include <cstdio>
++  #include <cstdlib>
++#endif
+ 
+ namespace
+ {
+@@ -53,10 +62,13 @@ enum class ShapeParentRoute
+   Supplement
+ };
+ 
+-static void assertMutationBoundary(BRepGraph& theGraph, [[maybe_unused]] const char* theContext)
++// perf/801-bgraph T3: the validation runs inside the assert, as in EditorView::CommitMutation.
++// Its result is only used by the assert, so release builds (where Standard_ASSERT_VOID does
++// nothing) no longer walk the whole graph after every Add; debug builds check exactly as before.
++static void assertMutationBoundary([[maybe_unused]] BRepGraph&  theGraph,
++                                   [[maybe_unused]] const char* theContext)
+ {
+-  [[maybe_unused]] const bool isValid = theGraph.Editor().ValidateMutationBoundary();
+-  Standard_ASSERT_VOID(isValid, theContext);
++  Standard_ASSERT_VOID(theGraph.Editor().ValidateMutationBoundary(), theContext);
+ }
+ 
+ static bool isCoreParityOrientation(const TopAbs_Orientation theOrientation)
+@@ -590,16 +602,305 @@ static void bindSourceShapeAliasesRecursive(BRepGraph&             theGraph,
+   }
+ }
+ 
++//=================================================================================================
++// perf/801-bgraph T2: deduplicated alias binding.
++//
++// The stock walk (bindSourceShapeAliasesRecursive) visits every USE of every sub-shape: a vertex
++// once per edge use, an edge once per face, and so on. Each visit is fully determined by the tuple
++// (source TShape, source own location, accumulated source location, populated TShape, definition
++// location): the lookup key, the written keys and values, and the children visited next.
++//
++// This walk runs in the stock order and performs the same lookups and writes, but skips a visit
++// whose tuple was already visited, together with its subtree. A skipped repeat would redo the
++// lookups and writes of its first visit; it is a no-op as long as every key still holds the value
++// written then and every lookup would still return what it returned then. Both can only break when
++// the map changes under a key in a way other than the first write of a new key:
++//   - a write re-binds an existing key to ANOTHER node (BindingChange::Changed), or
++//   - a write inserts a key that an earlier lookup missed.
++// On the first such event the walk stops skipping and continues as the stock walk (it visits every
++// use from then on). Up to that point every skipped repeat was a no-op, so the map state equals
++// the stock state at the same point of the stock order; after it, the walk IS the stock walk.
++// New keys are inserted in the same order as in the stock walk, so even the slot layout of the
++// flat map is the same.
++//=================================================================================================
++
++namespace
++{
++struct AliasVisitKey
++{
++  const TopoDS_TShape* SourceTShape    = nullptr;
++  const TopoDS_TShape* PopulatedTShape = nullptr;
++  TopLoc_Location      SourceOwnLocation;
++  TopLoc_Location      SourceLocation;
++  TopLoc_Location      DefinitionLocation;
++};
++
++struct AliasVisitKeyHasher
++{
++  size_t operator()(const AliasVisitKey& theKey) const noexcept
++  {
++    // equal keys have equal hashes; the definition location follows from the others in the
++    // common case, so it is compared but not hashed
++    size_t aHash = std::hash<const void*>()(theKey.SourceTShape);
++    aHash ^= theKey.SourceLocation.HashCode() + 0x9e3779b97f4a7c15ULL + (aHash << 6) + (aHash >> 2);
++    return aHash;
++  }
++
++  bool operator()(const AliasVisitKey& theKey1, const AliasVisitKey& theKey2) const noexcept
++  {
++    return theKey1.SourceTShape == theKey2.SourceTShape
++           && theKey1.PopulatedTShape == theKey2.PopulatedTShape
++           && theKey1.SourceOwnLocation.IsEqual(theKey2.SourceOwnLocation)
++           && theKey1.SourceLocation.IsEqual(theKey2.SourceLocation)
++           && theKey1.DefinitionLocation.IsEqual(theKey2.DefinitionLocation);
++  }
++};
++
++class AliasWalker
++{
++public:
++  AliasWalker(BRepGraph& theGraph, BRepGraphInc_Storage& theStorage)
++      : myGraph(theGraph),
++        myStorage(theStorage),
++        myVisited(256)
++  {
++  }
++
++  bool IsDeduplicating() const { return myIsDedup; }
++
++  // Mirrors bindSourceShapeAlias + bindSourceShapeAliasesRecursive.
++  void Visit(const TopoDS_Shape&    theSourceShape,
++             const TopoDS_Shape&    thePopulatedShape,
++             const TopLoc_Location& theSourceLocation,
++             const TopLoc_Location& theDefinitionLocation)
++  {
++    if (myIsDedup)
++    {
++      AliasVisitKey aKey;
++      aKey.SourceTShape       = theSourceShape.TShape().get();
++      aKey.PopulatedTShape    = thePopulatedShape.TShape().get();
++      aKey.SourceOwnLocation  = theSourceShape.Location();
++      aKey.SourceLocation     = theSourceLocation;
++      aKey.DefinitionLocation = theDefinitionLocation;
++      if (!myVisited.Add(std::move(aKey)))
++      {
++        return; // repeated tuple: its lookups and writes are no-ops (see above)
++      }
++    }
++
++    if (!theSourceShape.IsNull() && !thePopulatedShape.IsNull())
++    {
++      TopoDS_Shape aLookup = thePopulatedShape;
++      aLookup.Location(theDefinitionLocation);
++      const BRepGraph_NodeId aNodeId = myGraph.Shapes().FindNode(aLookup);
++      if (!aNodeId.IsValid())
++      {
++        if (myIsDedup)
++        {
++          myMissedLookups.Add(aLookup);
++        }
++      }
++      else
++      {
++        write(theSourceShape, aNodeId);
++        if (!theSourceShape.Location().IsEqual(theSourceLocation))
++        {
++          TopoDS_Shape aSourceAlias = theSourceShape;
++          aSourceAlias.Location(theSourceLocation);
++          write(aSourceAlias, aNodeId);
++        }
++      }
++    }
++
++    const bool      isCompoundParent = thePopulatedShape.ShapeType() == TopAbs_COMPOUND;
++    TopoDS_Iterator aSourceIt(theSourceShape, false, false);
++    TopoDS_Iterator aPopulatedIt(thePopulatedShape, false, false);
++    for (; aSourceIt.More() && aPopulatedIt.More(); aSourceIt.Next(), aPopulatedIt.Next())
++    {
++      const TopoDS_Shape& aSourceChild    = aSourceIt.Value();
++      const TopoDS_Shape& aPopulatedChild = aPopulatedIt.Value();
++      if (aSourceChild.IsNull() || aPopulatedChild.IsNull())
++      {
++        continue;
++      }
++
++      const TopLoc_Location aChildSourceLocation = theSourceLocation * aSourceChild.Location();
++      if (isCompoundParent)
++      {
++        const TopoDS_Shape aChildDefinition = shapeWithoutOwnLocation(aPopulatedChild);
++        Visit(aSourceChild, aChildDefinition, aChildSourceLocation, TopLoc_Location());
++      }
++      else
++      {
++        Visit(aSourceChild,
++              aPopulatedChild,
++              aChildSourceLocation,
++              theDefinitionLocation * aPopulatedChild.Location());
++      }
++    }
++  }
++
++private:
++  void write(const TopoDS_Shape& theKey, const BRepGraph_NodeId theNodeId)
++  {
++#ifdef BRepGraph_ALIAS_MUTANT
++    // negative control: the third new binding is lost
++    if (myIsDedup && ++myMutantCount == 3 && !myStorage.HasShapeBinding(theKey))
++    {
++      return;
++    }
++#endif
++    const BRepGraphInc_Storage::BindingChange aChange =
++      myStorage.SetDefinitionShapeBindingTracked(theKey, theNodeId);
++    if (!myIsDedup || aChange == BRepGraphInc_Storage::BindingChange::Same)
++    {
++      return;
++    }
++    if (aChange == BRepGraphInc_Storage::BindingChange::Changed
++        || (!myMissedLookups.IsEmpty() && myMissedLookups.Contains(theKey)))
++    {
++      myIsDedup = false; // from here on: the stock walk, every use visited
++    }
++  }
++
++  BRepGraph&                                               myGraph;
++  BRepGraphInc_Storage&                                    myStorage;
++  NCollection_FlatMap<AliasVisitKey, AliasVisitKeyHasher> myVisited;
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>   myMissedLookups;
++  bool                                                     myIsDedup = true;
++#ifdef BRepGraph_ALIAS_MUTANT
++  int myMutantCount = 0;
++#endif
++};
++} // namespace
++
++//! Returns false when the walk had to fall back to the stock order (for the verify build).
++static bool bindSourceShapeAliasesDeduplicated(BRepGraph&             theGraph,
++                                               BRepGraphInc_Storage&  theStorage,
++                                               const TopoDS_Shape&    theSourceShape,
++                                               const TopoDS_Shape&    thePopulatedShape,
++                                               const TopLoc_Location& theSourceLocation,
++                                               const TopLoc_Location& theDefinitionLocation)
++{
++  AliasWalker aWalker(theGraph, theStorage);
++  aWalker.Visit(theSourceShape, thePopulatedShape, theSourceLocation, theDefinitionLocation);
++  return aWalker.IsDeduplicating();
++}
++
++#ifdef BRepGraph_ALIAS_VERIFY
++//! Verify build: the stock walk replayed on a copy of the bindings taken before the walk.
++static void stockAliasWalkOnCopy(
++  BRepGraph&                                                                         theGraph,
++  NCollection_FlatDataMap<TopoDS_Shape, BRepGraph_NodeId, TopTools_ShapeMapHasher>& theMap,
++  const TopoDS_Shape&                                                                theSourceShape,
++  const TopoDS_Shape&    thePopulatedShape,
++  const TopLoc_Location& theSourceLocation,
++  const TopLoc_Location& theDefinitionLocation)
++{
++  if (!theSourceShape.IsNull() && !thePopulatedShape.IsNull())
++  {
++    TopoDS_Shape aLookup = thePopulatedShape;
++    aLookup.Location(theDefinitionLocation);
++    BRepGraph_NodeId        aNodeId;
++    const BRepGraph_NodeId* aBound = theMap.Seek(aLookup);
++    if (aBound != nullptr && aBound->IsValid() && !theGraph.Topo().Gen().IsRemoved(*aBound)
++        && theGraph.Topo().Gen().TopoEntity(*aBound) != nullptr)
++    {
++      aNodeId = *aBound;
++    }
++    if (aNodeId.IsValid())
++    {
++      theMap.Bind(theSourceShape, aNodeId);
++      if (!theSourceShape.Location().IsEqual(theSourceLocation))
++      {
++        TopoDS_Shape aSourceAlias = theSourceShape;
++        aSourceAlias.Location(theSourceLocation);
++        theMap.Bind(aSourceAlias, aNodeId);
++      }
++    }
++  }
++  const bool      isCompoundParent = thePopulatedShape.ShapeType() == TopAbs_COMPOUND;
++  TopoDS_Iterator aSourceIt(theSourceShape, false, false);
++  TopoDS_Iterator aPopulatedIt(thePopulatedShape, false, false);
++  for (; aSourceIt.More() && aPopulatedIt.More(); aSourceIt.Next(), aPopulatedIt.Next())
++  {
++    const TopoDS_Shape& aSourceChild    = aSourceIt.Value();
++    const TopoDS_Shape& aPopulatedChild = aPopulatedIt.Value();
++    if (aSourceChild.IsNull() || aPopulatedChild.IsNull())
++    {
++      continue;
++    }
++    const TopLoc_Location aChildSourceLocation = theSourceLocation * aSourceChild.Location();
++    if (isCompoundParent)
++    {
++      stockAliasWalkOnCopy(theGraph,
++                           theMap,
++                           aSourceChild,
++                           shapeWithoutOwnLocation(aPopulatedChild),
++                           aChildSourceLocation,
++                           TopLoc_Location());
++    }
++    else
++    {
++      stockAliasWalkOnCopy(theGraph,
++                           theMap,
++                           aSourceChild,
++                           aPopulatedChild,
++                           aChildSourceLocation,
++                           theDefinitionLocation * aPopulatedChild.Location());
++    }
++  }
++}
++#endif
++
+ void BRepGraph::ShapesView::bindSourceShapeAliases(BRepGraph&          theGraph,
+                                                    const TopoDS_Shape& theSourceShape,
+                                                    const TopoDS_Shape& thePopulatedShape)
+ {
+-  bindSourceShapeAliasesRecursive(theGraph,
+-                                  theGraph.myData->myIncStorage,
+-                                  theSourceShape,
+-                                  thePopulatedShape,
+-                                  theSourceShape.Location(),
+-                                  thePopulatedShape.Location());
++#ifdef BRepGraph_ALIAS_VERIFY
++  NCollection_FlatDataMap<TopoDS_Shape, BRepGraph_NodeId, TopTools_ShapeMapHasher> anExpected(1);
++  theGraph.myData->myIncStorage.ForEachShapeBinding(
++    [&](const TopoDS_Shape& aShape, const BRepGraph_NodeId aNodeId) {
++      anExpected.Bind(aShape, aNodeId);
++    });
++  stockAliasWalkOnCopy(theGraph,
++                       anExpected,
++                       theSourceShape,
++                       thePopulatedShape,
++                       theSourceShape.Location(),
++                       thePopulatedShape.Location());
++#endif
++  const bool isDedupToEnd = bindSourceShapeAliasesDeduplicated(theGraph,
++                                                               theGraph.myData->myIncStorage,
++                                                               theSourceShape,
++                                                               thePopulatedShape,
++                                                               theSourceShape.Location(),
++                                                               thePopulatedShape.Location());
++  (void)isDedupToEnd;
++#ifdef BRepGraph_ALIAS_VERIFY
++  size_t aNbActual = 0;
++  bool   isSame    = true;
++  theGraph.myData->myIncStorage.ForEachShapeBinding(
++    [&](const TopoDS_Shape& aShape, const BRepGraph_NodeId aNodeId) {
++      ++aNbActual;
++      const BRepGraph_NodeId* anExp = anExpected.Seek(aShape);
++      isSame = isSame && anExp != nullptr && *anExp == aNodeId;
++    });
++  isSame = isSame && aNbActual == anExpected.Size();
++  if (!isSame)
++  {
++    std::fprintf(stderr,
++                 "BGP-T2-VERIFY-MISMATCH bindings expected=%u actual=%u\n",
++                 static_cast<unsigned>(anExpected.Size()),
++                 static_cast<unsigned>(aNbActual));
++    std::fflush(stderr);
++    std::abort();
++  }
++  std::fprintf(stderr,
++               "BGP-T2-VERIFY ok bindings=%u dedup_to_end=%d\n",
++               static_cast<unsigned>(aNbActual),
++               isDedupToEnd ? 1 : 0);
++#endif
+ }
+ 
+ //=================================================================================================
+diff --git a/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Populate.cxx b/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Populate.cxx
+index 645297b8..cffc81e8 100644
+--- a/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Populate.cxx
++++ b/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Populate.cxx
+@@ -29,6 +29,8 @@
+ #include <BRep_TEdge.hxx>
+ #include <BRep_TVertex.hxx>
+ #include <BRep_Tool.hxx>
++#include <BRepAdaptor_Surface.hxx>
++#include <BRepTools.hxx>
+ #include <BRepTools_WireExplorer.hxx>
+ #include <Geom_Plane.hxx>
+ #include <Geom_RectangularTrimmedSurface.hxx>
+@@ -36,6 +38,7 @@
+ #include <NCollection_DataMap.hxx>
+ #include <NCollection_FlatMap.hxx>
+ #include <NCollection_LinearVector.hxx>
++#include <NCollection_Map.hxx>
+ #include <Precision.hxx>
+ #include <OSD_Parallel.hxx>
+ #include <Poly_Polygon2D.hxx>
+@@ -43,6 +46,8 @@
+ #include <Poly_PolygonOnTriangulation.hxx>
+ #include <Poly_Triangle.hxx>
+ #include <TopAbs.hxx>
++#include <TopExp.hxx>
++#include <TopTools_ShapeMapHasher.hxx>
+ #include <TopoDS.hxx>
+ #include <TopoDS_CompSolid.hxx>
+ #include <TopoDS_Compound.hxx>
+@@ -57,6 +62,29 @@
+ #include <algorithm>
+ #include <cmath>
+ #include <utility>
++#include <vector>
++
++#ifdef BRepGraphInc_WIREORDER_VERIFY
++  #include <atomic>
++  #include <cstdio>
++  #include <cstdlib>
++
++//! Verify build: number of wires whose fast-path order was checked against the explorer.
++static std::atomic<long long>& bgpVerifiedWires()
++{
++  static std::atomic<long long> THE_COUNT{0};
++  return THE_COUNT;
++}
++
++struct BgpVerifyReport
++{
++  ~BgpVerifyReport()
++  {
++    std::fprintf(stderr, "BGP-T1-VERIFY wires_checked=%lld\n", bgpVerifiedWires().load());
++  }
++};
++static BgpVerifyReport THE_BGP_VERIFY_REPORT;
++#endif
+ 
+ #include "BRepGraphInc_BoundaryBuilder.pxx"
+ 
+@@ -1081,18 +1109,61 @@ uint32_t findExtractedEdgeByExplorerEdge(const ExtractedWire&         theWireDat
+   return aNbEdges;
+ }
+ 
+-bool orderExtractedWire(ExtractedWire& theWireData, const TopoDS_Face* theFace)
++//! UV bounds that BRepTools_WireExplorer::Init(W, F) computes for every wire of a face.
++//! They are a pure function of the face, so they are computed once per face, and only when a
++//! wire of that face really goes through the explorer (perf/801-bgraph T1).
++struct ExplorerFaceUVBounds
+ {
+-  const uint32_t aNbEdges = static_cast<uint32_t>(theWireData.Edges.Size());
+-  if (aNbEdges < 2)
++  bool   IsComputed = false;
++  double UMin       = 0.0;
++  double UMax       = 0.0;
++  double VMin       = 0.0;
++  double VMax       = 0.0;
++
++  void Ensure(const TopoDS_Face& theFace)
+   {
+-    return true;
++    if (IsComputed)
++    {
++      return;
++    }
++    IsComputed = true;
++    // Same test and call as BRepTools_WireExplorer::Init(const TopoDS_Wire&, const TopoDS_Face&).
++    const GeomAbs_SurfaceType aSurfType = BRepAdaptor_Surface(theFace, false).GetType();
++    if (aSurfType == GeomAbs_Cone || aSurfType == GeomAbs_BSplineSurface
++        || aSurfType == GeomAbs_BezierSurface)
++    {
++      BRepTools::UVBounds(theFace, UMin, UMax, VMin, VMax);
++    }
+   }
++};
++
++//! Stock ordering: BRepTools_WireExplorer, then each explorer edge is matched back to the first
++//! unused extracted edge (same edge and orientation first, then same edge only).
++//! Appends the matched extracted-edge indices to theMatched in explorer order.
++static void explorerWireOrder(const ExtractedWire&                theWireData,
++                              const TopoDS_Face*                  theFace,
++                              ExplorerFaceUVBounds*               theUVBounds,
++                              NCollection_LinearVector<uint32_t>& theMatched)
++{
++  const uint32_t aNbEdges = static_cast<uint32_t>(theWireData.Edges.Size());
+ 
+   BRepTools_WireExplorer anExplorer;
+   if (theFace != nullptr && !theFace->IsNull())
+   {
+-    anExplorer.Init(theWireData.Shape, *theFace);
++    if (theUVBounds != nullptr)
++    {
++      theUVBounds->Ensure(*theFace);
++      anExplorer.Init(theWireData.Shape,
++                      *theFace,
++                      theUVBounds->UMin,
++                      theUVBounds->UMax,
++                      theUVBounds->VMin,
++                      theUVBounds->VMax);
++    }
++    else
++    {
++      anExplorer.Init(theWireData.Shape, *theFace);
++    }
+   }
+   else
+   {
+@@ -1101,8 +1172,6 @@ bool orderExtractedWire(ExtractedWire& theWireData, const TopoDS_Face* theFace)
+ 
+   BRepGraphInc_BitFlags aUsed;
+   aUsed.Resize(aNbEdges);
+-
+-  NCollection_LinearVector<OrderedExtractedEdge> anOrder(aNbEdges);
+   for (; anExplorer.More(); anExplorer.Next())
+   {
+     const TopoDS_Edge& anExplorerEdge = anExplorer.Current();
+@@ -1116,18 +1185,276 @@ bool orderExtractedWire(ExtractedWire& theWireData, const TopoDS_Face* theFace)
+     {
+       continue;
+     }
+-
+     aUsed.Set(aMatchedIdx);
+-    OrderedExtractedEdge anOrdered;
+-    anOrdered.EdgeIndex = aMatchedIdx;
+-    anOrder.Append(anOrdered);
++    theMatched.Append(aMatchedIdx);
+   }
++}
++
++//! Scratch buffers of chainWireOrder, reused per thread (P2 may run in parallel).
++struct ChainWireScratch
++{
++  std::vector<TopoDS_Shape> Vertices;
++  std::vector<uint32_t>     EdgeStartingAt;
++  std::vector<uint32_t>     StartVertex;
++  std::vector<uint32_t>     EndVertex;
++  std::vector<uint32_t>     ParityPos;
++  std::vector<uint32_t>     ParityKeys;
++  std::vector<char>         ParityForward;
++  std::vector<char>         Consumed;
++};
+ 
+-  if (anOrder.IsEmpty())
++//! Exact fast path for the explorer order of a wire without branching (perf/801-bgraph T1).
++//! Applies only when BRepTools_WireExplorer provably takes its single-candidate branch at every
++//! vertex, where neither the face, its UV tolerances nor p-curves are read:
++//! - the wire has identity location, so the explorer edges are the raw children (same edge and
++//!   location), with the orientation composed with the wire's. For a FORWARD wire the stock
++//!   match-back (same edge and orientation first) finds exactly the child the explorer returned.
++//!   For a REVERSED wire the explorer edge has the opposite orientation of its child; when no
++//!   edge occurs twice in the wire, the orientation pass finds nothing and the second pass finds
++//!   the only child with that edge, i.e. again the child the explorer returned (a wire with a
++//!   repeated edge goes to the explorer);
++//! - every child is an edge, FORWARD or REVERSED, with both vertices, and not closed (a closed
++//!   next edge makes the explorer compare p-curve end points);
++//! - no two edges start at the same vertex (cumulated orientation), i.e. no multi-edge list;
++//! - with a face, the explorer's "empty wire" return needs every vertex tolerance below
++//!   Precision::Confusion(), impossible because BRep_Tool::Tolerance(vertex) is clamped to it.
++//! The start vertex is chosen as in BRepTools_WireExplorer::Init: the parity map of vertices
++//! (NCollection_IndexedMap semantics: RemoveKey moves the last key into the hole) gives the first
++//! FORWARD entry of an open wire, and if there is none the start vertex of the last edge; a
++//! closed wire starts at its first edge. Returns false when the wire is not eligible.
++static bool chainWireOrder(const ExtractedWire&                theWireData,
++                           NCollection_LinearVector<uint32_t>& theMatched)
++{
++  const TopoDS_Wire& aWire = theWireData.Shape;
++  const bool isReversedWire = aWire.Orientation() == TopAbs_REVERSED;
++  if ((aWire.Orientation() != TopAbs_FORWARD && !isReversedWire) || !aWire.Location().IsIdentity())
++  {
++    return false;
++  }
++  const uint32_t aNbEdges = static_cast<uint32_t>(theWireData.Edges.Size());
++  if (aWire.NbChildren() != static_cast<int>(aNbEdges))
+   {
+     return false;
+   }
+ 
++  thread_local ChainWireScratch aScratch;
++  ChainWireScratch&             aS = aScratch;
++  aS.Vertices.clear();
++  aS.EdgeStartingAt.clear();
++  aS.StartVertex.clear();
++  aS.EndVertex.clear();
++  aS.ParityPos.clear();
++  aS.ParityKeys.clear();
++  aS.ParityForward.clear();
++  aS.Consumed.clear();
++
++  constexpr uint32_t THE_NONE = UINT32_MAX;
++  // Vertex dictionary with IsSame identity (the explorer's maps use TopTools_ShapeMapHasher).
++  NCollection_DataMap<TopoDS_Shape, uint32_t, TopTools_ShapeMapHasher> aVertexIndex;
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>                anEdges;
++  const bool isLinearLookup = aNbEdges <= 16;
++  const auto aVertexId      = [&](const TopoDS_Vertex& theVertex) -> uint32_t {
++    if (isLinearLookup)
++    {
++      for (uint32_t anIdx = 0; anIdx < static_cast<uint32_t>(aS.Vertices.size()); ++anIdx)
++      {
++        if (aS.Vertices[anIdx].IsSame(theVertex))
++        {
++          return anIdx;
++        }
++      }
++    }
++    else if (const uint32_t* aFound = aVertexIndex.Seek(theVertex))
++    {
++      return *aFound;
++    }
++    const uint32_t aNew = static_cast<uint32_t>(aS.Vertices.size());
++    aS.Vertices.push_back(theVertex);
++    aS.EdgeStartingAt.push_back(THE_NONE);
++    aS.ParityPos.push_back(0u);
++    if (!isLinearLookup)
++    {
++      aVertexIndex.Bind(theVertex, aNew);
++    }
++    return aNew;
++  };
++  const auto aToggle = [&](const uint32_t theVertex, const bool theIsForward) {
++    const uint32_t aPos = aS.ParityPos[theVertex];
++    if (aPos == 0)
++    {
++      aS.ParityKeys.push_back(theVertex);
++      aS.ParityForward.push_back(theIsForward ? 1 : 0);
++      aS.ParityPos[theVertex] = static_cast<uint32_t>(aS.ParityKeys.size());
++      return;
++    }
++    const uint32_t aLast = static_cast<uint32_t>(aS.ParityKeys.size());
++    if (aPos != aLast)
++    {
++      const uint32_t aMoved       = aS.ParityKeys[aLast - 1];
++      aS.ParityKeys[aPos - 1]    = aMoved;
++      aS.ParityForward[aPos - 1] = aS.ParityForward[aLast - 1];
++      aS.ParityPos[aMoved]       = aPos;
++    }
++    aS.ParityKeys.pop_back();
++    aS.ParityForward.pop_back();
++    aS.ParityPos[theVertex] = 0;
++  };
++
++  for (uint32_t anIdx = 0; anIdx < aNbEdges; ++anIdx)
++  {
++    const TopoDS_Edge&       anEdge = theWireData.Edges.Value(static_cast<size_t>(anIdx)).Shape;
++    const TopAbs_Orientation anOri  = anEdge.Orientation();
++    if (anOri != TopAbs_FORWARD && anOri != TopAbs_REVERSED)
++    {
++      return false;
++    }
++    TopoDS_Vertex aV1, aV2;
++    TopExp::Vertices(anEdge, aV1, aV2, true);
++    if (aV1.IsNull() || aV2.IsNull() || aV1.IsSame(aV2))
++    {
++      return false;
++    }
++    if (isReversedWire)
++    {
++      // the explorer sees the edge with the composed (opposite) orientation: ends swapped
++      std::swap(aV1, aV2);
++      // a repeated edge would make the stock match-back pick by orientation: use the explorer
++      if (isLinearLookup)
++      {
++        for (uint32_t aPrev = 0; aPrev < anIdx; ++aPrev)
++        {
++          if (theWireData.Edges.Value(static_cast<size_t>(aPrev)).Shape.IsSame(anEdge))
++          {
++            return false;
++          }
++        }
++      }
++      else if (!anEdges.Add(anEdge))
++      {
++        return false;
++      }
++    }
++    const uint32_t aStart = aVertexId(aV1);
++    const uint32_t anEnd  = aVertexId(aV2);
++    if (aS.EdgeStartingAt[aStart] != THE_NONE)
++    {
++      return false; // two edges start here: the explorer chooses by 2D geometry
++    }
++    aS.EdgeStartingAt[aStart] = anIdx;
++    aS.StartVertex.push_back(aStart);
++    aS.EndVertex.push_back(anEnd);
++    aToggle(aStart, true);
++    aToggle(anEnd, false);
++  }
++
++  uint32_t aStartV = THE_NONE;
++  if (!aS.ParityKeys.empty())
++  {
++    for (size_t aPos = 0; aPos < aS.ParityKeys.size(); ++aPos)
++    {
++      if (aS.ParityForward[aPos] != 0)
++      {
++        aStartV = aS.ParityKeys[aPos];
++        break;
++      }
++    }
++    if (aStartV == THE_NONE)
++    {
++      aStartV = aS.StartVertex[aNbEdges - 1];
++    }
++  }
++  else
++  {
++    aStartV = aS.StartVertex[0];
++  }
++
++  // Walk the unique chain; each start-vertex list is consumed once, as in the explorer.
++  aS.Consumed.assign(aS.Vertices.size(), 0);
++  uint32_t aVertex = aStartV;
++  while (aS.Consumed[aVertex] == 0)
++  {
++    const uint32_t anEdgeIdx = aS.EdgeStartingAt[aVertex];
++    if (anEdgeIdx == THE_NONE)
++    {
++      break;
++    }
++    aS.Consumed[aVertex] = 1;
++    theMatched.Append(anEdgeIdx);
++    aVertex = aS.EndVertex[anEdgeIdx];
++  }
++  return true;
++}
++
++bool orderExtractedWire(ExtractedWire&        theWireData,
++                        const TopoDS_Face*    theFace,
++                        ExplorerFaceUVBounds* theUVBounds = nullptr)
++{
++  const uint32_t aNbEdges = static_cast<uint32_t>(theWireData.Edges.Size());
++  if (aNbEdges < 2)
++  {
++    return true;
++  }
++
++  NCollection_LinearVector<uint32_t> aMatched(aNbEdges);
++#ifdef BRepGraphInc_WIREORDER_MUTANT
++  // negative control: never take the fast path's start, start from the second chain element
++  if (chainWireOrder(theWireData, aMatched) && aMatched.Size() > 1)
++  {
++    const uint32_t aFirst = aMatched.First();
++    aMatched.Erase(0);
++    aMatched.Append(aFirst);
++  }
++  else if (aMatched.IsEmpty())
++  {
++    explorerWireOrder(theWireData, theFace, theUVBounds, aMatched);
++  }
++#else
++  if (!chainWireOrder(theWireData, aMatched))
++  {
++    aMatched.Clear();
++    explorerWireOrder(theWireData, theFace, theUVBounds, aMatched);
++  }
++#endif
++#ifdef BRepGraphInc_WIREORDER_VERIFY
++  else
++  {
++    NCollection_LinearVector<uint32_t> aStock(aNbEdges);
++    explorerWireOrder(theWireData, theFace, nullptr, aStock);
++    bool isSame = aStock.Size() == aMatched.Size();
++    for (size_t anIdx = 0; isSame && anIdx < aStock.Size(); ++anIdx)
++    {
++      isSame = aStock.Value(anIdx) == aMatched.Value(anIdx);
++    }
++    if (!isSame)
++    {
++      std::fprintf(stderr,
++                   "BGP-T1-VERIFY-MISMATCH edges=%u fast=%u stock=%u\n",
++                   aNbEdges,
++                   static_cast<unsigned>(aMatched.Size()),
++                   static_cast<unsigned>(aStock.Size()));
++      std::fflush(stderr);
++      std::abort();
++    }
++    bgpVerifiedWires().fetch_add(1, std::memory_order_relaxed);
++  }
++#endif
++
++  if (aMatched.IsEmpty())
++  {
++    return false;
++  }
++
++  BRepGraphInc_BitFlags aUsed;
++  aUsed.Resize(aNbEdges);
++  NCollection_LinearVector<OrderedExtractedEdge> anOrder(aNbEdges);
++  for (const uint32_t anIdx : aMatched)
++  {
++    aUsed.Set(anIdx);
++    OrderedExtractedEdge anOrdered;
++    anOrdered.EdgeIndex = anIdx;
++    anOrder.Append(anOrdered);
++  }
++
+   const bool isCompleteExplorerOrder = anOrder.Size() == aNbEdges;
+ 
+   for (uint32_t anIdx = 0; anIdx < aNbEdges; ++anIdx)
+@@ -1147,6 +1474,16 @@ bool orderExtractedWire(ExtractedWire& theWireData, const TopoDS_Face* theFace)
+     return false;
+   }
+ 
++  bool isIdentityOrder = true;
++  for (uint32_t anIdx = 0; isIdentityOrder && anIdx < aNbEdges; ++anIdx)
++  {
++    isIdentityOrder = anOrder.Value(anIdx).EdgeIndex == anIdx;
++  }
++  if (isIdentityOrder)
++  {
++    return isCompleteExplorerOrder; // the rebuilt array would hold the same values in order
++  }
++
+   NCollection_DynamicArray<ExtractedEdge> aReordered(THE_EDGE_BUCKET);
+   for (const OrderedExtractedEdge& anOrdered : anOrder)
+   {
+@@ -1201,6 +1538,7 @@ void extractFaceData(FaceBuildData& theData)
+   aPCurveContext.SurfaceLocation       = aSurfCombinedLoc;
+   aPCurveContext.TriangulationLocation = aTriangulationLoc;
+ 
++  ExplorerFaceUVBounds aUVBounds;
+   for (TopoDS_Iterator aChildIt(aForwardFace, false, false); aChildIt.More(); aChildIt.Next())
+   {
+     const TopoDS_Shape& aChild = aChildIt.Value();
+@@ -1230,7 +1568,7 @@ void extractFaceData(FaceBuildData& theData)
+                         aWireData.DefinitionLocation);
+     }
+     aWireData.HasPartialExplorerOrder =
+-      !orderExtractedWire(aWireData, aRawSurface.IsNull() ? nullptr : &aForwardFace);
++      !orderExtractedWire(aWireData, aRawSurface.IsNull() ? nullptr : &aForwardFace, &aUVBounds);
+   }
+ 
+   if (theData.Wires.IsEmpty() && BRep_Tool::NaturalRestriction(aFace))
+diff --git a/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Storage.cxx b/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Storage.cxx
+index 1fcd4cbb..cac77fb5 100644
+--- a/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Storage.cxx
++++ b/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Storage.cxx
+@@ -2840,6 +2840,26 @@ void BRepGraphInc_Storage::SetDefinitionShapeBinding(const TopoDS_Shape&    theS
+ 
+ //=================================================================================================
+ 
++BRepGraphInc_Storage::BindingChange BRepGraphInc_Storage::SetDefinitionShapeBindingTracked(
++  const TopoDS_Shape&    theShape,
++  const BRepGraph_NodeId theNodeId)
++{
++  std::unique_lock<std::shared_mutex> aLock(myShapeBindingsMutex);
++  if (auto* aBound = myShapeToNodeId.ChangeSeek(theShape))
++  {
++    if (*aBound == theNodeId)
++    {
++      return BindingChange::Same;
++    }
++    *aBound = theNodeId;
++    return BindingChange::Changed;
++  }
++  myShapeToNodeId.Bind(theShape, theNodeId);
++  return BindingChange::Inserted;
++}
++
++//=================================================================================================
++
+ bool BRepGraphInc_Storage::RemoveDefinitionShapeBinding(const TopoDS_Shape&    theShape,
+                                                         const BRepGraph_NodeId theExpectedNodeId)
+ {
+diff --git a/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Storage.hxx b/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Storage.hxx
+index 2f063563..c7140c4b 100644
+--- a/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Storage.hxx
++++ b/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Storage.hxx
+@@ -37,10 +37,283 @@
+ #include <TopoDS_TShape.hxx>
+ #include <TopTools_ShapeMapHasher.hxx>
+ 
++#include <algorithm>
+ #include <atomic>
+ #include <shared_mutex>
+ #include <utility>
+ 
++//! @brief Dense surrogate-key index used in place of a hash map (perf/801-bgraph T3).
++//!
++//! Keys are (kind, number) pairs whose numbers are allocated densely per kind: UID counters
++//! (monotonic per kind) or node indexes. Each kind keeps a column of slots addressed by
++//! (number - base) plus an occupancy flag, so a lookup is two array reads instead of a hash
++//! probe and a slot costs sizeof(Value) + 1 byte instead of a hash-map slot at load <= 13/16.
++//! Keys that do not fit a column (unknown kind, or a number far outside the dense window of its
++//! column) go to a small fallback hash map, so the index answers exactly like the hash map it
++//! replaces for every key: Bind overwrites, UnBind removes, Seek finds.
++//! Iteration order is column order (kind, number), then the fallback map.
++template <typename TheKey, typename TheValue, int TheNbKinds, typename TheKeyTraits>
++class BRepGraphInc_DenseIndex
++{
++public:
++  explicit BRepGraphInc_DenseIndex(const size_t = 0) {}
++
++  //! Bind key to value; returns true if the key was newly added (as NCollection_FlatDataMap).
++  bool Bind(const TheKey& theKey, const TheValue& theValue)
++  {
++    int      aKind   = 0;
++    uint32_t aNumber = 0;
++    if (TheKeyTraits::Split(theKey, aKind, aNumber) && ensureSlot(aKind, aNumber))
++    {
++      Column&      aCol  = myColumns[aKind];
++      const size_t aSlot = static_cast<size_t>(aNumber - aCol.Base);
++      if (!myFallback.IsEmpty() && myFallback.UnBind(theKey))
++      {
++        // the key moved into the dense window: it was bound, keep "existing key updated"
++        aCol.Values.ChangeValue(aSlot) = theValue;
++        if (aCol.Bound.Value(aSlot) == 0)
++        {
++          aCol.Bound.ChangeValue(aSlot) = 1;
++          ++aCol.NbBound;
++        }
++        return false;
++      }
++      aCol.Values.ChangeValue(aSlot) = theValue;
++      if (aCol.Bound.Value(aSlot) != 0)
++      {
++        return false;
++      }
++      aCol.Bound.ChangeValue(aSlot) = 1;
++      ++aCol.NbBound;
++      return true;
++    }
++    return myFallback.Bind(theKey, theValue);
++  }
++
++  //! Remove key; returns true if it was bound.
++  bool UnBind(const TheKey& theKey)
++  {
++    bool     isRemoved = false;
++    int      aKind     = 0;
++    uint32_t aNumber   = 0;
++    if (TheKeyTraits::Split(theKey, aKind, aNumber))
++    {
++      Column& aCol = myColumns[aKind];
++      if (aNumber >= aCol.Base && static_cast<size_t>(aNumber - aCol.Base) < aCol.Bound.Size())
++      {
++        const size_t aSlot = static_cast<size_t>(aNumber - aCol.Base);
++        if (aCol.Bound.Value(aSlot) != 0)
++        {
++          aCol.Bound.ChangeValue(aSlot)  = 0;
++          aCol.Values.ChangeValue(aSlot) = TheValue();
++          --aCol.NbBound;
++          isRemoved = true;
++        }
++      }
++    }
++    if (!myFallback.IsEmpty() && myFallback.UnBind(theKey))
++    {
++      isRemoved = true;
++    }
++    return isRemoved;
++  }
++
++  const TheValue* Seek(const TheKey& theKey) const
++  {
++    int      aKind   = 0;
++    uint32_t aNumber = 0;
++    if (TheKeyTraits::Split(theKey, aKind, aNumber))
++    {
++#ifdef BRepGraphInc_DENSEINDEX_MUTANT
++      ++aNumber; // negative control: off-by-one column address
++#endif
++      const Column& aCol = myColumns[aKind];
++      if (aNumber >= aCol.Base && static_cast<size_t>(aNumber - aCol.Base) < aCol.Bound.Size())
++      {
++        const size_t aSlot = static_cast<size_t>(aNumber - aCol.Base);
++        if (aCol.Bound.Value(aSlot) != 0)
++        {
++          return &aCol.Values.Value(aSlot);
++        }
++      }
++    }
++    return myFallback.IsEmpty() ? nullptr : myFallback.Seek(theKey);
++  }
++
++  TheValue* ChangeSeek(const TheKey& theKey)
++  {
++    return const_cast<TheValue*>(static_cast<const BRepGraphInc_DenseIndex&>(*this).Seek(theKey));
++  }
++
++  bool IsBound(const TheKey& theKey) const { return Seek(theKey) != nullptr; }
++
++  void Clear(const bool = false)
++  {
++    for (int aKind = 0; aKind < TheNbKinds; ++aKind)
++    {
++      myColumns[aKind] = Column();
++    }
++    myFallback.Clear();
++  }
++
++  //! Kept for interface compatibility with the hash map; columns grow on demand.
++  void Reserve(const size_t) {}
++
++  size_t Size() const
++  {
++    size_t aSize = myFallback.Size();
++    for (int aKind = 0; aKind < TheNbKinds; ++aKind)
++    {
++      aSize += myColumns[aKind].NbBound;
++    }
++    return aSize;
++  }
++
++  //! Visit all bindings: columns in (kind, number) order, then the fallback map.
++  template <typename FuncT>
++  void ForEach(FuncT&& theFunc) const
++  {
++    for (int aKind = 0; aKind < TheNbKinds; ++aKind)
++    {
++      const Column& aCol = myColumns[aKind];
++      for (size_t aSlot = 0; aSlot < aCol.Bound.Size(); ++aSlot)
++      {
++        if (aCol.Bound.Value(aSlot) != 0)
++        {
++          theFunc(TheKeyTraits::Make(aKind, aCol.Base + static_cast<uint32_t>(aSlot)),
++                  aCol.Values.Value(aSlot));
++        }
++      }
++    }
++    for (typename NCollection_FlatDataMap<TheKey, TheValue>::Iterator anIt(myFallback); anIt.More();
++         anIt.Next())
++    {
++      theFunc(anIt.Key(), anIt.Value());
++    }
++  }
++
++private:
++  struct Column
++  {
++    uint32_t                          Base    = 0;
++    size_t                            NbBound = 0;
++    NCollection_LinearVector<TheValue> Values;
++    NCollection_LinearVector<uint8_t>  Bound;
++  };
++
++  //! Makes (theKind, theNumber) addressable in its column; false = use the fallback map.
++  bool ensureSlot(const int theKind, const uint32_t theNumber)
++  {
++    Column& aCol = myColumns[theKind];
++    if (aCol.Bound.IsEmpty())
++    {
++      aCol.Base = theNumber;
++      aCol.Values.Append(TheValue());
++      aCol.Bound.Append(0);
++      return true;
++    }
++    // Window limit: keeps a pathological sparse key set from allocating a huge column.
++    const size_t aLimit = 2 * (aCol.NbBound + 1) + 4096;
++    if (theNumber >= aCol.Base)
++    {
++      const size_t aSlot = static_cast<size_t>(theNumber - aCol.Base);
++      if (aSlot < aCol.Bound.Size())
++      {
++        return true;
++      }
++      if (aSlot + 1 > aLimit + aCol.Bound.Size())
++      {
++        return false;
++      }
++      if (aSlot + 1 > aCol.Values.Capacity())
++      {
++        const size_t aNewCap = std::max(aSlot + 1, 2 * aCol.Values.Capacity());
++        aCol.Values.Reserve(aNewCap);
++        aCol.Bound.Reserve(aNewCap);
++      }
++      while (aCol.Bound.Size() <= aSlot)
++      {
++        aCol.Values.Append(TheValue());
++        aCol.Bound.Append(0);
++      }
++      return true;
++    }
++    // below the base: shift the column up
++    const size_t aShift = static_cast<size_t>(aCol.Base - theNumber);
++    if (aShift > aLimit)
++    {
++      return false;
++    }
++    NCollection_LinearVector<TheValue> aValues(aCol.Values.Size() + aShift);
++    NCollection_LinearVector<uint8_t>  aBound(aCol.Values.Size() + aShift);
++    for (size_t anIdx = 0; anIdx < aShift; ++anIdx)
++    {
++      aValues.Append(TheValue());
++      aBound.Append(0);
++    }
++    for (size_t anIdx = 0; anIdx < aCol.Values.Size(); ++anIdx)
++    {
++      aValues.Append(aCol.Values.Value(anIdx));
++      aBound.Append(aCol.Bound.Value(anIdx));
++    }
++    aCol.Values = std::move(aValues);
++    aCol.Bound  = std::move(aBound);
++    aCol.Base   = theNumber;
++    return true;
++  }
++
++  Column                                   myColumns[TheNbKinds];
++  NCollection_FlatDataMap<TheKey, TheValue> myFallback;
++};
++
++//! Key traits of BRepGraphInc_DenseIndex for node UIDs (kind, counter).
++struct BRepGraphInc_NodeUIDKeyTraits
++{
++  static bool Split(const BRepGraph_UID& theKey, int& theKind, uint32_t& theNumber)
++  {
++    theKind   = static_cast<int>(theKey.Kind);
++    theNumber = theKey.Counter;
++    return theKind >= 0 && theKind < 12;
++  }
++
++  static BRepGraph_UID Make(const int theKind, const uint32_t theNumber)
++  {
++    return BRepGraph_UID(static_cast<BRepGraph_NodeId::Kind>(theKind), theNumber);
++  }
++};
++
++//! Key traits of BRepGraphInc_DenseIndex for reference UIDs (kind, counter).
++struct BRepGraphInc_RefUIDKeyTraits
++{
++  static bool Split(const BRepGraph_RefUID& theKey, int& theKind, uint32_t& theNumber)
++  {
++    theKind   = static_cast<int>(theKey.Kind);
++    theNumber = theKey.Counter;
++    return theKind >= 0 && theKind < 7;
++  }
++
++  static BRepGraph_RefUID Make(const int theKind, const uint32_t theNumber)
++  {
++    return BRepGraph_RefUID(static_cast<BRepGraph_RefId::Kind>(theKind), theNumber);
++  }
++};
++
++//! Key traits of BRepGraphInc_DenseIndex for node ids (kind, index).
++struct BRepGraphInc_NodeIdKeyTraits
++{
++  static bool Split(const BRepGraph_NodeId& theKey, int& theKind, uint32_t& theNumber)
++  {
++    theKind   = static_cast<int>(theKey.NodeKind);
++    theNumber = theKey.Index;
++    return theKind >= 0 && theKind < 12;
++  }
++
++  static BRepGraph_NodeId Make(const int theKind, const uint32_t theNumber)
++  {
++    return BRepGraph_NodeId(static_cast<BRepGraph_NodeId::Kind>(theKind), theNumber);
++  }
++};
++
+ //! @brief Central backend storage container for the incidence-table topology model.
+ //!
+ //! Holds all entity vectors (Vertex through Occurrence), representation
+@@ -1233,6 +1506,18 @@ public:
+   Standard_EXPORT void SetDefinitionShapeBinding(const TopoDS_Shape&    theShape,
+                                                  const BRepGraph_NodeId theNodeId);
+ 
++  //! Result of SetDefinitionShapeBindingTracked (perf/801-bgraph T2).
++  enum class BindingChange
++  {
++    Same,     //!< the key was already bound to the node: nothing changed
++    Inserted, //!< a new key was bound
++    Changed   //!< an existing key was re-bound to another node
++  };
++
++  //! SetDefinitionShapeBinding that also tells what changed (internal to TKBRep, not exported).
++  BindingChange SetDefinitionShapeBindingTracked(const TopoDS_Shape&    theShape,
++                                                 const BRepGraph_NodeId theNodeId);
++
+   //! Remove the shape-to-node binding only if it points to the expected node.
+   //! Returns true if the binding was removed.
+   Standard_EXPORT bool RemoveDefinitionShapeBinding(const TopoDS_Shape&    theShape,
+@@ -1274,12 +1559,7 @@ public:
+   void ForEachOriginalBinding(FuncT&& theFunc) const
+   {
+     std::shared_lock<std::shared_mutex> aLock(myShapeBindingsMutex);
+-    for (NCollection_FlatDataMap<BRepGraph_NodeId, TopoDS_Shape>::Iterator anIt(myOriginalShapes);
+-         anIt.More();
+-         anIt.Next())
+-    {
+-      theFunc(anIt.Key(), anIt.Value());
+-    }
++    myOriginalShapes.ForEach(theFunc);
+   }
+ 
+   //! Copy shape-to-NodeId and Original shape bindings from another storage.
+@@ -1875,16 +2155,21 @@ private:
+   RepStore<BRepGraphInc::FaceTriangulationRep> myFaceTriangulations;
+ 
+   //! UID reverse indexes: eagerly maintained on allocate/remove, rebuilt on compact/load.
+-  mutable NCollection_FlatDataMap<BRepGraph_UID, BRepGraph_NodeId>   myUIDToNodeId;
+-  mutable std::shared_mutex                                          myUIDToNodeIdMutex;
+-  mutable NCollection_FlatDataMap<BRepGraph_RefUID, BRepGraph_RefId> myRefUIDToRefId;
++  //! perf/801-bgraph T3: dense per-kind columns (UID counters are allocated densely per kind).
++  mutable BRepGraphInc_DenseIndex<BRepGraph_UID, BRepGraph_NodeId, 12, BRepGraphInc_NodeUIDKeyTraits>
++                            myUIDToNodeId;
++  mutable std::shared_mutex myUIDToNodeIdMutex;
++  mutable BRepGraphInc_DenseIndex<BRepGraph_RefUID, BRepGraph_RefId, 7, BRepGraphInc_RefUIDKeyTraits>
++    myRefUIDToRefId;
+   mutable std::shared_mutex                                          myRefUIDToRefIdMutex;
+   mutable std::atomic<bool>                                          myUIDToNodeIdDirty{false};
+   mutable std::atomic<bool>                                          myRefUIDToRefIdDirty{false};
+ 
+   //! Bindings from reconstructed / source OCCT shapes back to backend ids.
+   NCollection_FlatDataMap<TopoDS_Shape, BRepGraph_NodeId, TopTools_ShapeMapHasher> myShapeToNodeId;
+-  NCollection_FlatDataMap<BRepGraph_NodeId, TopoDS_Shape>                          myOriginalShapes;
++  //! perf/801-bgraph T3: original shapes as a dense per-kind column indexed by node index.
++  BRepGraphInc_DenseIndex<BRepGraph_NodeId, TopoDS_Shape, 12, BRepGraphInc_NodeIdKeyTraits>
++    myOriginalShapes;
+   mutable std::shared_mutex myShapeBindingsMutex;
+ 
+   //! Persistent backend identity state.

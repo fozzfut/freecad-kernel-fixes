@@ -1,0 +1,595 @@
+From 97a35a1c767e3111367ec5b853baadf20665e677 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 04:13:43 +0700
+Subject: [PATCH 2/2] =?UTF-8?q?020=20(TKShHealing):=20FixFaceOrientation?=
+ =?UTF-8?q?=20=D0=B1=D0=B5=D0=B7=20=D0=BF=D0=B5=D1=80=D0=B5=D1=81=D0=B1?=
+ =?UTF-8?q?=D0=BE=D1=80=D0=BA=D0=B8=20=D0=BA=D0=B0=D1=80=D1=82=20=D0=B2?=
+ =?UTF-8?q?=D1=81=D0=B5=D1=85=20=D0=B3=D1=80=D0=B0=D0=BD=D0=B5=D0=B9=20?=
+ =?UTF-8?q?=D0=BD=D0=B0=20=D0=BA=D0=B0=D0=B6=D0=B4=D1=8B=D0=B9=20=D0=B2?=
+ =?UTF-8?q?=D1=8B=D0=B7=D0=BE=D0=B2=20GetShells?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+PR #584 (8.0.1) уже убрал повторный просмотр списка граней после каждой добавленной (лента 2048 в случайном
+порядке: 51 мс против 45 мс в своём порядке на weekly), поэтому индекс 0005/0005a из 7.8.1 не переносится.
+Осталось другое: каждый вызов GetShells строит карты грань-рёбра и связные группы ВСЕХ оставшихся граней и
+обрабатывает одну группу — на оболочке из многих тел O(граней) на тело (512 коробок в одной оболочке:
+2,4-3,9 с на weekly). Теперь состояние между вызовами одного FixFaceOrientation хранит стоковый Lface как
+Front (остаток прошлого вызова) и необработанные группы в порядке стокового списка (размер, вызов, место);
+вызов группирует только Front, берёт первую группу списка и обрабатывает её стоковым кодом
+(buildShellsOfGroup — вынесенное тело стокового GetShells). Порядок граней необработанной группы, который
+сток пересобирает поиском в глубину на каждом вызове, повторяется тем же поиском на целых индексах столько
+раз, сколько вызовов группа пропустила (с выходом на цикл последовательности порядков). При нехватке памяти в
+подготовке — стоковый Lface восстанавливается из состояния и дальше работает стоковый GetShells.
+Тот же результат: ffofuzz 2 x 2000 случаев (4 режима + Perform, ленты, цилиндры, открытые коробки, плавники,
+ленты Мёбиуса с ошибочными гранями) побайтно как weekly; мутант без повторного поиска пойман (316/332 строки);
+инъекция отказа памяти — как weekly.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../TKShHealing/ShapeFix/ShapeFix_Shell.cxx   | 489 ++++++++++++++++--
+ 1 file changed, 438 insertions(+), 51 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_Shell.cxx b/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_Shell.cxx
+index 0a97fb36..076674cc 100644
+--- a/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_Shell.cxx
++++ b/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_Shell.cxx
+@@ -47,8 +47,13 @@
+ #include <NCollection_IndexedDataMap.hxx>
+ #include <NCollection_Sequence.hxx>
+ 
++#include <Standard_OutOfMemory.hxx>
++
+ #include <stack>
+ #include <algorithm>
++#include <cstdint>
++#include <new>
++#include <vector>
+ 
+ IMPLEMENT_STANDARD_RTTIEXT(ShapeFix_Shell, ShapeFix_Root)
+ 
+@@ -296,42 +301,13 @@ static NCollection_List<NCollection_Sequence<TopoDS_Shape>> GetConnectedFaceGrou
+   return aConnectedGroups;
+ }
+ 
+-/// Creates shells from connected face groups using connectivity analysis.
+-/// Processes only the largest connected group for shell construction, improving efficiency
+-/// by focusing on faces that are actually topologically connected.
+-/// @param theLfaces Input sequence of faces to process; returns unprocessed faces
+-/// @param theMapMultiConnectEdges Map of edges shared by more than 2 faces (multiconnectivity mode)
+-/// @param theSeqShells Output sequence of created shells
+-/// @param theMapFaceShells Output map linking faces to their containing shells
+-/// @param theErrFaces Output sequence of faces that could not be processed (e.g., Mobius-like)
+-/// @return true if shell construction was successful, false otherwise
+-static bool GetShells(
+-  NCollection_Sequence<TopoDS_Shape>&                                       theLfaces,
+-  const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>&             theMapMultiConnectEdges,
+-  NCollection_Sequence<TopoDS_Shape>&                                       theSeqShells,
+-  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theMapFaceShells,
+-  NCollection_Sequence<TopoDS_Shape>&                                       theErrFaces)
++/// Face -> edges and edge -> faces maps of theLfaces (the first part of the stock GetShells; defect
++/// 020 also runs it on a part of the faces).
++/// @return the number of edges met (with repeats)
++static size_t buildFaceEdgeMaps(const NCollection_Sequence<TopoDS_Shape>& theLfaces,
++                                FaceEdgesMap&                             aFaceEdges,
++                                EdgeFacesMap&                             aEdgeFaces)
+ {
+-  bool aDone = false;
+-  if (!theLfaces.Length())
+-  {
+-    return false;
+-  }
+-  TopoDS_Shell nshell;
+-  BRep_Builder B;
+-  B.MakeShell(nshell);
+-  bool                               anIsMultiConnex = !theMapMultiConnectEdges.IsEmpty();
+-  int                                aFaceIdx = 1, aFacesInShellCount = 1;
+-  NCollection_Sequence<TopoDS_Shape> aSeqUnconnectFaces;
+-
+-  // Using STL containers because number of faces or edges can be too high
+-  // to keep them on flat basket OCCT map
+-  using EdgeOrientedMap =
+-    NCollection_DataMap<TopoDS_Edge, std::pair<bool, bool>, TopTools_ShapeMapHasher>;
+-  using TempProcessedEdges =
+-    NCollection_DataMap<TopoDS_Edge, std::pair<bool, bool>, TopTools_ShapeMapHasher>;
+-
+-  FaceEdgesMap aFaceEdges;
+   aFaceEdges.ReSize(theLfaces.Length());
+   size_t                                aNumberOfEdges = 0;
+   NCollection_DynamicArray<TopoDS_Edge> aTempEdges;
+@@ -353,7 +329,7 @@ static bool GetShells(
+     aFaceEdges.Add(aFace, std::move(aFaceEdgesArray));
+   }
+ 
+-  EdgeFacesMap aEdgeFaces(static_cast<int>(aNumberOfEdges));
++  aEdgeFaces.ReSize(static_cast<int>(aNumberOfEdges));
+ 
+   for (int aFaceInd = 1; aFaceInd <= aFaceEdges.Length(); ++aFaceInd)
+   {
+@@ -389,24 +365,43 @@ static bool GetShells(
+       }
+     }
+   }
++  return aNumberOfEdges;
++}
+ 
+-  // Get connected groups of faces using existing connectivity data
+-  NCollection_List<NCollection_Sequence<TopoDS_Shape>> aConnectedGroups =
+-    GetConnectedFaceGroups(aFaceEdges, aEdgeFaces);
+-
+-  // Process only the largest connected group for shell construction
+-  if (aConnectedGroups.IsEmpty())
+-  {
+-    return false;
+-  }
++/// Builds shells from the first (largest) connected group (the second part of the stock GetShells).
++/// @param aProcessingFaces the faces of the group in the order of the connected-group search;
++///        returns the faces not added to a shell
++/// @param aFaceEdges the edges of each face of the group (it may hold other faces too)
++/// @param aNumberOfEdges a size hint for the edge maps (it changes no result: the maps are only
++///        searched, bound and unbound, never iterated)
++/// @param aSeqUnconnectFaces receives the faces of one-face shells taken apart
++/// @return true if a face was reversed
++static bool buildShellsOfGroup(
++  NCollection_Sequence<TopoDS_Shape>&                                       aProcessingFaces,
++  const FaceEdgesMap&                                                       aFaceEdges,
++  const size_t                                                              aNumberOfEdges,
++  const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>&             theMapMultiConnectEdges,
++  NCollection_Sequence<TopoDS_Shape>&                                       theSeqShells,
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theMapFaceShells,
++  NCollection_Sequence<TopoDS_Shape>&                                       theErrFaces,
++  NCollection_Sequence<TopoDS_Shape>&                                       aSeqUnconnectFaces)
++{
++  bool aDone = false;
++  TopoDS_Shell nshell;
++  BRep_Builder B;
++  B.MakeShell(nshell);
++  bool anIsMultiConnex = !theMapMultiConnectEdges.IsEmpty();
++  int  aFaceIdx = 1, aFacesInShellCount = 1;
+ 
+-  // Some assumption that each edge can be in two orientations
+-  aNumberOfEdges = static_cast<size_t>((aNumberOfEdges / 2) + 1);
++  // Using STL containers because number of faces or edges can be too high
++  // to keep them on flat basket OCCT map
++  using EdgeOrientedMap =
++    NCollection_DataMap<TopoDS_Edge, std::pair<bool, bool>, TopTools_ShapeMapHasher>;
++  using TempProcessedEdges =
++    NCollection_DataMap<TopoDS_Edge, std::pair<bool, bool>, TopTools_ShapeMapHasher>;
+ 
+   EdgeOrientedMap aProcessedEdges(static_cast<int>(aNumberOfEdges));
+ 
+-  NCollection_Sequence<TopoDS_Shape> aProcessingFaces = std::move(aConnectedGroups.First());
+-
+   TempProcessedEdges aTempProcessedEdges(static_cast<int>(aNumberOfEdges));
+   for (; aFaceIdx <= aProcessingFaces.Length(); aFaceIdx++)
+   {
+@@ -617,6 +612,58 @@ static bool GetShells(
+       aProcessingFaces.Append(aFace);
+     }
+   }
++  return aDone;
++}
++
++/// Creates shells from connected face groups using connectivity analysis.
++/// Processes only the largest connected group for shell construction, improving efficiency
++/// by focusing on faces that are actually topologically connected.
++/// @param theLfaces Input sequence of faces to process; returns unprocessed faces
++/// @param theMapMultiConnectEdges Map of edges shared by more than 2 faces (multiconnectivity mode)
++/// @param theSeqShells Output sequence of created shells
++/// @param theMapFaceShells Output map linking faces to their containing shells
++/// @param theErrFaces Output sequence of faces that could not be processed (e.g., Mobius-like)
++/// @return true if shell construction was successful, false otherwise
++static bool GetShells(
++  NCollection_Sequence<TopoDS_Shape>&                                       theLfaces,
++  const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>&             theMapMultiConnectEdges,
++  NCollection_Sequence<TopoDS_Shape>&                                       theSeqShells,
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theMapFaceShells,
++  NCollection_Sequence<TopoDS_Shape>&                                       theErrFaces)
++{
++  if (!theLfaces.Length())
++  {
++    return false;
++  }
++  NCollection_Sequence<TopoDS_Shape> aSeqUnconnectFaces;
++
++  FaceEdgesMap aFaceEdges;
++  EdgeFacesMap aEdgeFaces;
++  size_t       aNumberOfEdges = buildFaceEdgeMaps(theLfaces, aFaceEdges, aEdgeFaces);
++
++  // Get connected groups of faces using existing connectivity data
++  NCollection_List<NCollection_Sequence<TopoDS_Shape>> aConnectedGroups =
++    GetConnectedFaceGroups(aFaceEdges, aEdgeFaces);
++
++  // Process only the largest connected group for shell construction
++  if (aConnectedGroups.IsEmpty())
++  {
++    return false;
++  }
++
++  // Some assumption that each edge can be in two orientations
++  aNumberOfEdges = static_cast<size_t>((aNumberOfEdges / 2) + 1);
++
++  NCollection_Sequence<TopoDS_Shape> aProcessingFaces = std::move(aConnectedGroups.First());
++
++  const bool aDone = buildShellsOfGroup(aProcessingFaces,
++                                        aFaceEdges,
++                                        aNumberOfEdges,
++                                        theMapMultiConnectEdges,
++                                        theSeqShells,
++                                        theMapFaceShells,
++                                        theErrFaces,
++                                        aSeqUnconnectFaces);
+ 
+   // Add all unprocessed connected groups (second group and after) to unconnected faces
+   int aGroupIndex = 1;
+@@ -647,6 +694,333 @@ static bool GetShells(
+   return aDone;
+ }
+ 
++//=======================================================================
++// defect 020 (row 8 of the audit) on OCCT 8.0.1. FixFaceOrientation calls GetShells until a call
++// builds no shell; each stock call (#584) builds the face / edge maps and the connected groups of
++// ALL remaining faces, turns the largest group into shells and puts the other groups back into
++// Lface - on a shell of many separate bodies that is O(faces) per body, quadratic in all
++// (512 boxes in one shell: 2.4-2.9 s on the weekly). ShellGroupsState keeps the stock Lface between
++// the calls of one FixFaceOrientation as
++//   Front                 the faces the last call left: its leftovers, then the faces of one-face
++//                         shells it took apart (they lead the stock Lface),
++//   Groups not processed  the other connected groups, in the order of the stock group list.
++// A call groups only the Front (its groups cannot touch the others: each of those was a whole
++// connected group of an earlier Lface), and takes the first group of the stock list: the largest,
++// and among equal sizes the first in Lface - the stock list is a stable sort by size of the groups
++// in the order of their first face in Lface, i.e. of [groups of the Front, then the groups kept, in
++// the previous list order]. Key: size (descending), call that found it (descending), place in that
++// call's list. The only other thing a stock call does to a group it does not process is to rebuild
++// its face order: the connected-group search (a depth-first search from its first face, over edge
++// -> faces arrays filled in Lface order) runs on it again, and the result depends on the group's
++// own order only. So a group records the call of its order, and when it is needed that search is
++// repeated once per call it missed - on its own faces, with integer ids; the order sequence of a
++// group is deterministic, so once an order repeats the rest is read from the cycle. The group
++// taken is turned into shells by the stock code (buildShellsOfGroup) on the same sequence.
++// Allocation failure while preparing a call (std::bad_alloc, Standard_OutOfMemory): the stock Lface
++// is rebuilt from this state and the stock GetShells does that call and all later ones.
++//=======================================================================
++namespace
++{
++//! One connected group of faces of the stock Lface, not processed yet.
++struct ShellFaceGroup
++{
++  std::vector<TopoDS_Shape> Faces; //!< its faces (the Lface objects) in the order of call Stamp
++  int                       Stamp = 0;
++  int                       Call  = 0; //!< the call that found the group
++  int                       Rank  = 0; //!< its place in that call's group list
++};
++
++//! The stock Lface between the GetShells calls of one FixFaceOrientation (see above).
++struct ShellGroupsState
++{
++  NCollection_Sequence<TopoDS_Shape> Front;
++  std::vector<ShellFaceGroup>        Groups;
++  std::vector<int>                   Heap; //!< ids of the groups not processed (heap by key)
++  int                                CallNo       = 0;
++  int                                NbGroupFaces = 0;
++  bool                               Stock        = false;
++
++  int NbFaces() const { return Front.Length() + NbGroupFaces; }
++};
++
++//! True when group a comes before group b in the stock group list.
++static bool groupBefore(const ShellFaceGroup& a, const ShellFaceGroup& b)
++{
++  const size_t aSize = a.Faces.size(), bSize = b.Faces.size();
++  if (aSize != bSize)
++    return aSize > bSize;
++  if (a.Call != b.Call)
++    return a.Call > b.Call;
++  return a.Rank < b.Rank;
++}
++
++struct GroupHeapLess
++{
++  const std::vector<ShellFaceGroup>* myGroups;
++
++  bool operator()(const int a, const int b) const
++  {
++    return groupBefore((*myGroups)[b], (*myGroups)[a]);
++  }
++};
++
++//! One stock connected-group search on a group whose faces are in the order theIn (local face
++//! ids): edge -> faces arrays filled in that order (a face once per edge: it is appended only by
++//! itself, so the stock scan for it finds it last), then a depth-first search with a stack from
++//! theIn[0], neighbours in the edge order of the face (TopExp_Explorer, with repeats) and the face
++//! order of each edge array (GetConnectedFaceGroups).
++static void groupSearchOnce(const std::vector<std::vector<int>>& theFaceEdges,
++                            std::vector<std::vector<int>>&       theEdgeFaces,
++                            const std::vector<int>&              theIn,
++                            std::vector<char>&                   theVisited,
++                            std::vector<int>&                    theStack,
++                            std::vector<int>&                    theOut)
++{
++  for (std::vector<int>& anArr : theEdgeFaces)
++    anArr.clear();
++  for (const int aF : theIn)
++  {
++    for (const int anE : theFaceEdges[aF])
++    {
++      std::vector<int>& anArr = theEdgeFaces[anE];
++      if (anArr.empty() || anArr.back() != aF)
++        anArr.push_back(aF);
++    }
++  }
++  theVisited.assign(theIn.size(), 0);
++  theStack.clear();
++  theOut.clear();
++  theStack.push_back(theIn[0]);
++  theVisited[theIn[0]] = 1;
++  while (!theStack.empty())
++  {
++    const int aCur = theStack.back();
++    theStack.pop_back();
++    theOut.push_back(aCur);
++    for (const int anE : theFaceEdges[aCur])
++    {
++      for (const int aNb : theEdgeFaces[anE])
++      {
++        if (!theVisited[aNb])
++        {
++          theVisited[aNb] = 1;
++          theStack.push_back(aNb);
++        }
++      }
++    }
++  }
++}
++
++static uint64_t orderHash(const std::vector<int>& theOrder)
++{
++  uint64_t aH = 1469598103934665603ULL;
++  for (const int a : theOrder)
++    aH = (aH ^ static_cast<uint64_t>(static_cast<unsigned int>(a))) * 1099511628211ULL;
++  return aH;
++}
++
++//! Brings the face order of the group to what the stock Lface holds after call theCall: one
++//! connected-group search per call since Stamp. Changes the group only on success.
++static void materializeGroup(ShellFaceGroup& theGroup, const int theCall)
++{
++  const int aPending = theCall - theGroup.Stamp;
++  const int aNb      = static_cast<int>(theGroup.Faces.size());
++  if (aPending <= 0 || aNb <= 2) // an order of one or two faces is its own search result
++  {
++    theGroup.Stamp = std::max(theGroup.Stamp, theCall);
++    return;
++  }
++  NCollection_DataMap<TopoDS_Shape, int, TopTools_ShapeMapHasher> anEdgeIds;
++  std::vector<std::vector<int>>                                   aFaceEdges(aNb);
++  for (int i = 0; i < aNb; ++i)
++  {
++    for (TopExp_Explorer anExp(theGroup.Faces[i], TopAbs_EDGE); anExp.More(); anExp.Next())
++    {
++      const int anId = anEdgeIds.Extent();
++      aFaceEdges[i].push_back(anEdgeIds.TryBound(anExp.Current(), anId));
++    }
++  }
++  std::vector<std::vector<int>> anEdgeFaces(anEdgeIds.Extent());
++  std::vector<char>             aVisited;
++  std::vector<int>              aStack, aCur(aNb), aNext;
++  for (int i = 0; i < aNb; ++i)
++    aCur[i] = i;
++  constexpr int                 THE_MAX_HISTORY = 16;
++  std::vector<std::vector<int>> aHistory(1, aCur);
++  std::vector<uint64_t>         aHashes(1, orderHash(aCur));
++  for (int aStep = 1; aStep <= aPending; ++aStep)
++  {
++    groupSearchOnce(aFaceEdges, anEdgeFaces, aCur, aVisited, aStack, aNext);
++    aCur.swap(aNext);
++    if (aStep >= THE_MAX_HISTORY)
++      continue; // no more history: plain repetition, as the stock calls do
++    const uint64_t aHash = orderHash(aCur);
++    int            aSeen = -1;
++    for (int t = 0; t < static_cast<int>(aHistory.size()) && aSeen < 0; ++t)
++    {
++      if (aHashes[t] == aHash && aHistory[t] == aCur)
++        aSeen = t;
++    }
++    if (aSeen >= 0)
++    {
++      // order(aStep) == order(aSeen): from aSeen on the orders repeat with this period
++      const int aPeriod = aStep - aSeen;
++      aCur              = aHistory[aSeen + (aPending - aSeen) % aPeriod];
++      break;
++    }
++    aHistory.push_back(aCur);
++    aHashes.push_back(aHash);
++  }
++  std::vector<TopoDS_Shape> aFaces(aNb);
++  for (int i = 0; i < aNb; ++i)
++    aFaces[i] = theGroup.Faces[aCur[i]];
++  theGroup.Faces.swap(aFaces);
++  theGroup.Stamp = theCall;
++}
++
++//! The stock Lface of this state after call theCall (the Front, then the groups in list order).
++static void materializeLface(ShellGroupsState&                   theState,
++                             const int                           theCall,
++                             NCollection_Sequence<TopoDS_Shape>& theLfaces)
++{
++  std::vector<int> anOrder(theState.Heap);
++  std::sort(anOrder.begin(), anOrder.end(), [&theState](const int a, const int b) {
++    return groupBefore(theState.Groups[a], theState.Groups[b]);
++  });
++  NCollection_Sequence<TopoDS_Shape> aLfaces(theState.Front);
++  for (const int anId : anOrder)
++  {
++    ShellFaceGroup& aGroup = theState.Groups[anId];
++    materializeGroup(aGroup, theCall);
++    for (const TopoDS_Shape& aFace : aGroup.Faces)
++      aLfaces.Append(aFace);
++  }
++  theLfaces = std::move(aLfaces);
++}
++
++//! One GetShells call of FixFaceOrientation on the state (the same result as the stock GetShells
++//! on the stock Lface); after an allocation failure, and from then on, the stock GetShells on
++//! theLfaces.
++static bool GetShellsOfGroups(
++  ShellGroupsState&                                                         theState,
++  NCollection_Sequence<TopoDS_Shape>&                                       theLfaces,
++  const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>&             theMapMultiConnectEdges,
++  NCollection_Sequence<TopoDS_Shape>&                                       theSeqShells,
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theMapFaceShells,
++  NCollection_Sequence<TopoDS_Shape>&                                       theErrFaces)
++{
++  if (!theState.Stock)
++  {
++    const int                          aCall = theState.CallNo + 1;
++    std::vector<ShellFaceGroup>        aNew;
++    FaceEdgesMap                       aFrontEdges;
++    size_t                             aNumberOfEdges = 0;
++    int                                aTaken         = -1; // id of an old group, or -1: aNew[0]
++    NCollection_Sequence<TopoDS_Shape> aProcessingFaces;
++    FaceEdgesMap                       aTakenEdges;
++    bool                               aPrepared = false;
++    try
++    {
++      // groups of the Front, in the stock list order (they lead the stock Lface)
++      if (theState.Front.Length())
++      {
++        EdgeFacesMap aEdgeFaces;
++        aNumberOfEdges = buildFaceEdgeMaps(theState.Front, aFrontEdges, aEdgeFaces);
++        NCollection_List<NCollection_Sequence<TopoDS_Shape>> aList =
++          GetConnectedFaceGroups(aFrontEdges, aEdgeFaces);
++        aNew.reserve(static_cast<size_t>(aList.Size()));
++        int aRank = 0;
++        for (NCollection_List<NCollection_Sequence<TopoDS_Shape>>::Iterator anIt(aList);
++             anIt.More();
++             anIt.Next())
++        {
++          ShellFaceGroup aGroup;
++          aGroup.Faces.reserve(static_cast<size_t>(anIt.Value().Length()));
++          for (NCollection_Sequence<TopoDS_Shape>::Iterator aFIt(anIt.Value()); aFIt.More();
++               aFIt.Next())
++            aGroup.Faces.push_back(aFIt.Value());
++          aGroup.Stamp = aCall;
++          aGroup.Call  = aCall;
++          aGroup.Rank  = aRank++;
++          aNew.push_back(std::move(aGroup));
++        }
++      }
++      if (aNew.empty() && theState.Heap.empty())
++      {
++        return false; // no faces (the stock: empty Lface)
++      }
++      theState.Groups.reserve(theState.Groups.size() + aNew.size());
++      theState.Heap.reserve(theState.Heap.size() + aNew.size());
++      // the first group of the stock list
++      if (aNew.empty()
++          || (!theState.Heap.empty()
++              && groupBefore(theState.Groups[theState.Heap.front()], aNew.front())))
++      {
++        aTaken = theState.Heap.front();
++        // a copy: the state stays as it was until the commit (the fallback rebuilds Lface from it)
++        ShellFaceGroup aGroup = theState.Groups[aTaken];
++        materializeGroup(aGroup, aCall);
++        NCollection_Sequence<TopoDS_Shape> aFaces;
++        for (const TopoDS_Shape& aFace : aGroup.Faces)
++          aFaces.Append(aFace);
++        EdgeFacesMap aEdgeFaces;
++        aNumberOfEdges = buildFaceEdgeMaps(aFaces, aTakenEdges, aEdgeFaces);
++        aProcessingFaces = std::move(aFaces);
++      }
++      else
++      {
++        for (const TopoDS_Shape& aFace : aNew.front().Faces)
++          aProcessingFaces.Append(aFace);
++      }
++      aPrepared = true;
++    }
++    catch (const std::bad_alloc&)
++    {
++    }
++    catch (const Standard_OutOfMemory&)
++    {
++    }
++    if (aPrepared)
++    {
++      // commit: nothing below allocates before the stock code
++      theState.CallNo = aCall;
++      if (aTaken >= 0)
++      {
++        std::pop_heap(theState.Heap.begin(), theState.Heap.end(), GroupHeapLess{&theState.Groups});
++        theState.Heap.pop_back();
++        theState.NbGroupFaces -= static_cast<int>(theState.Groups[aTaken].Faces.size());
++        std::vector<TopoDS_Shape>().swap(theState.Groups[aTaken].Faces);
++      }
++      for (size_t i = (aTaken >= 0 ? 0 : 1); i < aNew.size(); ++i)
++      {
++        theState.NbGroupFaces += static_cast<int>(aNew[i].Faces.size());
++        theState.Groups.push_back(std::move(aNew[i]));
++        theState.Heap.push_back(static_cast<int>(theState.Groups.size()) - 1);
++        std::push_heap(theState.Heap.begin(), theState.Heap.end(), GroupHeapLess{&theState.Groups});
++      }
++      theState.Front.Clear();
++      // the stock code on the taken group
++      NCollection_Sequence<TopoDS_Shape> aSeqUnconnectFaces;
++      const bool aDone = buildShellsOfGroup(aProcessingFaces,
++                                            aTaken >= 0 ? aTakenEdges : aFrontEdges,
++                                            static_cast<size_t>((aNumberOfEdges / 2) + 1),
++                                            theMapMultiConnectEdges,
++                                            theSeqShells,
++                                            theMapFaceShells,
++                                            theErrFaces,
++                                            aSeqUnconnectFaces);
++      theState.Front = std::move(aProcessingFaces);
++      theState.Front.Append(aSeqUnconnectFaces);
++      return aDone;
++    }
++    // allocation failure: the stock Lface after the last call, and the stock code from here on
++    materializeLface(theState, theState.CallNo, theLfaces);
++    theState.Stock = true;
++  }
++  return GetShells(theLfaces, theMapMultiConnectEdges, theSeqShells, theMapFaceShells, theErrFaces);
++}
++} // namespace
++
+ //=======================================================================
+ // function : AddMultiConexityFaces
+ // purpose  : In this function faces have only of multiconnexity boundary
+@@ -1480,10 +1854,19 @@ bool ShapeFix_Shell::FixFaceOrientation(const TopoDS_Shell& shell,
+   }
+   bool isGetShells = true;
+   // Gets possible shells with taking in account of multiconnexity.
+-  while (isGetShells && Lface.Length())
++  // defect 020: the calls work on a state that holds Lface (ShellGroupsState, GetShellsOfGroups)
++  ShellGroupsState aGroupsState;
++  aGroupsState.Front = std::move(Lface);
++  Lface.Clear();
++  while (isGetShells && (aGroupsState.Stock ? Lface.Length() : aGroupsState.NbFaces()))
+   {
+     NCollection_Sequence<TopoDS_Shape> aTmpSeqShells;
+-    if (GetShells(Lface, aMapMultiConnectEdges, aTmpSeqShells, aMapFaceShells, aErrFaces))
++    if (GetShellsOfGroups(aGroupsState,
++                          Lface,
++                          aMapMultiConnectEdges,
++                          aTmpSeqShells,
++                          aMapFaceShells,
++                          aErrFaces))
+     {
+       done = true;
+     }
+@@ -1493,6 +1876,10 @@ bool ShapeFix_Shell::FixFaceOrientation(const TopoDS_Shell& shell,
+       aSeqShells.Append(aTmpSeqShells);
+     }
+   }
++  if (!aGroupsState.Stock)
++  {
++    materializeLface(aGroupsState, aGroupsState.CallNo, Lface);
++  }
+   if (!done)
+   {
+     done = (aSeqShells.Length() > 1);
+-- 
+2.52.0.windows.1
+

@@ -1,0 +1,186 @@
+From 224dc55c4e88af40bc40814d98b9f3ffa403715f Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 15:34:30 +0700
+Subject: [PATCH 3/4] 027 (TKGeomBase): Extrema_GenExtPS computes the grid
+ edges V-major on B-spline/Bezier surfaces
+
+For every point projection the grid search computes the closest point on each grid edge; for an edge
+whose closest point is inside, it evaluates the surface there through the adaptor, whose B-spline
+cache holds one (U span, V span) pair. The stock U-major loop evaluates the inside edges of one U row
+across all V spans, so on a long face the cache is rebuilt for almost every evaluation (RebuildCache
+25 % of the whole-screw oblique section).
+
+Every edge value depends only on its two nodes and the point, so the loop order changes no value; the
+V-major walk keeps consecutive evaluations in one V span. A span cache is valid only for parameters
+inside its span (IsCacheValid: fl(u - start) is monotone in u), so an evaluation does not depend on
+the evaluations before it. Other surface types keep the stock order.
+
+EXTREMA_027_VERIFY: after the V-major walk every edge is recomputed in the stock order and compared
+bit for bit; EXTREMA_027_MUTANT: the last V column is not recomputed (negative control).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../TKGeomBase/Extrema/Extrema_GenExtPS.cxx   | 135 +++++++++++++++---
+ 1 file changed, 116 insertions(+), 19 deletions(-)
+
+diff --git a/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx b/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx
+index e22509a0..e0434474 100644
+--- a/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx
++++ b/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx
+@@ -213,6 +213,48 @@ Processing:
+       - update table TbSel.
+ -----------------------------------------------------------------------------*/
+ 
++#ifdef EXTREMA_027_VERIFY
++  #include <atomic>
++  #include <cstdio>
++  #include <cstdlib>
++  #include <cstring>
++
++namespace
++{
++struct Verify027GridCounters
++{
++  std::atomic<long long> Edges{0};
++
++  ~Verify027GridCounters()
++  {
++    std::fprintf(stderr, "027-VERIFY GenExtPS edges=%lld mismatch=0\n", (long long)Edges);
++  }
++};
++
++static Verify027GridCounters THE_027_GRID_COUNTERS;
++
++static void verify027Same(const Extrema_POnSurfParams& theA, const Extrema_POnSurfParams& theB)
++{
++  ++THE_027_GRID_COUNTERS.Edges;
++  double aUA, aVA, aUB, aVB;
++  theA.Parameter(aUA, aVA);
++  theB.Parameter(aUB, aVB);
++  int aIA[2], aIB[2];
++  theA.GetIndices(aIA[0], aIA[1]);
++  theB.GetIndices(aIB[0], aIB[1]);
++  const double aDA = theA.GetSqrDistance(), aDB = theB.GetSqrDistance();
++  const gp_XYZ aPA = theA.Value().XYZ(), aPB = theB.Value().XYZ();
++  if (std::memcmp(&aUA, &aUB, sizeof(double)) != 0 || std::memcmp(&aVA, &aVB, sizeof(double)) != 0
++      || std::memcmp(&aDA, &aDB, sizeof(double)) != 0 || std::memcmp(&aPA, &aPB, sizeof(gp_XYZ)) != 0
++      || theA.GetElementType() != theB.GetElementType() || aIA[0] != aIB[0] || aIA[1] != aIB[1])
++  {
++    std::fprintf(stderr, "027-VERIFY-MISMATCH GenExtPS edge u=%.17g v=%.17g\n", aUB, aVB);
++    std::abort();
++  }
++}
++} // namespace
++#endif
++
+ Extrema_GenExtPS::Extrema_GenExtPS()
+     : myumin(0.0),
+       myusup(0.0),
+@@ -631,30 +673,85 @@ void Extrema_GenExtPS::BuildGrid(const gp_Pnt& thePoint)
+     // Step 2. Compute distances to edges.
+     // Assume UEdge(i, j) = { Point(i, j); Point(i + 1, j    ) }
+     // Assume VEdge(i, j) = { Point(i, j); Point(i,     j + 1) }
+-    for (int NoU = 1; NoU <= myusample; NoU++)
+-    {
+-      for (int NoV = 1; NoV <= myvsample; NoV++)
++    //
++    // 027: every edge is computed independently of the others (from its two nodes and the
++    // point), so the loop order does not change any value. On B-spline and Bezier surfaces the
++    // points inside edges are evaluated through the adaptor's span cache, which holds one
++    // (U span, V span) pair: the stock U-major order evaluates the inside edges of one U row
++    // across all V spans and rebuilds the cache on almost every evaluation (a long face: one
++    // rebuild per evaluation, 25-40 % of a section). Walking the grid V-major keeps consecutive
++    // evaluations in the same V span. A cache holds the one span whose parameter interval
++    // contains the point (BSplCLib_CacheParams::IsCacheValid, consistent with LocateParameter),
++    // so the evaluated values do not depend on which evaluation came before.
++    const auto aComputeEdges = [&](const int NoU, const int NoV) {
++      const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
++
++      if (NoU < myusample)
+       {
+-        const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
++        // Compute parameters to UEdge.
++        const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU + 1, NoV);
++        const Extrema_POnSurfParams& anEdgeParam =
++          ComputeEdgeParameters(true, aParam0, aParam1, thePoint, aDiffTol);
+ 
+-        if (NoU < myusample)
+-        {
+-          // Compute parameters to UEdge.
+-          const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU + 1, NoV);
+-          const Extrema_POnSurfParams& anEdgeParam =
+-            ComputeEdgeParameters(true, aParam0, aParam1, thePoint, aDiffTol);
++        myUEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++      }
+ 
+-          myUEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
+-        }
++      if (NoV < myvsample)
++      {
++        // Compute parameters to VEdge.
++        const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU, NoV + 1);
++        const Extrema_POnSurfParams& anEdgeParam =
++          ComputeEdgeParameters(false, aParam0, aParam1, thePoint, aDiffTol);
+ 
+-        if (NoV < myvsample)
++        myVEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++      }
++    };
++    const bool isVMajor =
++      myS->GetType() == GeomAbs_BSplineSurface || myS->GetType() == GeomAbs_BezierSurface;
++    if (isVMajor)
++    {
++#ifdef EXTREMA_027_MUTANT
++      const int aLastV = myvsample - 1; // negative control: the last V column keeps stale edges
++#else
++      const int aLastV = myvsample;
++#endif
++      for (int NoV = 1; NoV <= aLastV; NoV++)
++      {
++        for (int NoU = 1; NoU <= myusample; NoU++)
+         {
+-          // Compute parameters to VEdge.
+-          const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU, NoV + 1);
+-          const Extrema_POnSurfParams& anEdgeParam =
+-            ComputeEdgeParameters(false, aParam0, aParam1, thePoint, aDiffTol);
+-
+-          myVEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++          aComputeEdges(NoU, NoV);
++        }
++      }
++#ifdef EXTREMA_027_VERIFY
++      // recompute every edge in the stock U-major order and compare bit for bit
++      for (int NoU = 1; NoU <= myusample; NoU++)
++      {
++        for (int NoV = 1; NoV <= myvsample; NoV++)
++        {
++          const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
++          if (NoU < myusample)
++          {
++            const Extrema_POnSurfParams& aRef = ComputeEdgeParameters(
++              true, aParam0, myPoints.Value(NoU + 1, NoV), thePoint, aDiffTol);
++            verify027Same(myUEdgePntParams.Value(NoU, NoV), aRef);
++          }
++          if (NoV < myvsample)
++          {
++            const Extrema_POnSurfParams& aRef = ComputeEdgeParameters(
++              false, aParam0, myPoints.Value(NoU, NoV + 1), thePoint, aDiffTol);
++            verify027Same(myVEdgePntParams.Value(NoU, NoV), aRef);
++          }
++        }
++      }
++#endif
++    }
++    else
++    {
++      for (int NoU = 1; NoU <= myusample; NoU++)
++      {
++        for (int NoV = 1; NoV <= myvsample; NoV++)
++        {
++          aComputeEdges(NoU, NoV);
+         }
+       }
+     }
+-- 
+2.52.0.windows.1
+

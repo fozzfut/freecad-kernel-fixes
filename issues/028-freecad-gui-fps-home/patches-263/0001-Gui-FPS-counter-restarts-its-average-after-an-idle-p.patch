@@ -1,0 +1,81 @@
+From 94b88a815f6a9bb78a6d32e5e0b6202b00e42317 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 17:19:52 +0700
+Subject: [PATCH 1/2] Gui: FPS counter restarts its average after an idle pause
+
+SoQTQuarterAdaptor::addFrametime averaged the whole time since the last
+frame into the frame-time average (FIVE_SECS = 5000 was compared with
+seconds, so the intended cap never applied). After an idle pause the
+counter started near 0 fps and climbed over the first frames of every
+interaction (4 s idle + 60 Hz orbit: 0.4, 1.2, 3.7, 10.9, 25.5 ... fps).
+
+Now an interval whose idle part (interval minus the frame's own draw
+time) exceeds 0.25 s (the FPS label period) is a pause: the averages
+restart at that frame and the values shown stay as they were; the next
+interval seeds the frame rate, later ones use the same moving average
+(factor 0.7) as before. Frames drawn without a pause are unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/Quarter/SoQTQuarterAdaptor.cpp | 36 ++++++++++++++++++++------
+ 1 file changed, 28 insertions(+), 8 deletions(-)
+
+diff --git a/src/Gui/Quarter/SoQTQuarterAdaptor.cpp b/src/Gui/Quarter/SoQTQuarterAdaptor.cpp
+index d4bb870..eed8b7d 100644
+--- a/src/Gui/Quarter/SoQTQuarterAdaptor.cpp
++++ b/src/Gui/Quarter/SoQTQuarterAdaptor.cpp
+@@ -737,7 +737,8 @@ void SIM::Coin3D::Quarter::SoQTQuarterAdaptor::resetFrameCounter()
+ SbVec2f SIM::Coin3D::Quarter::SoQTQuarterAdaptor::addFrametime(double starttime)
+ {
+     constexpr const double FPS_FACTOR = 0.7;
+-    constexpr const double FIVE_SECS = 5000.0;
++    // An idle gap longer than the FPS label period (250 ms) is a pause, not a frame interval.
++    constexpr const double PAUSE_SECS = 0.25;
+     constexpr const float ONE_SEC = 1000.0F;
+ 
+     this->framecount++;
+@@ -746,15 +747,34 @@ SbVec2f SIM::Coin3D::Quarter::SoQTQuarterAdaptor::addFrametime(double starttime)
+ 
+     // draw time is the actual time spent on rendering
+     double drawtime = timeofday - starttime;
+-    this->drawtime = (drawtime*FPS_FACTOR) + this->drawtime*(1.0 - FPS_FACTOR);
+-
+-    // frame time is the time spent since the last frame. There could an
+-    // indefinite pause between the last frame because the scene is not
+-    // changing. So we limit the skew to 5 second.
+-    double frametime = std::min(timeofday-this->starttime, std::max(drawtime, FIVE_SECS));
+-    this->frametime = (frametime*FPS_FACTOR) + this->frametime*(1.0 - FPS_FACTOR);
+ 
++    // frame time is the time spent since the last frame. There can be an
++    // indefinite pause before this frame because the scene was not changing
++    // (idle, or a single redraw such as a highlight). Such a pause is not a
++    // frame interval: averaging it in made the counter start near 0 fps and
++    // ramp up over the first frames of every interaction. So when the idle
++    // part of the interval (interval minus this frame's own draw time) is
++    // longer than PAUSE_SECS, the averages restart at this frame and the
++    // values shown stay as they were; the next interval seeds the frame rate.
++    // (framecount = frames since the averages (re)started.)
++    const double interval = timeofday - this->starttime;
+     this->starttime = timeofday;
++    if (interval - drawtime > PAUSE_SECS) {
++        this->framecount = 0;
++        this->drawtime = drawtime;
++        return this->framesPerSecond;
++    }
++
++    this->drawtime = (drawtime*FPS_FACTOR) + this->drawtime*(1.0 - FPS_FACTOR);
++    if (this->framecount == 1) {
++        this->frametime = interval;
++    }
++    else {
++        this->frametime = (interval*FPS_FACTOR) + this->frametime*(1.0 - FPS_FACTOR);
++    }
++    if (this->frametime <= 0.0) {
++        return {ONE_SEC * float(this->drawtime), this->framesPerSecond[1]};
++    }
+     return {ONE_SEC * float(this->drawtime), 1.0F / float(this->frametime)};
+ }
+ // NOLINTEND(readability-implicit-bool-conversion)
+-- 
+2.52.0.windows.1
+

@@ -1,0 +1,60 @@
+Issue 028 (FreeCAD 26.3 GUI: FPS counter after idle, Home animation) - literature pass, 26.09.2026
+
+Question 1 (Home): how to animate a camera from one pose to another pose that differs in orientation, position and
+zoom (fit), in one motion, so that the motion reads as smooth and constant-speed.
+Question 2 (FPS counter): how to estimate a rate from an exponentially weighted average of intervals when the event
+stream has idle gaps.
+
+1. Shoemake K. Animating rotation with quaternion curves. SIGGRAPH '85, Computer Graphics 19(3):245-254, 1985.
+   DOI 10.1145/325165.325242. Venue: ACM SIGGRAPH (conference; the field publishes there). Full text widely available.
+   Idea: interpolate orientations on the unit-quaternion sphere along the great arc (slerp): constant angular speed,
+   shortest path, no gimbal effects.
+   Applied: yes. HomeAnimation turns the camera by angle*t about the fixed axis of q0^-1*q1 (shortest arc, angle
+   wrapped to [-pi, pi]) - the rotation FreeCAD's own FixedTimeAnimation already performs, which equals slerp(q0, q1, t);
+   kept identical to stock so the turn looks exactly as before.
+
+2. van Wijk J.J., Nuij W.A.A. A model for smooth viewing and navigation of large 2D information spaces.
+   IEEE TVCG 10(4):447-458, 2004. DOI 10.1109/TVCG.2004.16. IEEE TVCG IF ~5 (>= 5). Open access:
+   https://vanwijk.win.tue.nl/zptvcg.pdf
+   Idea: a metric of perceived velocity for simultaneous zoom and pan; zoom is perceived relative, so the scale
+   should change geometrically (log-linear) for constant perceived speed; the optimal joint path zooms out, pans,
+   zooms in (for large pans).
+   Applied: partly. Orthographic height and focal distance are interpolated geometrically
+   (h(t) = h0 * (h1/h0)^t), so zooming in x3 or out x2.5 during Home has constant relative speed. NOT applied: the
+   zoom-out-then-in optimal path - Home's pan is at most about one view width (the scene stays in view), where the
+   paper's optimum is close to the direct path; and a changed path shape was not asked for.
+
+3. Mackinlay J.D., Card S.K., Robertson G.G. Rapid controlled movement through a virtual 3D workspace.
+   SIGGRAPH '90, Computer Graphics 24(4):171-176, 1990. DOI 10.1145/97879.97898. Venue: ACM SIGGRAPH (conference).
+   Idea: point-of-interest movement: the viewpoint moves toward a target point with logarithmic approach while the
+   view direction turns to face it; motion is described relative to the point of interest.
+   Applied: yes, as the parametrisation. The camera is driven by its point of interest (focal point, moving
+   linearly from the current focal point to the centre of the fitted view) and its distance to it (geometric);
+   position = focal point - view direction * distance. Consequence: the model stays centred while turning and
+   zooming, as in stock's rotation about the focal point.
+
+4. Christie M., Olivier P., Normand J.-M. Camera control in computer graphics. Computer Graphics Forum
+   27(8):2197-2218, 2008. DOI 10.1111/j.1467-8659.2008.01181.x. Specialist graphics journal (counts as a full source
+   per owner rule 26.09).
+   Idea (survey): interactive camera transitions should be continuous in position, orientation and zoom and avoid
+   discontinuities between phases; splitting a transition into sequential sub-motions (turn, then fit) produces a
+   visible second phase and a velocity discontinuity at the switch.
+   Applied: yes, as the design goal: ONE animation with one easing curve for all camera parameters instead of the
+   stock turn (500 ms, eased) followed by a separate fit phase (2 x 10 linear steps with 20 ms timers).
+
+5. Jacobson V. Congestion avoidance and control. SIGCOMM '88, ACM SIGCOMM CCR 18(4):314-329, 1988.
+   DOI 10.1145/52325.52356. Venue: ACM SIGCOMM (conference; the field publishes there).
+   Idea: estimate a time interval (RTT) by an exponentially weighted moving average of samples; and (with the later
+   IETF standard RFC 2861, Handley/Padhye/Floyd 2000, "TCP Congestion Window Validation") an estimate built from a
+   busy period is not valid after an idle period longer than the retransmission timeout: restart instead of
+   averaging the idle gap in.
+   Applied: yes. FreeCAD's counter already is an EWMA of frame intervals (factor 0.7). The fix treats an interval
+   whose idle part exceeds 0.25 s (the FPS label period) as an idle period, not a sample: the average restarts and
+   the next interval seeds it. The idle part is the interval minus the frame's own draw time, so a slow scene drawn
+   continuously (300 ms per frame) is still averaged (replay 'slow': 3.3 fps).
+
+Better-known method? For a displayed frame rate, the common alternative is a sliding time window (count frames in
+the last N ms). It has the same idle problem (an empty window reads 0 fps) unless restarted after a gap, and needs a
+frame-time ring buffer (a new member - a class layout change of the exported SoQTQuarterAdaptor, which would break
+binary compatibility with the weekly's modules). The EWMA with a restart keeps FreeCAD's own estimator and the class
+layout.

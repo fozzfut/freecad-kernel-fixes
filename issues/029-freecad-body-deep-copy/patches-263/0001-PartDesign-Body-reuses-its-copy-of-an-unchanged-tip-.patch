@@ -1,0 +1,562 @@
+From 07a131e456707d273d62b213783221831d61f54a Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 21:32:50 +0700
+Subject: [PATCH] PartDesign: Body reuses its copy of an unchanged tip (issue
+ 029)
+
+Body::execute copies the tip shape with the tip's transformation baked
+into the geometry (BRepBuilderAPI_Transform with copy) on every
+recompute that reaches the Body, also when the tip did not change: a
+sketch added to the body, every recompute of a sketch while it is
+edited, a second recompute pass. In the GUI the new TShapes then make
+the Body's view provider rebuild its whole mesh (31-48 ms Top, 334-431
+ms hicmos per recompute).
+
+The copy is a pure function of the tip's shape. It is now memoized per
+Body with its complete input (tip TopoDS shape, element map object,
+tag, hasher, transformation) and an exact record of the mutable BRep
+state of the tip and of the copy (flags, children, tolerances, curve
+and point representations, ranges, triangulations; objects by address,
+held by handle). The previous copy is handed to Shape.setValue() again
+only when the input is equal, the tip's state is unchanged and the copy
+is either as it was made (nothing meshed it) or, while the Body is shown
+and its placement is unchanged, as the last Shape.setValue() left it.
+Otherwise the copy is made as before. Shape.setValue(), the element map
+re-tag, notifications and the view provider update run unchanged.
+
+Switch: BaseApp/Preferences/Mod/PartDesign/BodyCopyReuse (default true).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/PartDesign/App/Body.cpp | 481 +++++++++++++++++++++++++++++++-
+ 1 file changed, 480 insertions(+), 1 deletion(-)
+
+diff --git a/src/Mod/PartDesign/App/Body.cpp b/src/Mod/PartDesign/App/Body.cpp
+index 5008282..d31638d 100644
+--- a/src/Mod/PartDesign/App/Body.cpp
++++ b/src/Mod/PartDesign/App/Body.cpp
+@@ -23,10 +23,39 @@
+  ***************************************************************************/
+ 
+ 
++#include <cstdint>
++#include <cstring>
++#include <unordered_map>
++#include <unordered_set>
++#include <vector>
++
++#include <BRep_CurveOnClosedSurface.hxx>
++#include <BRep_CurveOnSurface.hxx>
++#include <BRep_CurveRepresentation.hxx>
++#include <BRep_GCurve.hxx>
++#include <BRep_PointRepresentation.hxx>
++#include <BRep_TEdge.hxx>
++#include <BRep_TFace.hxx>
++#include <BRep_TVertex.hxx>
++#include <Geom2d_Curve.hxx>
++#include <Geom_Curve.hxx>
++#include <Geom_Surface.hxx>
++#include <Poly_Polygon2D.hxx>
++#include <Poly_Polygon3D.hxx>
++#include <Poly_PolygonOnTriangulation.hxx>
++#include <Poly_Triangulation.hxx>
++#include <TopLoc_Datum3D.hxx>
++#include <TopLoc_Location.hxx>
++#include <TopoDS_Iterator.hxx>
++#include <TopoDS_Shape.hxx>
++#include <TopoDS_TShape.hxx>
++
++#include <App/Application.h>
+ #include <App/Document.h>
+ #include <App/GeoFeature.h>
+ #include <App/VarSet.h>
+ #include <App/Origin.h>
++#include <Base/Parameter.h>
+ #include <Base/Placement.h>
+ 
+ #include "Body.h"
+@@ -39,6 +68,384 @@
+ 
+ using namespace PartDesign;
+ 
++namespace
++{
++
++// Reuse of the tip copy (issue 029). Body::execute copies the tip's shape with the tip's transformation baked into
++// the geometry (BRepBuilderAPI_Transform with copy) on every recompute, also when the tip did not change: a sketch
++// added to the body, every recompute of a sketch while it is edited, a second recompute pass. That copy is a pure
++// function of the tip's shape (topology, geometry objects, tolerances, flags, triangulations, element map, location).
++// When all of that is provably unchanged, and the previous copy is still as it was made (nothing meshed it: no GUI,
++// hidden Body) or, while the Body is shown, as the last Shape.setValue() left it (its view provider meshed it as it
++// meshes every new copy), the previous copy is handed to Shape.setValue() again. Everything else runs as before: the
++// checks, Shape.setValue() with its element map re-tag and notifications, the view provider update.
++// Switch: BaseApp/Preferences/Mod/PartDesign/BodyCopyReuse (bool, default true; false = always copy, as before).
++
++// Exact state of a shape graph as far as BRep_Builder and the BRep_T* API can change it while the TShapes stay the
++// same: each TShape once (type, flags, children with orientation and location), faces (surface, location,
++// tolerance, natural restriction, triangulations), edges (tolerance, flags, every curve representation with its
++// geometry, polygons, triangulation, range, UV points, continuity), vertices (point, tolerance, point
++// representations). Objects are recorded by address and held in `refs`, so no recorded address can be reused.
++struct StateRecord
++{
++    std::vector<std::uint64_t> words;
++    std::vector<Handle(Standard_Transient)> refs;
++
++    bool sameAs(const StateRecord& other) const
++    {
++        return !words.empty() && words.size() == other.words.size()
++            && std::memcmp(words.data(), other.words.data(), words.size() * sizeof(std::uint64_t)) == 0;
++    }
++};
++
++class StateRecorder
++{
++public:
++    explicit StateRecorder(StateRecord& record)
++        : rec(record)
++    {
++        rec.words.clear();
++        rec.refs.clear();
++    }
++
++    void shape(const TopoDS_Shape& s)
++    {
++        if (s.IsNull()) {
++            word(0x6e756c6cU);
++            return;
++        }
++        const Handle(TopoDS_TShape)& ts = s.TShape();
++        object(ts);
++        word(static_cast<std::uint64_t>(s.Orientation()));
++        location(s.Location());
++        if (!seen.insert(ts.get()).second) {
++            return;
++        }
++        std::uint64_t flags = static_cast<std::uint64_t>(ts->ShapeType());
++        flags |= std::uint64_t(ts->Free() ? 1 : 0) << 4;
++        flags |= std::uint64_t(ts->Modified() ? 1 : 0) << 5;
++        flags |= std::uint64_t(ts->Checked() ? 1 : 0) << 6;
++        flags |= std::uint64_t(ts->Orientable() ? 1 : 0) << 7;
++        flags |= std::uint64_t(ts->Closed() ? 1 : 0) << 8;
++        flags |= std::uint64_t(ts->Infinite() ? 1 : 0) << 9;
++        flags |= std::uint64_t(ts->Convex() ? 1 : 0) << 10;
++        flags |= std::uint64_t(ts->Locked() ? 1 : 0) << 11;
++        word(flags);
++        word(static_cast<std::uint64_t>(ts->NbChildren()));
++        switch (ts->ShapeType()) {
++            case TopAbs_FACE:
++                face(Handle(BRep_TFace)::DownCast(ts));
++                break;
++            case TopAbs_EDGE:
++                edge(Handle(BRep_TEdge)::DownCast(ts));
++                break;
++            case TopAbs_VERTEX:
++                vertex(Handle(BRep_TVertex)::DownCast(ts));
++                break;
++            default:
++                break;
++        }
++        for (TopoDS_Iterator it(s, Standard_False, Standard_False); it.More(); it.Next()) {
++            shape(it.Value());
++        }
++        word(0x656e64U);
++    }
++
++private:
++    void word(std::uint64_t value)
++    {
++        rec.words.push_back(value);
++    }
++    void real(double value)
++    {
++        std::uint64_t bits = 0;
++        std::memcpy(&bits, &value, sizeof(bits));
++        word(bits);
++    }
++    void flag(bool value)
++    {
++        word(value ? 1U : 0U);
++    }
++    template<class T>
++    void object(const Handle(T)& handle)
++    {
++        word(static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(handle.get())));
++        if (!handle.IsNull()) {
++            rec.refs.push_back(handle);
++        }
++    }
++    void location(const TopLoc_Location& loc)
++    {
++        for (TopLoc_Location l = loc; !l.IsIdentity(); l = l.NextLocation()) {
++            object(l.FirstDatum());
++            word(static_cast<std::uint64_t>(static_cast<std::int64_t>(l.FirstPower())));
++        }
++        word(0x6c6f63U);
++    }
++    void triangulation(const Handle(Poly_Triangulation)& t)
++    {
++        object(t);
++        if (t.IsNull()) {
++            return;
++        }
++        word(static_cast<std::uint64_t>(t->NbNodes()));
++        word(static_cast<std::uint64_t>(t->NbTriangles()));
++        flag(t->HasUVNodes());
++        flag(t->HasNormals());
++        flag(t->IsDoublePrecision());
++        word(static_cast<std::uint64_t>(t->MeshPurpose()));
++        real(t->Deflection());
++    }
++    void polygon3d(const Handle(Poly_Polygon3D)& p)
++    {
++        object(p);
++        if (!p.IsNull()) {
++            word(static_cast<std::uint64_t>(p->NbNodes()));
++            flag(p->HasParameters());
++            real(p->Deflection());
++        }
++    }
++    void polygon2d(const Handle(Poly_Polygon2D)& p)
++    {
++        object(p);
++        if (!p.IsNull()) {
++            word(static_cast<std::uint64_t>(p->NbNodes()));
++            real(p->Deflection());
++        }
++    }
++    void polygonOnTriangulation(const Handle(Poly_PolygonOnTriangulation)& p)
++    {
++        object(p);
++        if (!p.IsNull()) {
++            word(static_cast<std::uint64_t>(p->NbNodes()));
++            flag(p->HasParameters());
++            real(p->Deflection());
++        }
++    }
++    void uv(const gp_Pnt2d& p1, const gp_Pnt2d& p2)
++    {
++        real(p1.X());
++        real(p1.Y());
++        real(p2.X());
++        real(p2.Y());
++    }
++    void face(const Handle(BRep_TFace)& f)
++    {
++        object(f);
++        if (f.IsNull()) {
++            return;
++        }
++        object(f->Surface());
++        location(f->Location());
++        real(f->Tolerance());
++        flag(f->NaturalRestriction());
++        triangulation(f->ActiveTriangulation());
++        word(static_cast<std::uint64_t>(f->NbTriangulations()));
++        for (const Handle(Poly_Triangulation)& t : f->Triangulations()) {
++            triangulation(t);
++        }
++    }
++    void edge(const Handle(BRep_TEdge)& e)
++    {
++        object(e);
++        if (e.IsNull()) {
++            return;
++        }
++        real(e->Tolerance());
++        flag(e->SameParameter());
++        flag(e->SameRange());
++        flag(e->Degenerated());
++        for (const Handle(BRep_CurveRepresentation)& cr : e->Curves()) {
++            object(cr);
++            word(static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(cr->DynamicType().get())));
++            location(cr->Location());
++            const Handle(BRep_GCurve) gc = Handle(BRep_GCurve)::DownCast(cr);
++            if (!gc.IsNull()) {
++                real(gc->First());
++                real(gc->Last());
++            }
++            if (cr->IsCurve3D()) {
++                object(cr->Curve3D());
++            }
++            if (cr->IsCurveOnSurface()) {
++                object(cr->Surface());
++                object(cr->PCurve());
++                const Handle(BRep_CurveOnSurface) cos = Handle(BRep_CurveOnSurface)::DownCast(cr);
++                if (!cos.IsNull()) {
++                    gp_Pnt2d p1, p2;
++                    cos->UVPoints(p1, p2);
++                    uv(p1, p2);
++                }
++            }
++            if (cr->IsCurveOnClosedSurface()) {
++                object(cr->PCurve2());
++                word(static_cast<std::uint64_t>(cr->Continuity()));
++                const Handle(BRep_CurveOnClosedSurface) cocs = Handle(BRep_CurveOnClosedSurface)::DownCast(cr);
++                if (!cocs.IsNull()) {
++                    gp_Pnt2d p1, p2;
++                    cocs->UVPoints2(p1, p2);
++                    uv(p1, p2);
++                }
++            }
++            if (cr->IsRegularity()) {
++                object(cr->Surface());
++                object(cr->Surface2());
++                location(cr->Location2());
++                word(static_cast<std::uint64_t>(cr->Continuity()));
++            }
++            if (cr->IsPolygon3D()) {
++                polygon3d(cr->Polygon3D());
++            }
++            if (cr->IsPolygonOnTriangulation()) {
++                polygonOnTriangulation(cr->PolygonOnTriangulation());
++                triangulation(cr->Triangulation());
++            }
++            if (cr->IsPolygonOnClosedTriangulation()) {
++                polygonOnTriangulation(cr->PolygonOnTriangulation2());
++            }
++            if (cr->IsPolygonOnSurface()) {
++                polygon2d(cr->Polygon());
++                object(cr->Surface());
++            }
++            if (cr->IsPolygonOnClosedSurface()) {
++                polygon2d(cr->Polygon2());
++            }
++        }
++        word(0x637276U);
++    }
++    void vertex(const Handle(BRep_TVertex)& v)
++    {
++        object(v);
++        if (v.IsNull()) {
++            return;
++        }
++        const gp_Pnt& p = v->Pnt();
++        real(p.X());
++        real(p.Y());
++        real(p.Z());
++        real(v->Tolerance());
++        for (const Handle(BRep_PointRepresentation)& pr : v->Points()) {
++            object(pr);
++            word(static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(pr->DynamicType().get())));
++            location(pr->Location());
++            real(pr->Parameter());
++            if (pr->IsPointOnCurve()) {
++                object(pr->Curve());
++            }
++            if (pr->IsPointOnCurveOnSurface()) {
++                object(pr->PCurve());
++                object(pr->Surface());
++            }
++            if (pr->IsPointOnSurface()) {
++                object(pr->Surface());
++                real(pr->Parameter2());
++            }
++        }
++        word(0x707473U);
++    }
++
++    StateRecord& rec;
++    std::unordered_set<const TopoDS_TShape*> seen;
++};
++
++void recordState(const TopoDS_Shape& shape, StateRecord& record)
++{
++    StateRecorder(record).shape(shape);
++}
++
++// The element map a TopoShape carries, without flushing (ComplexGeoData::elementMap is protected; a pointer to
++// member formed in a derived class can be applied to any object of the base).
++struct ElementMapAccess: Part::TopoShape
++{
++    static Data::ElementMapPtr of(const Part::TopoShape& shape)
++    {
++        Data::ElementMapPtr (Data::ComplexGeoData::*getter)(bool) const = &ElementMapAccess::elementMap;
++        return (shape.*getter)(false);
++    }
++};
++
++struct TipCopy
++{
++    const App::Document* document = nullptr;
++    // what the copy was made from
++    TopoDS_Shape tip;
++    Data::ElementMapPtr tipMap;
++    long tipTag = 0;
++    App::StringHasherRef tipHasher;
++    double transform[16] {};
++    StateRecord tipState;
++    // what Body::execute passed to Shape.setValue(): the tip with its transformation baked into a copy
++    Part::TopoShape result;
++    StateRecord madeState;     // the copy as it was made
++    StateRecord settledState;  // the copy when the last Shape.setValue() had returned
++    double settledPlacement[16] {};  // the Body's placement then (the view provider's mesh depends on it)
++};
++
++class TipCopyTable
++{
++public:
++    static TipCopyTable& instance()
++    {
++        // never destroyed: no OCCT object is released during the static destruction of the module
++        static TipCopyTable* table = new TipCopyTable();
++        return *table;
++    }
++
++    void connect()
++    {
++        if (connected) {
++            return;
++        }
++        connected = true;
++        App::GetApplication().signalDeletedObject.connect([](const App::DocumentObject& obj) {
++            TipCopyTable::instance().forget(&obj);
++        });
++        App::GetApplication().signalDeleteDocument.connect([](const App::Document& doc) {
++            TipCopyTable& table = TipCopyTable::instance();
++            for (auto it = table.entries.begin(); it != table.entries.end();) {
++                if (it->second.document == &doc) {
++                    it = table.entries.erase(it);
++                }
++                else {
++                    ++it;
++                }
++            }
++        });
++    }
++
++    void forget(const void* body)
++    {
++        entries.erase(body);
++    }
++
++    std::unordered_map<const void*, TipCopy> entries;
++
++private:
++    bool connected = false;
++};
++
++bool tipCopyReuseEnabled()
++{
++    return App::GetApplication()
++        .GetParameterGroupByPath("User parameter:BaseApp/Preferences/Mod/PartDesign")
++        ->GetBool("BodyCopyReuse", true);
++}
++
++App::DocumentObjectExecReturn*
++setTipCopy(PartDesign::Body& body, Part::TopoShape& tipShape, const Base::Matrix4D& transform);
++
++void readTransform(const Base::Matrix4D& mat, double (&out)[16])
++{
++    for (int r = 0; r < 4; ++r) {
++        for (int c = 0; c < 4; ++c) {
++            out[r * 4 + c] = mat[r][c];
++        }
++    }
++}
++
++}  // namespace
++
++
+ 
+ PROPERTY_SOURCE(PartDesign::Body, Part::BodyBase)
+ 
+@@ -419,9 +826,15 @@ App::DocumentObjectExecReturn* Body::execute()
+         }
+ 
+         // We should hide here the transformation of the baseFeature
+-        tipShape.transformShape(tipShape.getTransform(), true);
++        const Base::Matrix4D transform = tipShape.getTransform();
++        if (tipCopyReuseEnabled()) {
++            return setTipCopy(*this, tipShape, transform);
++        }
++        TipCopyTable::instance().forget(this);
++        tipShape.transformShape(transform, true);
+     }
+     else {
++        TipCopyTable::instance().forget(this);
+         tipShape = Part::TopoShape();
+     }
+ 
+@@ -429,6 +842,71 @@ App::DocumentObjectExecReturn* Body::execute()
+     return App::DocumentObject::StdReturn;
+ }
+ 
++// Body::execute for a valid tip: Shape.setValue(tip shape with its transformation baked into a copy), reusing the
++// previous copy when it is provably what a new copy would be (see TipCopy above).
++namespace
++{
++App::DocumentObjectExecReturn* setTipCopy(Body& body, Part::TopoShape& tipShape, const Base::Matrix4D& transform)
++{
++    // Body::execute runs in the thread that recomputes the document, as do the signals that drop entries
++    TipCopyTable& table = TipCopyTable::instance();
++    table.connect();
++    double matrix[16];
++    readTransform(transform, matrix);
++    const Data::ElementMapPtr tipMap = ElementMapAccess::of(tipShape);
++    bool reuse = false;
++    {
++        TipCopy& memo = table.entries[&body];
++        reuse = !memo.tip.IsNull() && memo.document == body.getDocument() && memo.tip.IsEqual(tipShape.getShape())
++            && memo.tipTag == tipShape.Tag && memo.tipHasher == tipShape.Hasher && memo.tipMap == tipMap
++            && std::memcmp(memo.transform, matrix, sizeof(matrix)) == 0;
++        if (reuse) {
++            StateRecord now;
++            recordState(tipShape.getShape(), now);
++            reuse = now.sameAs(memo.tipState);
++        }
++        if (reuse) {
++            StateRecord now;
++            recordState(memo.result.getShape(), now);
++            double placement[16];
++            readTransform(body.Placement.getValue().toMatrix(), placement);
++            reuse = now.sameAs(memo.madeState)
++                || (body.Visibility.getValue() && now.sameAs(memo.settledState)
++                    && std::memcmp(memo.settledPlacement, placement, sizeof(placement)) == 0);
++        }
++        if (reuse) {
++            tipShape = memo.result;
++        }
++        else {
++            memo = TipCopy();
++        }
++    }
++    if (!reuse) {
++        TipCopy fresh;
++        fresh.document = body.getDocument();
++        fresh.tip = tipShape.getShape();
++        fresh.tipMap = tipMap;
++        fresh.tipTag = tipShape.Tag;
++        fresh.tipHasher = tipShape.Hasher;
++        std::memcpy(fresh.transform, matrix, sizeof(matrix));
++        tipShape.transformShape(transform, true);
++        recordState(fresh.tip, fresh.tipState);
++        fresh.result = tipShape;
++        recordState(fresh.result.getShape(), fresh.madeState);
++        table.entries[&body] = std::move(fresh);
++    }
++
++    body.Shape.setValue(tipShape);
++
++    const auto it = table.entries.find(&body);
++    if (it != table.entries.end() && !it->second.tip.IsNull()) {
++        recordState(it->second.result.getShape(), it->second.settledState);
++        readTransform(body.Placement.getValue().toMatrix(), it->second.settledPlacement);
++    }
++    return App::DocumentObject::StdReturn;
++}
++}  // namespace
++
+ void Body::onSettingDocument()
+ {
+ 
+@@ -520,6 +998,7 @@ void Body::setupObject()
+ 
+ void Body::unsetupObject()
+ {
++    TipCopyTable::instance().forget(this);
+     Part::BodyBase::unsetupObject();
+ }
+ 
+-- 
+2.52.0.windows.1
+

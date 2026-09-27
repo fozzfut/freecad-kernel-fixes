@@ -1,0 +1,789 @@
+diff --git a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx
+index ad2f8e1f..e40b339a 100644
+--- a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx
++++ b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx
+@@ -22,7 +22,9 @@
+ #include <Geom2d_TrimmedCurve.hxx>
+ #include <Geom2dHatch_Hatcher.hxx>
+ #include <Geom2dHatch_Intersector.hxx>
++#include <Geom_BezierCurve.hxx>
+ #include <Geom_BoundedCurve.hxx>
++#include <Geom_BSplineCurve.hxx>
+ #include <Geom_Curve.hxx>
+ #include <GeomAdaptor_Curve.hxx>
+ #include <GeomAPI_ProjectPointOnCurve.hxx>
+@@ -47,6 +49,109 @@
+ IMPLEMENT_STANDARD_RTTIEXT(IntTools_Context, Standard_Transient)
+ 
+ //
++//=================================================================================================
++// 027: far-vertex rejection in IsVertexOnLine.
++// A B-spline or Bezier curve with positive weights lies in the convex hull of its poles, hence in
++// the axis-aligned box of the poles, over its whole parameter range (Boehm 1980; Sederberg-Nishita
++// 1990 use the same property to discard curve pieces). The distance from a point to that box is a
++// lower bound of its distance to every point of the curve, including the points the projector
++// returns and the curve ends. When that bound exceeds the vertex/curve tolerance sum (with a margin
++// for rounding of the evaluated curve points), IsVertexOnLine returns false on every path, so the
++// projection (O(number of spans) per vertex, run for every vertex x every section curve) is skipped.
++namespace
++{
++//! Returns the distance from thePnt to the box of the poles of theCurve, or -1 when the curve is not
++//! exactly a Geom_BSplineCurve or Geom_BezierCurve. theScale receives the largest absolute coordinate
++//! of the box and the point (for the rounding margin).
++static double distanceToPolesBox(const occ::handle<Geom_Curve>& theCurve,
++                                 const gp_Pnt&                  thePnt,
++                                 double&                        theScale)
++{
++  const NCollection_Array1<gp_Pnt>* aPoles = nullptr;
++  if (theCurve->DynamicType() == STANDARD_TYPE(Geom_BSplineCurve))
++  {
++    aPoles = &static_cast<const Geom_BSplineCurve*>(theCurve.get())->Poles();
++  }
++  else if (theCurve->DynamicType() == STANDARD_TYPE(Geom_BezierCurve))
++  {
++    aPoles = &static_cast<const Geom_BezierCurve*>(theCurve.get())->Poles();
++  }
++  if (aPoles == nullptr || aPoles->IsEmpty())
++  {
++    return -1.;
++  }
++  double aMin[3], aMax[3];
++  const gp_XYZ& aP0 = aPoles->First().XYZ();
++  for (int k = 0; k < 3; ++k)
++  {
++    aMin[k] = aMax[k] = aP0.Coord(k + 1);
++  }
++  for (NCollection_Array1<gp_Pnt>::Iterator anIt(*aPoles); anIt.More(); anIt.Next())
++  {
++    const gp_XYZ& aP = anIt.Value().XYZ();
++    for (int k = 0; k < 3; ++k)
++    {
++      const double aC = aP.Coord(k + 1);
++      aMin[k]         = std::min(aMin[k], aC);
++      aMax[k]         = std::max(aMax[k], aC);
++    }
++  }
++  double aSq = 0.;
++  theScale   = 0.;
++  for (int k = 0; k < 3; ++k)
++  {
++    const double aC = thePnt.XYZ().Coord(k + 1);
++    const double aD = aC < aMin[k] ? aMin[k] - aC : (aC > aMax[k] ? aC - aMax[k] : 0.);
++    aSq += aD * aD;
++    theScale = std::max(theScale, std::max(std::abs(aC), std::max(std::abs(aMin[k]), std::abs(aMax[k]))));
++  }
++  return std::sqrt(aSq);
++}
++
++//! True when the vertex point is provably farther than theTolSum from every point of theCurve.
++static bool isFarFromCurveHull(const occ::handle<Geom_Curve>& theCurve,
++                               const gp_Pnt&                  thePnt,
++                               const double                   theTolSum)
++{
++  double       aScale = 0.;
++  const double aDist  = distanceToPolesBox(theCurve, thePnt, aScale);
++  if (!(aDist >= 0.)) // other curve types, NaN
++  {
++    return false;
++  }
++  // margin: rounding of evaluated curve points and of the distances (far above 1e-15 * scale)
++  const double aMargin = 1.e-7 + 1.e-9 * aScale;
++#ifdef INTTOOLS_027_MUTANT_A
++  (void)aMargin;
++  return true; // negative control: every projection is skipped, also for vertices on the line
++#else
++  return aDist > theTolSum + aMargin;
++#endif
++}
++} // namespace
++
++#ifdef INTTOOLS_027_VERIFY
++#include <atomic>
++#include <cstdio>
++#include <cstdlib>
++namespace
++{
++struct Verify027Counters
++{
++  std::atomic<long long> Checked{0}, Far{0}, Mismatch{0};
++  ~Verify027Counters()
++  {
++    std::fprintf(stderr,
++                 "027-VERIFY IsVertexOnLine projections=%lld far=%lld mismatch=%lld\n",
++                 (long long)Checked,
++                 (long long)Far,
++                 (long long)Mismatch);
++  }
++};
++static Verify027Counters THE_027_COUNTERS;
++} // namespace
++#endif
++
+ //=================================================================================================
+ 
+ IntTools_Context::IntTools_Context()
+@@ -939,10 +1044,46 @@ bool IntTools_Context::IsVertexOnLine(const TopoDS_Vertex&  aV,
+     return true;
+   }
+   //
++#ifndef INTTOOLS_027_VERIFY
++  if (isFarFromCurveHull(aC3D, aPv, aTolSum))
++  {
++    return false; // 027: the projection below cannot come closer than aTolSum
++  }
++#else
++  const bool aFar027 = isFarFromCurveHull(aC3D, aPv, aTolSum);
++#endif
+   GeomAPI_ProjectPointOnCurve& aProjector = ProjPT(aC3D);
+   aProjector.Perform(aPv);
+ 
+   aNbProj = aProjector.NbPoints();
++#ifdef INTTOOLS_027_VERIFY
++  {
++    // the stock outcome of the code below, compared with the far-vertex rejection
++    bool aStockOn = false;
++    if (!aNbProj)
++    {
++      occ::handle<Geom_BoundedCurve> aBC0 = occ::down_cast<Geom_BoundedCurve>(aC3D);
++      aStockOn = !aBC0.IsNull()
++                 && (aPv.Distance(aBC0->StartPoint()) < aTolSum
++                     || aPv.Distance(aBC0->EndPoint()) < aTolSum);
++    }
++    else
++    {
++      aStockOn = !(aProjector.LowerDistance() > aTolSum);
++    }
++    ++THE_027_COUNTERS.Checked;
++    if (aFar027)
++    {
++      ++THE_027_COUNTERS.Far;
++      if (aStockOn)
++      {
++        ++THE_027_COUNTERS.Mismatch;
++        std::fprintf(stderr, "027-VERIFY-MISMATCH IsVertexOnLine tolsum=%.17g\n", aTolSum);
++        std::abort();
++      }
++    }
++  }
++#endif
+   if (!aNbProj)
+   {
+     occ::handle<Geom_BoundedCurve> aBC = occ::down_cast<Geom_BoundedCurve>(aC3D);
+diff --git a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.hxx b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.hxx
+index 300aa8e4..267dae96 100644
+--- a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.hxx
++++ b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.hxx
+@@ -236,6 +236,10 @@ public:
+   //! correct value for all projectors
+   Standard_EXPORT void SetPOnSProjectionTolerance(const double theValue);
+ 
++  //! Returns the tolerance used by the point-on-surface projectors of ProjPS().
++  //! (Inline, not exported: added by 027 for projectors built outside the context.)
++  double POnSProjectionTolerance() const { return myPOnSTolerance; }
++
+   DEFINE_STANDARD_RTTIEXT(IntTools_Context, Standard_Transient)
+ 
+ protected:
+diff --git a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FaceFace.cxx b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FaceFace.cxx
+index 226edfa1..18b21cb1 100644
+--- a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FaceFace.cxx
++++ b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FaceFace.cxx
+@@ -54,6 +54,13 @@
+ #include <TopoDS_Edge.hxx>
+ #include <gp_Elips.hxx>
+ #include <ApproxInt_KnotTools.hxx>
++#include <Extrema_POnSurfParams.hxx>
++#include <Geom_BSplineSurface.hxx>
++#include <NCollection_Vector.hxx>
++#include <OSD_Parallel.hxx>
++
++#include <algorithm>
++#include <memory>
+ 
+ static void Parameters(const occ::handle<GeomAdaptor_Surface>&,
+                        const occ::handle<GeomAdaptor_Surface>&,
+@@ -135,6 +142,11 @@ static double FindMaxDistance(const occ::handle<Geom_Curve>&       theCurve,
+                               const TopoDS_Face&                   theFace,
+                               const occ::handle<IntTools_Context>& theContext);
+ 
++static double FindMaxDistance(const occ::handle<Geom_Curve>& theCurve,
++                              const double                   theFirst,
++                              const double                   theLast,
++                              GeomAPI_ProjectPointOnSurf&    theProjPS);
++
+ static void CorrectPlaneBoundaries(double& aUmin, double& aUmax, double& aVmin, double& aVmax);
+ 
+ //=================================================================================================
+@@ -608,6 +620,229 @@ void IntTools_FaceFace::Perform(const TopoDS_Face& aF1,
+   }
+ }
+ 
++//=================================================================================================
++// 027: parallel curve-to-face deviation for the curves without p-curves (section without
++// approximation).
++//
++// ComputeTolReached3d() measures, for each section curve without a p-curve, its largest distance
++// from each face (FindMaxDistance: 11 golden-section searches, about 250 point projections per
++// curve). On a B-spline face every projection runs Extrema_GenExtPS over the whole face grid, so for
++// a long face crossed by many section curves this step costs O(curves x face size) and is the
++// largest part of the section (ball screw thread faces: 50-90 % of the section time). The curves
++// are independent: each task runs the same FindMaxDistance with its own GeomAPI_ProjectPointOnSurf,
++// initialised exactly as IntTools_Context::ProjPS() initialises the shared one (surface from
++// BRep_Tool::Surface, UV bounds from the context, the context tolerance, MIN flag, gradient
++// algorithm). A projection result depends only on the surface, the bounds, the tolerance and the
++// point: the GenExtPS grid is built identically in every projector and all per-query arrays are
++// rewritten on each Perform. The values therefore equal the sequential ones; the verify build
++// (INTTOOLS_027_VERIFY) compares every value with the stock sequential call bit for bit. The values
++// are applied in the stock order; a task that failed (exception, memory) is recomputed there by the
++// stock call, which raises the same exception as stock.
++namespace
++{
++struct MaxDistTask027
++{
++  int                     Curve = 0;
++  int                     Side  = 0;
++  occ::handle<Geom_Curve> C3D;
++  double                  First  = 0.;
++  double                  Last   = 0.;
++  double                  Dist   = 0.;
++  bool                    IsDone = false;
++};
++
++//! Rough size of the Extrema_GenExtPS grid arrays of one projector on theS.
++static double gridBytes027(const occ::handle<Geom_Surface>& theS)
++{
++  double aNbU = 44., aNbV = 44.;
++  if (!theS.IsNull() && theS->DynamicType() == STANDARD_TYPE(Geom_BSplineSurface))
++  {
++    const Geom_BSplineSurface* aBS = static_cast<const Geom_BSplineSurface*>(theS.get());
++    aNbU = std::max(aNbU, 2. + double(aBS->UDegree()) * aBS->NbUKnots());
++    aNbV = std::max(aNbV, 2. + double(aBS->VDegree()) * aBS->NbVKnots());
++  }
++  return aNbU * aNbV * 4. * sizeof(Extrema_POnSurfParams);
++}
++
++static void computeMaxDistancesInParallel027(const NCollection_Sequence<IntTools_Curve>& theCurves,
++                                             const TopoDS_Face&                          theFace1,
++                                             const TopoDS_Face&                          theFace2,
++                                             const occ::handle<IntTools_Context>&        theContext,
++                                             NCollection_Vector<MaxDistTask027>&         theTasks);
++} // namespace
++
++#ifdef INTTOOLS_027_VERIFY
++  #include <atomic>
++  #include <cstdio>
++  #include <cstdlib>
++  #include <cstring>
++
++namespace
++{
++struct Verify027FFCounters
++{
++  std::atomic<long long> Compared{0}, Parallel{0};
++
++  ~Verify027FFCounters()
++  {
++    std::fprintf(stderr,
++                 "027-VERIFY FindMaxDistance compared=%lld parallel-runs=%lld mismatch=0\n",
++                 (long long)Compared,
++                 (long long)Parallel);
++  }
++};
++
++static Verify027FFCounters THE_027_FF_COUNTERS;
++
++static void verify027(const double theNew, const double theStock, const int theI, const int theJ)
++{
++  ++THE_027_FF_COUNTERS.Compared;
++  if (std::memcmp(&theNew, &theStock, sizeof(double)) != 0)
++  {
++    std::fprintf(stderr,
++                 "027-VERIFY-MISMATCH FindMaxDistance curve=%d side=%d new=%.17g stock=%.17g\n",
++                 theI,
++                 theJ,
++                 theNew,
++                 theStock);
++    std::abort();
++  }
++}
++} // namespace
++#endif
++
++namespace
++{
++static void computeMaxDistancesInParallel027(const NCollection_Sequence<IntTools_Curve>& theCurves,
++                                             const TopoDS_Face&                          theFace1,
++                                             const TopoDS_Face&                          theFace2,
++                                             const occ::handle<IntTools_Context>&        theContext,
++                                             NCollection_Vector<MaxDistTask027>&         theTasks)
++{
++  // Only faces whose point projection runs the grid search (Extrema_GenExtPS) are worth the
++  // threads; on analytic and swept surfaces Extrema_ExtPS projects in closed form and the stock
++  // sequential loop is kept.
++  bool isGridSurface[2] = {false, false};
++  for (int j = 0; j < 2; ++j)
++  {
++    const occ::handle<Geom_Surface> aS = BRep_Tool::Surface(!j ? theFace1 : theFace2);
++    if (aS.IsNull())
++    {
++      continue;
++    }
++    switch (GeomAdaptor_Surface(aS).GetType())
++    {
++      case GeomAbs_Plane:
++      case GeomAbs_Cylinder:
++      case GeomAbs_Cone:
++      case GeomAbs_Sphere:
++      case GeomAbs_Torus:
++      case GeomAbs_SurfaceOfExtrusion:
++      case GeomAbs_SurfaceOfRevolution:
++        break;
++      default:
++        isGridSurface[j] = true;
++    }
++  }
++  if (!isGridSurface[0] && !isGridSurface[1])
++  {
++    return;
++  }
++  const int aNbLin = theCurves.Length();
++  for (int i = 1; i <= aNbLin; ++i)
++  {
++    const IntTools_Curve&          aIC  = theCurves(i);
++    const occ::handle<Geom_Curve>& aC3D = aIC.Curve();
++    if (aC3D.IsNull())
++    {
++      continue;
++    }
++    for (int j = 0; j < 2; ++j)
++    {
++      if (isGridSurface[j] && (!j ? aIC.FirstCurve2d() : aIC.SecondCurve2d()).IsNull())
++      {
++        MaxDistTask027 aTask;
++        aTask.Curve = i;
++        aTask.Side  = j;
++        aTask.C3D   = aC3D;
++        aTask.First = aC3D->FirstParameter();
++        aTask.Last  = aC3D->LastParameter();
++        theTasks.Append(aTask);
++      }
++    }
++  }
++  if (theTasks.Length() < 2)
++  {
++    theTasks.Clear();
++    return;
++  }
++  // inputs of the projectors, prepared as IntTools_Context::ProjPS() prepares them
++  occ::handle<Geom_Surface> aSurf[2];
++  double                    aBounds[2][4] = {{0., 0., 0., 0.}, {0., 0., 0., 0.}};
++  bool                      isUsed[2]     = {false, false};
++  for (int t = 0; t < theTasks.Length(); ++t)
++  {
++    isUsed[theTasks.Value(t).Side] = true;
++  }
++  double aGridBytes = 0.;
++  for (int j = 0; j < 2; ++j)
++  {
++    if (!isUsed[j])
++    {
++      continue;
++    }
++    const TopoDS_Face& aF = !j ? theFace1 : theFace2;
++    theContext->ProjPS(aF); // the context caches the same projectors as on the stock path
++    theContext->UVBounds(aF, aBounds[j][0], aBounds[j][1], aBounds[j][2], aBounds[j][3]);
++    aSurf[j] = BRep_Tool::Surface(aF);
++    aGridBytes += gridBytes027(aSurf[j]);
++  }
++  const double aTol = theContext->POnSProjectionTolerance();
++  // workers: at most one per logical processor and per task, their grids within about 128 MB
++  int aNbWorkers =
++    std::min(theTasks.Length(), std::max(1, OSD_Parallel::NbLogicalProcessors()));
++  aNbWorkers = std::max(1, std::min(aNbWorkers, int(128.e6 / std::max(aGridBytes, 1.))));
++  if (aNbWorkers < 2)
++  {
++    theTasks.Clear();
++    return;
++  }
++#ifdef INTTOOLS_027_VERIFY
++  ++THE_027_FF_COUNTERS.Parallel;
++#endif
++  auto aWorker = [&](const int theWorker) {
++    std::unique_ptr<GeomAPI_ProjectPointOnSurf> aProj[2];
++    for (int t = theWorker; t < theTasks.Length(); t += aNbWorkers)
++    {
++      MaxDistTask027& aTask = theTasks.ChangeValue(t);
++      try
++      {
++        const int j = aTask.Side;
++        if (!aProj[j])
++        {
++          aProj[j] = std::make_unique<GeomAPI_ProjectPointOnSurf>();
++          aProj[j]->Init(aSurf[j], aBounds[j][0], aBounds[j][1], aBounds[j][2], aBounds[j][3], aTol);
++          aProj[j]->SetExtremaFlag(Extrema_ExtFlag_MIN);
++        }
++#ifdef INTTOOLS_027_MUTANT_B
++        // negative control: the parallel value is scaled by the factor INTTOOLS_027_MUTANT_B
++        aTask.Dist =
++          FindMaxDistance(aTask.C3D, aTask.First, aTask.Last, *aProj[j]) * INTTOOLS_027_MUTANT_B;
++#else
++        aTask.Dist = FindMaxDistance(aTask.C3D, aTask.First, aTask.Last, *aProj[j]);
++#endif
++        aTask.IsDone = true;
++      }
++      catch (...)
++      {
++        aTask.IsDone = false; // recomputed on the stock path
++      }
++    }
++  };
++  OSD_Parallel::For(0, aNbWorkers, aWorker, false);
++}
++} // namespace
++
+ //=================================================================================================
+ 
+ void IntTools_FaceFace::ComputeTolReached3d(const bool theToRunParallel)
+@@ -624,6 +859,14 @@ void IntTools_FaceFace::ComputeTolReached3d(const bool theToRunParallel)
+   const occ::handle<Geom_Surface>& aS1 = myHS1->Surface();
+   const occ::handle<Geom_Surface>& aS2 = myHS2->Surface();
+   //
++  // 027: deviations of the curves without p-curves from the faces, computed in parallel beforehand
++  NCollection_Vector<MaxDistTask027> aTasks;
++  if (theToRunParallel)
++  {
++    computeMaxDistancesInParallel027(mySeqOfCurve, myFace1, myFace2, myContext, aTasks);
++  }
++  int aTaskIt = 0;
++  //
+   for (i = 1; i <= aNbLin; ++i)
+   {
+     IntTools_Curve&                aIC  = mySeqOfCurve(i);
+@@ -668,8 +911,27 @@ void IntTools_FaceFace::ComputeTolReached3d(const bool theToRunParallel)
+       else
+       {
+         // Look for the maximal deviation between 3D curve and surface
+-        const TopoDS_Face& aF = !j ? myFace1 : myFace2;
+-        double             aD = FindMaxDistance(aC3D, aFirst, aLast, aF, myContext);
++        const TopoDS_Face& aF      = !j ? myFace1 : myFace2;
++        const bool         hasTask = aTaskIt < aTasks.Length() && aTasks.Value(aTaskIt).Curve == i
++                             && aTasks.Value(aTaskIt).Side == j;
++        double aD = 0.;
++        if (hasTask && aTasks.Value(aTaskIt).IsDone)
++        {
++          aD = aTasks.Value(aTaskIt).Dist; // the value of the stock call below, computed beforehand
++#ifdef INTTOOLS_027_VERIFY
++          verify027(aD, FindMaxDistance(aC3D, aFirst, aLast, aF, myContext), i, j);
++#endif
++        }
++        else
++        {
++          // stock path; it also recomputes a task that failed in the parallel phase, so that
++          // its exception, if any, is raised here in the stock order
++          aD = FindMaxDistance(aC3D, aFirst, aLast, aF, myContext);
++        }
++        if (hasTask)
++        {
++          ++aTaskIt;
++        }
+         if (aD > aTolC)
+         {
+           aTolC = aD;
+@@ -2901,6 +3163,17 @@ double FindMaxDistance(const occ::handle<Geom_Curve>&       theCurve,
+                        const double                         theLast,
+                        const TopoDS_Face&                   theFace,
+                        const occ::handle<IntTools_Context>& theContext)
++{
++  GeomAPI_ProjectPointOnSurf& aProjPS = theContext->ProjPS(theFace);
++  return FindMaxDistance(theCurve, theFirst, theLast, aProjPS);
++}
++
++//=================================================================================================
++
++double FindMaxDistance(const occ::handle<Geom_Curve>& theCurve,
++                       const double                   theFirst,
++                       const double                   theLast,
++                       GeomAPI_ProjectPointOnSurf&    aProjPS)
+ {
+   int    aNbS;
+   double aT1, aT2, aDt, aD, aDMax, anEps;
+@@ -2910,8 +3183,7 @@ double FindMaxDistance(const occ::handle<Geom_Curve>&       theCurve,
+   aDMax = 0.;
+   anEps = 1.e-4 * aDt;
+   //
+-  GeomAPI_ProjectPointOnSurf& aProjPS = theContext->ProjPS(theFace);
+-  aT2                                 = theFirst;
++  aT2 = theFirst;
+   for (;;)
+   {
+     aT1 = aT2;
+diff --git a/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx b/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx
+index e22509a0..d4a162d5 100644
+--- a/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx
++++ b/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx
+@@ -44,6 +44,9 @@
+ #include <StdFail_NotDone.hxx>
+ #include <Standard_Integer.hxx>
+ #include <NCollection_Array2.hxx>
++#include <NCollection_Vector.hxx>
++
++#include <algorithm>
+ 
+ // IMPLEMENT_HARRAY1(Extrema_HArray1OfSphere)
+ class Bnd_SphereUBTreeSelector : public NCollection_UBTree<int, Bnd_Sphere>::Selector
+@@ -213,6 +216,108 @@ Processing:
+       - update table TbSel.
+ -----------------------------------------------------------------------------*/
+ 
++#ifdef EXTREMA_027_VERIFY
++  #include <atomic>
++  #include <cstdio>
++  #include <cstdlib>
++  #include <cstring>
++
++namespace
++{
++struct Verify027GridCounters
++{
++  std::atomic<long long> Edges{0};
++
++  ~Verify027GridCounters()
++  {
++    std::fprintf(stderr, "027-VERIFY GenExtPS edges=%lld mismatch=0\n", (long long)Edges);
++  }
++};
++
++static Verify027GridCounters THE_027_GRID_COUNTERS;
++
++static void verify027Same(const Extrema_POnSurfParams& theA, const Extrema_POnSurfParams& theB)
++{
++  ++THE_027_GRID_COUNTERS.Edges;
++  double aUA, aVA, aUB, aVB;
++  theA.Parameter(aUA, aVA);
++  theB.Parameter(aUB, aVB);
++  int aIA[2], aIB[2];
++  theA.GetIndices(aIA[0], aIA[1]);
++  theB.GetIndices(aIB[0], aIB[1]);
++  const double aDA = theA.GetSqrDistance(), aDB = theB.GetSqrDistance();
++  const gp_XYZ aPA = theA.Value().XYZ(), aPB = theB.Value().XYZ();
++  if (std::memcmp(&aUA, &aUB, sizeof(double)) != 0 || std::memcmp(&aVA, &aVB, sizeof(double)) != 0
++      || std::memcmp(&aDA, &aDB, sizeof(double)) != 0 || std::memcmp(&aPA, &aPB, sizeof(gp_XYZ)) != 0
++      || theA.GetElementType() != theB.GetElementType() || aIA[0] != aIB[0] || aIA[1] != aIB[1])
++  {
++    std::fprintf(stderr, "027-VERIFY-MISMATCH GenExtPS edge u=%.17g v=%.17g\n", aUB, aVB);
++    std::abort();
++  }
++}
++} // namespace
++#endif
++
++namespace
++{
++//! 027: Extrema_GenExtPS::ComputeEdgeParameters() without the surface evaluation.
++//! Writes into theOut exactly what the stock function returns, except that for a point inside the
++//! edge the 3D point and the square distance are left to the caller (they need S(u, v)).
++//! Returns true in that case. The arithmetic is the stock one, expression by expression.
++static bool computeEdgeDeferred027(const bool                   IsUEdge,
++                                   const Extrema_POnSurfParams& theParam0,
++                                   const Extrema_POnSurfParams& theParam1,
++                                   const gp_Pnt&                thePoint,
++                                   const double                 theDiffTol,
++                                   Extrema_POnSurfParams&       theOut)
++{
++  const double aSqrDist01 = theParam0.Value().SquareDistance(theParam1.Value());
++
++  if (aSqrDist01 <= theDiffTol)
++  {
++    // The points are confused. Get the first point and change its type.
++    theOut = theParam0;
++    return false;
++  }
++  const double aDiffDist = std::abs(theParam0.GetSqrDistance() - theParam1.GetSqrDistance());
++
++  if (aDiffDist >= aSqrDist01 - theDiffTol)
++  {
++    // The shortest distance is one of the nodes.
++    theOut = theParam0.GetSqrDistance() > theParam1.GetSqrDistance() ? theParam1 : theParam0;
++    return false;
++  }
++  // The shortest distance is inside the edge.
++  gp_XYZ aPoP(thePoint.XYZ().Subtracted(theParam0.Value().XYZ()));
++  gp_XYZ aPoP1(theParam1.Value().XYZ().Subtracted(theParam0.Value().XYZ()));
++  double aRatio = aPoP.Dot(aPoP1) / aSqrDist01;
++  double aU[2];
++  double aV[2];
++
++  theParam0.Parameter(aU[0], aV[0]);
++  theParam1.Parameter(aU[1], aV[1]);
++
++  double aUPar = aU[0];
++  double aVPar = aV[0];
++
++  if (IsUEdge)
++  {
++    aUPar += aRatio * (aU[1] - aU[0]);
++  }
++  else
++  {
++    aVPar += aRatio * (aV[1] - aV[0]);
++  }
++
++  int anIndices[2];
++  theParam0.GetIndices(anIndices[0], anIndices[1]);
++  theOut.SetParameters(aUPar, aVPar, gp_Pnt(0., 0., 0.));
++  theOut.SetElementType(IsUEdge ? Extrema_UIsoEdge : Extrema_VIsoEdge);
++  theOut.SetIndices(anIndices[0], anIndices[1]);
++  return true;
++}
++} // namespace
++
+ Extrema_GenExtPS::Extrema_GenExtPS()
+     : myumin(0.0),
+       myusup(0.0),
+@@ -631,30 +736,129 @@ void Extrema_GenExtPS::BuildGrid(const gp_Pnt& thePoint)
+     // Step 2. Compute distances to edges.
+     // Assume UEdge(i, j) = { Point(i, j); Point(i + 1, j    ) }
+     // Assume VEdge(i, j) = { Point(i, j); Point(i,     j + 1) }
+-    for (int NoU = 1; NoU <= myusample; NoU++)
++    //
++    // 027: on B-spline and Bezier surfaces the points inside edges are evaluated through the
++    // adaptor's span cache, which holds one (U span, V span) pair. The stock loop evaluates the
++    // inside edges of one U row across all V spans, so on a long face the cache is rebuilt for
++    // almost every evaluation (25-40 % of a section of the ball screw). Here the grid is walked in
++    // the stock order but the surface evaluations are deferred and done afterwards sorted by
++    // (V column, U row): consecutive evaluations stay in one V span. Every edge value depends only
++    // on its two nodes and the point (computeEdgeDeferred027 is ComputeEdgeParameters without the
++    // evaluation), and a span cache is valid only for parameters inside its span, so no value
++    // changes; the verify build compares every edge with ComputeEdgeParameters bit for bit.
++    const bool isDeferred =
++      myS->GetType() == GeomAbs_BSplineSurface || myS->GetType() == GeomAbs_BezierSurface;
++    if (isDeferred)
+     {
+-      for (int NoV = 1; NoV <= myvsample; NoV++)
++      // key = (NoV * (myusample + 1) + NoU) * 2 + (0 for a U edge, 1 for a V edge)
++      NCollection_Vector<long long> aDeferred(1024);
++      const long long               aRow = (long long)myusample + 1;
++      for (int NoU = 1; NoU <= myusample; NoU++)
+       {
+-        const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
+-
+-        if (NoU < myusample)
++        for (int NoV = 1; NoV <= myvsample; NoV++)
+         {
+-          // Compute parameters to UEdge.
+-          const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU + 1, NoV);
+-          const Extrema_POnSurfParams& anEdgeParam =
+-            ComputeEdgeParameters(true, aParam0, aParam1, thePoint, aDiffTol);
++          const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
++
++          if (NoU < myusample
++              && computeEdgeDeferred027(true,
++                                        aParam0,
++                                        myPoints.Value(NoU + 1, NoV),
++                                        thePoint,
++                                        aDiffTol,
++                                        myUEdgePntParams.ChangeValue(NoU, NoV)))
++          {
++            aDeferred.Append((NoV * aRow + NoU) * 2);
++          }
+ 
+-          myUEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++          if (NoV < myvsample
++              && computeEdgeDeferred027(false,
++                                        aParam0,
++                                        myPoints.Value(NoU, NoV + 1),
++                                        thePoint,
++                                        aDiffTol,
++                                        myVEdgePntParams.ChangeValue(NoU, NoV)))
++          {
++            aDeferred.Append((NoV * aRow + NoU) * 2 + 1);
++          }
+         }
+-
+-        if (NoV < myvsample)
++      }
++      if (!aDeferred.IsEmpty())
++      {
++        NCollection_Array1<long long> aKeys(0, aDeferred.Length() - 1);
++        for (int k = 0; k < aDeferred.Length(); ++k)
+         {
+-          // Compute parameters to VEdge.
+-          const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU, NoV + 1);
+-          const Extrema_POnSurfParams& anEdgeParam =
+-            ComputeEdgeParameters(false, aParam0, aParam1, thePoint, aDiffTol);
++          aKeys.SetValue(k, aDeferred.Value(k));
++        }
++        std::sort(&aKeys.ChangeFirst(), &aKeys.ChangeFirst() + aKeys.Length());
++#ifdef EXTREMA_027_MUTANT
++        const int aNbEval = aKeys.Length() - 1; // negative control: the last point stays unevaluated
++#else
++        const int aNbEval = aKeys.Length();
++#endif
++        for (int k = 0; k < aNbEval; ++k)
++        {
++          const long long        aKey  = aKeys.Value(k);
++          const bool             isV   = (aKey & 1) != 0;
++          const int              NoU   = int((aKey >> 1) % aRow);
++          const int              NoV   = int((aKey >> 1) / aRow);
++          Extrema_POnSurfParams& anEdge = isV ? myVEdgePntParams.ChangeValue(NoU, NoV)
++                                              : myUEdgePntParams.ChangeValue(NoU, NoV);
++          double                 aUPar, aVPar;
++          anEdge.Parameter(aUPar, aVPar);
++          anEdge.SetParameters(aUPar, aVPar, myS->Value(aUPar, aVPar));
++          anEdge.SetSqrDistance(thePoint.SquareDistance(anEdge.Value()));
++        }
++      }
++#ifdef EXTREMA_027_VERIFY
++      // recompute every edge with the stock ComputeEdgeParameters and compare bit for bit
++      for (int NoU = 1; NoU <= myusample; NoU++)
++      {
++        for (int NoV = 1; NoV <= myvsample; NoV++)
++        {
++          const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
++          if (NoU < myusample)
++          {
++            const Extrema_POnSurfParams& aRef = ComputeEdgeParameters(
++              true, aParam0, myPoints.Value(NoU + 1, NoV), thePoint, aDiffTol);
++            verify027Same(myUEdgePntParams.Value(NoU, NoV), aRef);
++          }
++          if (NoV < myvsample)
++          {
++            const Extrema_POnSurfParams& aRef = ComputeEdgeParameters(
++              false, aParam0, myPoints.Value(NoU, NoV + 1), thePoint, aDiffTol);
++            verify027Same(myVEdgePntParams.Value(NoU, NoV), aRef);
++          }
++        }
++      }
++#endif
++    }
++    else
++    {
++      for (int NoU = 1; NoU <= myusample; NoU++)
++      {
++        for (int NoV = 1; NoV <= myvsample; NoV++)
++        {
++          const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
++
++          if (NoU < myusample)
++          {
++            // Compute parameters to UEdge.
++            const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU + 1, NoV);
++            const Extrema_POnSurfParams& anEdgeParam =
++              ComputeEdgeParameters(true, aParam0, aParam1, thePoint, aDiffTol);
++
++            myUEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++          }
++
++          if (NoV < myvsample)
++          {
++            // Compute parameters to VEdge.
++            const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU, NoV + 1);
++            const Extrema_POnSurfParams& anEdgeParam =
++              ComputeEdgeParameters(false, aParam0, aParam1, thePoint, aDiffTol);
+ 
+-          myVEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++            myVEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++          }
+         }
+       }
+     }

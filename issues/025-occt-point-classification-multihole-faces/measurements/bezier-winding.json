@@ -1,0 +1,542 @@
+[
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/025/probe/Top.brep",
+    "face": 5,
+    "wires": 94,
+    "mode": "winding_all",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.03712180000729859,
+    "stock_s": 0.03261300001759082,
+    "new_s": 0.22311410002293997,
+    "stats": {
+      "wire_visits": 24064,
+      "arc_nodes": 73632,
+      "angles": 73552,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 8,
+      "Geom2d_Circle": 93
+    },
+    "max_closure_gap": 4.522982653395374e-13,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/025/probe/Top.brep",
+    "face": 5,
+    "wires": 94,
+    "mode": "winding_index",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.03712180000729859,
+    "stock_s": 0.03261300001759082,
+    "new_s": 0.011898899974767119,
+    "stats": {
+      "index_nodes": 4238,
+      "wire_visits": 279,
+      "arc_nodes": 2047,
+      "angles": 1967,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 8,
+      "Geom2d_Circle": 93
+    },
+    "max_closure_gap": 4.522982653395374e-13,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/025/probe/Top.brep",
+    "face": 5,
+    "wires": 94,
+    "mode": "winding_all",
+    "queries": "boundary",
+    "points": 606,
+    "setup_s": 0.03712180000729859,
+    "stock_s": 1.0869944000151008,
+    "new_s": 1.195130500011146,
+    "stats": {
+      "wire_visits": 38736,
+      "arc_nodes": 132150,
+      "fallback": 370,
+      "boundary": 24,
+      "angles": 122038,
+      "new_answers": 236,
+      "boundary_or_depth": 346
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 8,
+      "Geom2d_Circle": 93
+    },
+    "max_closure_gap": 4.522982653395374e-13,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/025/probe/Top.brep",
+    "face": 5,
+    "wires": 94,
+    "mode": "winding_index",
+    "queries": "boundary",
+    "points": 606,
+    "setup_s": 0.03712180000729859,
+    "stock_s": 1.0869944000151008,
+    "new_s": 0.6334842999931425,
+    "stats": {
+      "index_nodes": 10542,
+      "wire_visits": 901,
+      "arc_nodes": 17777,
+      "fallback": 370,
+      "boundary": 24,
+      "new_answers": 236,
+      "angles": 7659,
+      "boundary_or_depth": 346
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 8,
+      "Geom2d_Circle": 93
+    },
+    "max_closure_gap": 4.522982653395374e-13,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_16.brep",
+    "face": 1,
+    "wires": 17,
+    "mode": "winding_all",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.010688100010156631,
+    "stock_s": 0.004128900007344782,
+    "new_s": 0.02210259999264963,
+    "stats": {
+      "wire_visits": 4352,
+      "arc_nodes": 13316,
+      "angles": 13314,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 16
+    },
+    "max_closure_gap": 3.552713678800501e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_16.brep",
+    "face": 1,
+    "wires": 17,
+    "mode": "winding_index",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.010688100010156631,
+    "stock_s": 0.004128900007344782,
+    "new_s": 0.0042505000019446015,
+    "stats": {
+      "index_nodes": 1778,
+      "wire_visits": 211,
+      "arc_nodes": 847,
+      "angles": 845,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 16
+    },
+    "max_closure_gap": 3.552713678800501e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_16.brep",
+    "face": 1,
+    "wires": 17,
+    "mode": "winding_all",
+    "queries": "boundary",
+    "points": 120,
+    "setup_s": 0.010688100010156631,
+    "stock_s": 0.009071600012248382,
+    "new_s": 0.03546390001429245,
+    "stats": {
+      "wire_visits": 1672,
+      "arc_nodes": 7681,
+      "fallback": 40,
+      "boundary": 8,
+      "angles": 6105,
+      "new_answers": 80,
+      "boundary_or_depth": 32
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 16
+    },
+    "max_closure_gap": 3.552713678800501e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_16.brep",
+    "face": 1,
+    "wires": 17,
+    "mode": "winding_index",
+    "queries": "boundary",
+    "points": 120,
+    "setup_s": 0.010688100010156631,
+    "stock_s": 0.009071600012248382,
+    "new_s": 0.010920500004431233,
+    "stats": {
+      "index_nodes": 954,
+      "wire_visits": 174,
+      "arc_nodes": 3161,
+      "fallback": 40,
+      "boundary": 8,
+      "new_answers": 80,
+      "angles": 1585,
+      "boundary_or_depth": 32
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 16
+    },
+    "max_closure_gap": 3.552713678800501e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_64.brep",
+    "face": 1,
+    "wires": 65,
+    "mode": "winding_all",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.017046799999661744,
+    "stock_s": 0.014606400014599785,
+    "new_s": 0.10102550001465715,
+    "stats": {
+      "wire_visits": 16640,
+      "arc_nodes": 50206,
+      "angles": 50191,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 64
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_64.brep",
+    "face": 1,
+    "wires": 65,
+    "mode": "winding_index",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.017046799999661744,
+    "stock_s": 0.014606400014599785,
+    "new_s": 0.005049800005508587,
+    "stats": {
+      "index_nodes": 3138,
+      "wire_visits": 223,
+      "arc_nodes": 909,
+      "angles": 894,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 64
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_64.brep",
+    "face": 1,
+    "wires": 65,
+    "mode": "winding_all",
+    "queries": "boundary",
+    "points": 408,
+    "setup_s": 0.017046799999661744,
+    "stock_s": 0.10215640001115389,
+    "new_s": 0.2787267000239808,
+    "stats": {
+      "wire_visits": 21976,
+      "arc_nodes": 76561,
+      "fallback": 136,
+      "boundary": 8,
+      "angles": 70281,
+      "new_answers": 272,
+      "boundary_or_depth": 128
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 64
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_64.brep",
+    "face": 1,
+    "wires": 65,
+    "mode": "winding_index",
+    "queries": "boundary",
+    "points": 408,
+    "setup_s": 0.017046799999661744,
+    "stock_s": 0.10215640001115389,
+    "new_s": 0.06641430000308901,
+    "stats": {
+      "index_nodes": 6032,
+      "wire_visits": 654,
+      "arc_nodes": 12521,
+      "fallback": 136,
+      "boundary": 8,
+      "new_answers": 272,
+      "angles": 6241,
+      "boundary_or_depth": 128
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 64
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_256.brep",
+    "face": 1,
+    "wires": 257,
+    "mode": "winding_all",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.054017199989175424,
+    "stock_s": 0.05869130001519807,
+    "new_s": 0.4696937999979127,
+    "stats": {
+      "wire_visits": 65792,
+      "arc_nodes": 197738,
+      "angles": 197685,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 256
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_256.brep",
+    "face": 1,
+    "wires": 257,
+    "mode": "winding_index",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.054017199989175424,
+    "stock_s": 0.05869130001519807,
+    "new_s": 0.009678599977632985,
+    "stats": {
+      "index_nodes": 4790,
+      "wire_visits": 246,
+      "arc_nodes": 1054,
+      "angles": 1001,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 256
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_256.brep",
+    "face": 1,
+    "wires": 257,
+    "mode": "winding_all",
+    "queries": "boundary",
+    "points": 390,
+    "setup_s": 0.054017199989175424,
+    "stock_s": 0.44005650002509356,
+    "new_s": 0.9590582000091672,
+    "stats": {
+      "wire_visits": 83334,
+      "arc_nodes": 255763,
+      "fallback": 130,
+      "boundary": 2,
+      "angles": 251409,
+      "new_answers": 260,
+      "boundary_or_depth": 128
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 256
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_256.brep",
+    "face": 1,
+    "wires": 257,
+    "mode": "winding_index",
+    "queries": "boundary",
+    "points": 390,
+    "setup_s": 0.054017199989175424,
+    "stock_s": 0.44005650002509356,
+    "new_s": 0.13978200001292862,
+    "stats": {
+      "index_nodes": 8114,
+      "wire_visits": 578,
+      "arc_nodes": 7427,
+      "fallback": 130,
+      "boundary": 2,
+      "new_answers": 260,
+      "angles": 3073,
+      "boundary_or_depth": 128
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 256
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_1024.brep",
+    "face": 1,
+    "wires": 1025,
+    "mode": "winding_all",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.19737540002097376,
+    "stock_s": 0.2259628000028897,
+    "new_s": 1.9742705000098795,
+    "stats": {
+      "wire_visits": 262400,
+      "arc_nodes": 787760,
+      "angles": 787608,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 1024
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_1024.brep",
+    "face": 1,
+    "wires": 1025,
+    "mode": "winding_index",
+    "queries": "random",
+    "points": 256,
+    "setup_s": 0.19737540002097376,
+    "stock_s": 0.2259628000028897,
+    "new_s": 0.015604399988660589,
+    "stats": {
+      "index_nodes": 6854,
+      "wire_visits": 345,
+      "arc_nodes": 1549,
+      "angles": 1397,
+      "new_answers": 256
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 1024
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_1024.brep",
+    "face": 1,
+    "wires": 1025,
+    "mode": "winding_all",
+    "queries": "boundary",
+    "points": 387,
+    "setup_s": 0.19737540002097376,
+    "stock_s": 2.1441998000082094,
+    "new_s": 3.300536499998998,
+    "stats": {
+      "wire_visits": 330243,
+      "arc_nodes": 996489,
+      "fallback": 129,
+      "boundary": 1,
+      "angles": 992136,
+      "new_answers": 258,
+      "boundary_or_depth": 128
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 1024
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  },
+  {
+    "file": "C:/dev/freecad-kernel-fixes/build/corpus018/synth/face_grid_1024.brep",
+    "face": 1,
+    "wires": 1025,
+    "mode": "winding_index",
+    "queries": "boundary",
+    "points": 387,
+    "setup_s": 0.19737540002097376,
+    "stock_s": 2.1441998000082094,
+    "new_s": 0.5706491000019014,
+    "stats": {
+      "index_nodes": 10871,
+      "wire_visits": 577,
+      "arc_nodes": 7425,
+      "fallback": 129,
+      "boundary": 1,
+      "new_answers": 258,
+      "boundary_or_depth": 128,
+      "angles": 3072
+    },
+    "mismatches": [],
+    "mismatch_count": 0,
+    "pcurve_types": {
+      "Geom2d_Line": 4,
+      "Geom2d_Circle": 1024
+    },
+    "max_closure_gap": 7.105427357601002e-15,
+    "pad": 4e-07
+  }
+]

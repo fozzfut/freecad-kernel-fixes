@@ -1,0 +1,275 @@
+From dacd7175ec2c89cc70b37a7c767a6e3647777f6a Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 06:24:53 +0700
+Subject: [PATCH 3/3] 031 (TKFillet): the piece of the sharp edge is a G1 pivot
+ border of the corner
+
+Round 2 of the flanked-edge corner (fecbbeeb). The piece of the sharp edge
+between the two fillet ends was a free G0 border of the GeomPlate corner, so
+the plate met the faces there at whatever angle came out, and at each vertex
+of the corner a G0 border met a G1 border. GeomPlate drops the constraint
+point of the curve with the lower index at every such vertex (the "point on
+curve i is removed" rule of GeomPlate_BuildPlateSurface::Intersect), so which
+border kept its end depended on the direction the corner was walked: a
+symmetric corner came out asymmetric (owner's part: wall border 15.7 deg at
+one end only, sharp-edge creases 29 vs 41 deg), and the edge-piece creases sat
+near the offset's tangency threshold (issue 5829 model: PartDesign Thickness
+failed, "BRep_API: command not done").
+
+Now the piece is a G1 border on a ruled "pivot" surface through the edge whose
+tangent plane turns about the edge from the face of the set-back fillet's line
+(far end) to the face the nearer fillet rolls on (near end): the tangent planes
+of the rolling ball pivoting on the edge (Rossignac-Requicha). Every vertex of
+the corner then joins two G1 borders that agree, so the plate no longer depends
+on the border order.
+
+Owner's part (26.3 + HD): symmetric corner, edge tol 6.4e-2 (stock) -> 2.0e-3,
+G1 to the fillets 2.0 deg, wall borders <= 2.9 deg, sharp-edge creases
+0.9 -> 42.2 deg monotone on both sides, no folds. TestPartDesignApp 226 and
+TestPartApp 299 as stock (testCase5829ThicknessOnRotatedFillet passes again).
+Only flanked-edge fillet corners change; chamfers and all other corners are
+untouched (DRAW blend group logs identical, own sweep with downstream checks).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx  | 195 +++++++++++++++++-
+ 1 file changed, 193 insertions(+), 2 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx
+index 2ef0e4f5..c60415de 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_CnCrn.cxx
+@@ -78,6 +78,10 @@
+ #include <GeomPlate_BuildPlateSurface.hxx>
+ #include <GeomPlate_CurveConstraint.hxx>
+ #include <GeomPlate_MakeApprox.hxx>
++#include <GeomAPI_Interpolate.hxx>
++#include <Geom_BSplineCurve.hxx>
++#include <BRepAdaptor_Surface.hxx>
++#include <BRep_Tool.hxx>
+ #include <GeomPlate_PlateG0Criterion.hxx>
+ #include <GeomPlate_Surface.hxx>
+ #include <gp_Dir2d.hxx>
+@@ -1230,6 +1234,158 @@ static TopAbs_Orientation PlateOrientation(
+   }
+ }
+ 
++//=======================================================================
++// function : NormalOnEdge
++// purpose  : outward normal of the face F at the point of parameter par of its edge E
++//=======================================================================
++
++static bool NormalOnEdge(const TopoDS_Face& F, const TopoDS_Edge& E, const double par, gp_Dir& N)
++{
++  double                          f, l;
++  const occ::handle<Geom2d_Curve> pc = BRep_Tool::CurveOnSurface(E, F, f, l);
++  if (pc.IsNull())
++  {
++    return false;
++  }
++  const gp_Pnt2d      uv = pc->Value(par);
++  BRepAdaptor_Surface S(F);
++  gp_Pnt              P;
++  gp_Vec              du, dv;
++  S.D1(uv.X(), uv.Y(), P, du, dv);
++  const gp_Vec n = du.Crossed(dv);
++  if (n.Magnitude() < gp::Resolution())
++  {
++    return false;
++  }
++  N = gp_Dir(n);
++  if (F.Orientation() == TopAbs_REVERSED)
++  {
++    N.Reverse();
++  }
++  return true;
++}
++
++//=======================================================================
++// function : PivotBorder
++// purpose  : the piece of a sharp edge between the ends of two fillets, as a curve on a ruled
++//           surface whose tangent plane along the edge turns about the edge from the normal nfar
++//           (edge parameter pfar) to nnear (edge parameter pnear): the tangent planes of a ball
++//           that pivots on the edge. pcurve is the piece on the face surface Asurf; its parameter
++//           is the edge's (reversed when rev, through ce). The returned curve keeps pcurve's
++//           parameter, so the plate's curve for this border matches the 3d curve of the border.
++//=======================================================================
++
++static occ::handle<Adaptor3d_CurveOnSurface> PivotBorder(
++  const occ::handle<Geom2d_Curve>&        pcurve,
++  const occ::handle<GeomAdaptor_Surface>& Asurf,
++  const occ::handle<Geom2d_Curve>&        ce,
++  const bool                              rev,
++  const double                            pfar,
++  const double                            pnear,
++  const gp_Dir&                           nfar,
++  const gp_Dir&                           nnear)
++{
++  occ::handle<Adaptor3d_CurveOnSurface> res;
++  const double                          t0 = pcurve->FirstParameter();
++  const double                          t1 = pcurve->LastParameter();
++  if (std::abs(pnear - pfar) < Precision::PConfusion() || t1 - t0 < Precision::PConfusion())
++  {
++    return res;
++  }
++  const int                                 np = 17;
++  occ::handle<NCollection_HArray1<gp_Pnt>> P0 = new NCollection_HArray1<gp_Pnt>(1, np);
++  occ::handle<NCollection_HArray1<gp_Pnt>> P1 = new NCollection_HArray1<gp_Pnt>(1, np);
++  occ::handle<NCollection_HArray1<double>> T  = new NCollection_HArray1<double>(1, np);
++  const double                              turn = nfar.Angle(nnear);
++  const gp_Vec                              axis = gp_Vec(nfar).Crossed(gp_Vec(nnear));
++  double                                    h    = 0.;
++  for (int k = 1; k <= np; k++)
++  {
++    const double t    = t0 + (t1 - t0) * (k - 1) / (np - 1);
++    const double epar = rev ? ce->ReversedParameter(t) : t;
++    double       s    = (epar - pfar) / (pnear - pfar);
++    s                 = std::min(1., std::max(0., s));
++    gp_Pnt2d     uv;
++    gp_Vec2d     duv;
++    pcurve->D1(t, uv, duv);
++    gp_Pnt P;
++    gp_Vec du, dv;
++    Asurf->D1(uv.X(), uv.Y(), P, du, dv);
++    const gp_Vec tg = du * duv.X() + dv * duv.Y();
++    if (tg.Magnitude() < gp::Resolution())
++    {
++      return res;
++    }
++    gp_Dir n = nfar;
++    if (axis.Magnitude() > gp::Resolution())
++    {
++      n.Rotate(gp_Ax1(P, gp_Dir(axis)), s * turn);
++    }
++    const gp_Vec d = gp_Vec(n).Crossed(tg);
++    if (d.Magnitude() < gp::Resolution())
++    {
++      return res;
++    }
++    P0->SetValue(k, P);
++    T->SetValue(k, t);
++    if (k > 1)
++    {
++      h += P.Distance(P0->Value(k - 1));
++    }
++    P1->SetValue(k, P.Translated(gp_Vec(gp_Dir(d)))); // unit ruling, scaled below
++  }
++  if (h < Precision::Confusion())
++  {
++    return res;
++  }
++  for (int k = 1; k <= np; k++)
++  {
++    const gp_Vec d(P0->Value(k), P1->Value(k));
++    P1->SetValue(k, P0->Value(k).Translated(d * h));
++  }
++  GeomAPI_Interpolate I0(P0, T, false, Precision::Confusion());
++  GeomAPI_Interpolate I1(P1, T, false, Precision::Confusion());
++  I0.Perform();
++  I1.Perform();
++  if (!I0.IsDone() || !I1.IsDone())
++  {
++    return res;
++  }
++  const occ::handle<Geom_BSplineCurve>& C0 = I0.Curve();
++  const occ::handle<Geom_BSplineCurve>& C1 = I1.Curve();
++  if (C0->NbPoles() != C1->NbPoles() || C0->Degree() != C1->Degree()
++      || C0->NbKnots() != C1->NbKnots())
++  {
++    return res;
++  }
++  const int                  nu = C0->NbPoles();
++  NCollection_Array2<gp_Pnt> poles(1, nu, 1, 2);
++  for (int k = 1; k <= nu; k++)
++  {
++    poles.SetValue(k, 1, C0->Pole(k));
++    poles.SetValue(k, 2, C1->Pole(k));
++  }
++  NCollection_Array1<double> vk(1, 2);
++  NCollection_Array1<int>    vm(1, 2);
++  vk.SetValue(1, 0.);
++  vk.SetValue(2, 1.);
++  vm.SetValue(1, 2);
++  vm.SetValue(2, 2);
++  occ::handle<Geom_BSplineSurface> piv = new Geom_BSplineSurface(poles,
++                                                                  C0->Knots(),
++                                                                  vk,
++                                                                  C0->Multiplicities(),
++                                                                  vm,
++                                                                  C0->Degree(),
++                                                                  1);
++  occ::handle<Geom2d_Line>         l  = new Geom2d_Line(gp_Pnt2d(0., 0.), gp_Dir2d(1., 0.));
++  occ::handle<Geom2d_TrimmedCurve> lt = new Geom2d_TrimmedCurve(l, t0, t1);
++  occ::handle<Geom2dAdaptor_Curve> ac = new Geom2dAdaptor_Curve(lt);
++  occ::handle<GeomAdaptor_Surface> as = new GeomAdaptor_Surface(piv);
++  res = new Adaptor3d_CurveOnSurface(Adaptor3d_CurveOnSurface(ac, as));
++  return res;
++}
++
+ //=======================================================================
+ // function : StripeEndOnEdge
+ // purpose  : true when the common point that ends the stripe on its side jfposit lies on
+@@ -3258,7 +3414,9 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+         else
+         { // the connection is a straight line, projection or batten
+           // or, next to a sharp edge on which both fillets end, the piece of that edge
+-          bool alongedge = false, wallline = false;
++          bool                      alongedge = false, wallline = false;
++          occ::handle<Geom2d_Curve> alongce;   // p-curve of the sharp edge on the face
++          bool                      alongrev = false; // the piece runs against the edge
+           if ((sharp.Value(ic) && flank.Value(ic)) || (sharp.Value(icplus) && flank.Value(icplus)))
+           {
+             const bool onic = sharp.Value(ic) && flank.Value(ic);
+@@ -3291,6 +3449,8 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+                                                  ce->ReversedParameter(pb));
+               }
+               alongedge     = true;
++              alongce       = ce;
++              alongrev      = pa > pb;
+               raccordbatten = false;
+             }
+           }
+@@ -3420,8 +3580,39 @@ void ChFi3d_Builder::PerformMoreThreeCorner(const int Jndex, const int nconges)
+           {
+             Order.SetValue(n3d, 1);
+           }
++          occ::handle<Adaptor3d_CurveOnSurface> HPlate = HCons;
++          if (alongedge)
++          {
++            // The ball pivots on the sharp edge between the two ends: along the piece of the edge
++            // the corner's tangent plane turns about the edge from the plane of the face that holds
++            // the set-back stripe's line (at the far end) to the plane of the face the nearer stripe
++            // rolls on (at the near end). This is a G1 border of the corner on a ruled "pivot"
++            // surface through the edge, not a free G0 border: the corner then meets both faces as
++            // the rolling ball does, and every vertex of the corner joins two G1 borders that agree,
++            // so the result does not depend on the order in which the plate takes its borders.
++            const bool         onic = sharp.Value(ic) && flank.Value(ic);
++            const TopoDS_Edge& Efl  = TopoDS::Edge(Evive.Value(onic ? ic : icplus));
++            const TopoDS_Face& Fa   = TopoDS::Face(Fvive.Value(ic, icplus));
++            TopoDS_Face        Fe1, Fe2;
++            ChFi3d_edge_common_faces(myEFMap(Efl), Fe1, Fe2);
++            const TopoDS_Face& Fb    = Fe1.IsSame(Fa) ? Fe2 : Fe1;
++            const double       pfar  = onic ? p.Value(ic, icplus) : p.Value(icplus, ic);
++            const double       pnear = onic ? parflp.Value(ic) : parflm.Value(icplus);
++            gp_Dir             nfar, nnear;
++            if (!Fb.IsSame(Fa) && NormalOnEdge(Fb, Efl, pfar, nfar)
++                && NormalOnEdge(Fa, Efl, pnear, nnear))
++            {
++              const occ::handle<Adaptor3d_CurveOnSurface> HPiv =
++                PivotBorder(pcurve, Asurf, alongce, alongrev, pfar, pnear, nfar, nnear);
++              if (!HPiv.IsNull())
++              {
++                HPlate = HPiv;
++                Order.SetValue(n3d, 1);
++              }
++            }
++          }
+           occ::handle<GeomPlate_CurveConstraint> Cont =
+-            new GeomPlate_CurveConstraint(HCons, Order.Value(n3d), 10, tolapp3d, angular, 0.1);
++            new GeomPlate_CurveConstraint(HPlate, Order.Value(n3d), 10, tolapp3d, angular, 0.1);
+           PSurf.Add(Cont);
+ 
+           // calculation of curve 3d if it is not a projection
+-- 
+2.52.0.windows.1
+

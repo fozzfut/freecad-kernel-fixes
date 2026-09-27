@@ -1,0 +1,34 @@
+From 1d9590552481a30943a2be00937a8c763c655e26 Mon Sep 17 00:00:00 2001
+From: mig <mig@local>
+Date: Fri, 25 Sep 2026 23:05:26 +0700
+Subject: [PATCH 5/5] =?UTF-8?q?OCCT=208.0.1:=20=D1=83=D0=B1=D1=80=D0=B0?=
+ =?UTF-8?q?=D0=BD=20=D1=83=D0=B4=D0=B0=D0=BB=D1=91=D0=BD=D0=BD=D1=8B=D0=B9?=
+ =?UTF-8?q?=20=D0=B7=D0=B0=D0=B3=D0=BE=D0=BB=D0=BE=D0=B2=D0=BE=D0=BA=20BRe?=
+ =?UTF-8?q?p=5FListIteratorOfListOfCurveRepresentation.hxx=20(=D1=82=D0=B8?=
+ =?UTF-8?q?=D0=BF=20=D0=B4=D0=BE=D1=81=D1=82=D1=83=D0=BF=D0=B5=D0=BD=20?=
+ =?UTF-8?q?=D1=87=D0=B5=D1=80=D0=B5=D0=B7=20BRep=5FListOfCurveRepresentati?=
+ =?UTF-8?q?on.hxx)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ src/Mod/Part/Gui/DisplayMeshReuse.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/Mod/Part/Gui/DisplayMeshReuse.cpp b/src/Mod/Part/Gui/DisplayMeshReuse.cpp
+index 9b0deab..0dbadb6 100644
+--- a/src/Mod/Part/Gui/DisplayMeshReuse.cpp
++++ b/src/Mod/Part/Gui/DisplayMeshReuse.cpp
+@@ -22,7 +22,7 @@
+ #include <BRep_Builder.hxx>
+ #include <BRep_CurveRepresentation.hxx>
+ #include <BRep_GCurve.hxx>
+-#include <BRep_ListIteratorOfListOfCurveRepresentation.hxx>
++
+ #include <BRep_ListOfCurveRepresentation.hxx>
+ #include <BRep_TEdge.hxx>
+ #include <BRep_TVertex.hxx>
+-- 
+2.52.0.windows.1
+

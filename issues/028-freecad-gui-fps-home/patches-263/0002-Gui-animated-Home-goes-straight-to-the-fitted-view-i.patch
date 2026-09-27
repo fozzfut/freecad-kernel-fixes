@@ -1,0 +1,277 @@
+From 8ac5bee0cb88bdf08e43b958d584808951acfbe6 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 17:19:53 +0700
+Subject: [PATCH 2/2] Gui: animated Home goes straight to the fitted view in
+ one animation
+
+viewHome() turned the camera (FixedTimeAnimation, AnimationDuration) and
+then called viewAll(), whose animatedViewAll runs 2 x 10 steps of a
+nested QEventLoop with a 20 ms timer: a second, slower fit phase with
+user input excluded, about 1 s for Home in total.
+
+With animations enabled, Home now starts one HomeAnimation (duration and
+easing curve from the same preferences) from the current camera to the
+fitted view at the home orientation: shortest-arc turn as
+FixedTimeAnimation, focal point linear, focal distance and orthographic
+height geometric, perspective height angle linear. When it finishes it
+sets exactly what stock Home ends with: the target orientation, then
+viewAll()'s fit of the scene bounding box computed at that moment
+(45 degree height angle for perspective, viewBoundBox's aspect rule,
+SoCamera::viewBoundingBox slack 1). No nested event loop; the command
+returns at once. Without animation, with a locked orientation or an
+empty scene, the stock code path runs unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/View3DInventorViewer.cpp | 221 +++++++++++++++++++++++++++++++
+ 1 file changed, 221 insertions(+)
+
+diff --git a/src/Gui/View3DInventorViewer.cpp b/src/Gui/View3DInventorViewer.cpp
+index c3296fd..5612c64 100644
+--- a/src/Gui/View3DInventorViewer.cpp
++++ b/src/Gui/View3DInventorViewer.cpp
+@@ -25,6 +25,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <numbers>
+ #include <format>
+ 
+ #include <Inventor/SoFCPlacementIndicatorKit.h>
+@@ -4506,6 +4507,200 @@ SbBox3f View3DInventorViewer::getBoundingBox() const
+     return action.getBoundingBox();
+ }
+ 
++namespace
++{
++// The fit that ends View3DInventorViewer::viewBoundBox (after its animation): same aspect-ratio rule,
++// same Coin call, slack 1.0.
++void fitCameraToBox(View3DInventorViewer* viewer, SoCamera* cam, const SbBox3f& box)
++{
++    float aspectratio = viewer->getSoRenderManager()->getViewportRegion().getViewportAspectRatio();
++    switch (cam->viewportMapping.getValue()) {
++        case SoCamera::CROP_VIEWPORT_FILL_FRAME:
++        case SoCamera::CROP_VIEWPORT_LINE_FRAME:
++        case SoCamera::CROP_VIEWPORT_NO_FRAME:
++            aspectratio = 1.0f;
++            break;
++        default:
++            break;
++    }
++    cam->viewBoundingBox(box, aspectratio, 1.0);
++}
++
++// Geometric (log-linear) interpolation of a positive scale, linear otherwise.
++float interpolateScale(float from, float to, float t)
++{
++    if (from > 0.0F && to > 0.0F) {
++        return from * std::pow(to / from, t);
++    }
++    return from + (to - from) * t;
++}
++
++/**
++ * Home as ONE animation: from the current camera straight to the fitted view at the home
++ * orientation, instead of a rotation followed by a second fit phase (animatedViewAll, which runs
++ * nested event loops with a 20 ms timer per step).
++ *
++ * Path: the orientation turns along the shortest arc exactly as FixedTimeAnimation turns it (axis
++ * and angle of current^-1 * target, applied with the eased progress); the focal point moves
++ * linearly from the current one to the centre of the fitted view; the focal distance and the
++ * orthographic height change geometrically (constant relative zoom speed, van Wijk & Nuij 2004);
++ * a perspective height angle changes linearly to the 45 degrees viewAll() sets. The camera
++ * position follows as focal point - direction * focal distance.
++ *
++ * End: exactly what stock Home ends with - the target orientation set exactly, then viewAll()'s
++ * fit of the scene bounding box computed at that moment (perspective height angle 45 degrees,
++ * viewBoundBox's aspect rule, SoCamera::viewBoundingBox with slack 1). Interrupted: the camera
++ * stays where it is and no fit follows (as when the stock rotation is interrupted).
++ */
++class HomeAnimation: public NavigationAnimation
++{
++public:
++    HomeAnimation(
++        NavigationStyle* navigation,
++        View3DInventorViewer* viewer,
++        const SbRotation& orientation,
++        const SbBox3f& box,
++        int duration,
++        QEasingCurve::Type easingCurve
++    )
++        : NavigationAnimation(navigation)
++        , viewer(viewer)
++        , targetOrientation(orientation)
++        , box(box)
++    {
++        setDuration(duration);
++        setStartValue(0.0);
++        setEndValue(1.0);
++        setEasingCurve(easingCurve);
++    }
++
++private:
++    View3DInventorViewer* viewer;
++    SbRotation targetOrientation;
++    SbBox3f box;
++    SbRotation startOrientation;
++    SbVec3f rotationAxis;  // pre-multiplication axis, as in FixedTimeAnimation
++    float angle {0.0F};
++    SbVec3f startFocalPoint;
++    SbVec3f endFocalPoint;
++    float startDistance {0.0F};
++    float endDistance {0.0F};
++    float startHeight {0.0F};  // orthographic height or perspective height angle
++    float endHeight {0.0F};
++
++    static bool isOrthographic(const SoCamera* camera)
++    {
++        return camera->isOfType(SoOrthographicCamera::getClassTypeId());
++    }
++    static bool isPerspective(const SoCamera* camera)
++    {
++        return camera->isOfType(SoPerspectiveCamera::getClassTypeId());
++    }
++
++    void initialize() override
++    {
++#if (COIN_MAJOR_VERSION * 100 + COIN_MINOR_VERSION * 10 + COIN_MICRO_VERSION < 403)
++        navigation->findBoundingSphere();
++#endif
++        SoCamera* camera = navigation->getCamera();
++        if (!camera) {
++            return;
++        }
++
++        startOrientation = camera->orientation.getValue();
++        SbVec3f rotationAxisPost;
++        SbRotation(startOrientation.inverse() * targetOrientation).getValue(rotationAxisPost, angle);
++        if (angle > std::numbers::pi) {
++            angle -= float(2 * std::numbers::pi);
++        }
++        startOrientation.inverse().multVec(rotationAxisPost, rotationAxis);
++
++        startFocalPoint = viewer->getFocalPoint();
++        startDistance = camera->focalDistance.getValue();
++
++        // The fitted view at the target orientation, computed on a copy of the camera
++        auto end = static_cast<SoCamera*>(camera->copy());
++        end->ref();
++        end->orientation.setValue(targetOrientation);
++        if (isPerspective(end)) {
++            static_cast<SoPerspectiveCamera*>(end)->heightAngle = (float)(M_PI / 4.0);  // NOLINT
++        }
++        fitCameraToBox(viewer, end, box);
++        SbVec3f direction;
++        targetOrientation.multVec(SbVec3f(0, 0, -1), direction);
++        endDistance = end->focalDistance.getValue();
++        endFocalPoint = end->position.getValue() + endDistance * direction;
++        if (isOrthographic(camera)) {
++            startHeight = static_cast<SoOrthographicCamera*>(camera)->height.getValue();  // NOLINT
++            endHeight = static_cast<SoOrthographicCamera*>(end)->height.getValue();       // NOLINT
++        }
++        else if (isPerspective(camera)) {
++            startHeight = static_cast<SoPerspectiveCamera*>(camera)->heightAngle.getValue();  // NOLINT
++            endHeight = static_cast<SoPerspectiveCamera*>(end)->heightAngle.getValue();       // NOLINT
++        }
++        end->unref();
++    }
++
++    void update(const QVariant& value) override
++    {
++        SoCamera* camera = navigation->getCamera();
++        if (!camera) {
++            return;
++        }
++        const float t = value.toFloat();
++
++        navigation->setCameraOrientationValue(
++            camera,
++            SbRotation(rotationAxis, angle * t) * startOrientation,
++            NavigationStyle::OrientationChangeSource::Programmatic
++        );
++        SbVec3f direction;
++        camera->orientation.getValue().multVec(SbVec3f(0, 0, -1), direction);
++
++        const float distance = interpolateScale(startDistance, endDistance, t);
++        const SbVec3f focalPoint = startFocalPoint + (endFocalPoint - startFocalPoint) * t;
++        if (isOrthographic(camera)) {
++            static_cast<SoOrthographicCamera*>(camera)->height =  // NOLINT
++                interpolateScale(startHeight, endHeight, t);
++        }
++        else if (isPerspective(camera)) {
++            static_cast<SoPerspectiveCamera*>(camera)->heightAngle =  // NOLINT
++                startHeight + (endHeight - startHeight) * t;
++        }
++        camera->focalDistance = distance;
++        camera->position = focalPoint - direction * distance;
++    }
++
++    void onStop(bool finished) override
++    {
++        if (!finished) {
++            return;
++        }
++        SoCamera* camera = navigation->getCamera();
++        if (!camera) {
++            return;
++        }
++
++        // Set exact target orientation
++        navigation->setCameraOrientationValue(
++            camera,
++            targetOrientation,
++            NavigationStyle::OrientationChangeSource::Programmatic
++        );
++
++        // What viewAll() does at the end of stock Home
++        SbBox3f finalBox;
++        if (!viewer->getSceneBoundBox(finalBox)) {
++            return;
++        }
++        if (isPerspective(camera)) {
++            static_cast<SoPerspectiveCamera*>(camera)->heightAngle = (float)(M_PI / 4.0);  // NOLINT
++        }
++        fitCameraToBox(viewer, camera, finalBox);
++    }
++};
++}  // namespace
++
+ void View3DInventorViewer::viewHome()
+ {
+     SoCamera* camera = getCamera();
+@@ -4514,6 +4709,32 @@ void View3DInventorViewer::viewHome()
+     }
+ 
+     const SbRotation orientation = Camera::defaultOrientation("Top");
++
++    // Animated Home: one animation straight to the fitted view (HomeAnimation above), with the
++    // duration and easing curve of the other navigation animations. It ends where the code below
++    // ends (target orientation, then viewAll()'s fit); that code stays for the other cases.
++    SbBox3f box;
++    if (isAnimationEnabled()
++        && navigation->canChangeCameraOrientation(
++            camera->orientation.getValue(),
++            orientation,
++            NavigationStyle::OrientationChangeSource::Programmatic
++        )
++        && getSceneBoundBox(box)) {
++        ParameterGrp::handle hGrp = App::GetApplication().GetParameterGroupByPath(
++            "User parameter:BaseApp/Preferences/View"
++        );
++        const int duration = static_cast<int>(hGrp->GetInt("AnimationDuration", 500));
++        const auto easingCurve = static_cast<QEasingCurve::Type>(
++            hGrp->GetInt("NavigationAnimationEasingCurve", QEasingCurve::Type::InOutCubic)
++        );
++        navigation->startAnimating(
++            std::make_shared<HomeAnimation>(navigation, this, orientation, box, duration, easingCurve)
++        );
++        return;
++    }
++
++    // Stock path (no animation, orientation locked, no scene bounding box)
+     if (Camera::rotationsMatch(camera->orientation.getValue(), orientation)) {
+         viewAll();
+         return;
+-- 
+2.52.0.windows.1
+

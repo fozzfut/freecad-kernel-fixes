@@ -1,0 +1,938 @@
+diff --git a/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_IntersectionTool.cxx b/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_IntersectionTool.cxx
+index ab216499..897251a2 100644
+--- a/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_IntersectionTool.cxx
++++ b/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_IntersectionTool.cxx
+@@ -44,6 +44,17 @@
+ #include <TopoDS_Vertex.hxx>
+ #include <TopoDS_Wire.hxx>
+ #include <TopoDS_Shape.hxx>
++#include <algorithm>
++#include <array>
++#include <cmath>
++#include <limits>
++#include <iterator>
++#include <new>
++#include <typeinfo>
++#include <vector>
++#include <Bnd_Box2d.hxx>
++#include <NCollection_DataMap.hxx>
++#include <TopTools_ShapeMapHasher.hxx>
+ 
+ // gka 06.09.04 BUG 6555 shape is modified always independently either intersection was fixed or not
+ //=================================================================================================
+@@ -1024,6 +1035,121 @@ bool ShapeFix_IntersectionTool::FindVertAndSplitEdge(
+   return false;
+ }
+ 
++//=======================================================================
++// defect 020: SF = Context()->Apply (face) and the maximum vertex tolerance of SF
++// (FixSelfIntersectWire below) without copying the face when that Apply would rebuild nothing.
++// ShapeBuild_ReShape::Apply copies the shape and each of its sub-shapes (EmptyCopied,
++// ShapeBuild_ReShape.cxx:184) before it knows whether anything changed; FixSelfIntersectWire runs
++// it for every wire of the face - quadratic on a face with many holes.
++//=======================================================================
++namespace
++{
++//! The parent / child types TopoDS_Builder::Add accepts that occur under a face. Any other pair:
++//! the stock Apply runs (it rebuilds, or throws TopoDS_UnCompatibleShapes in B.Add there).
++static bool isFaceChild(const TopAbs_ShapeEnum theParent, const TopAbs_ShapeEnum theChild)
++{
++  switch (theParent)
++  {
++    case TopAbs_FACE:
++      return theChild == TopAbs_WIRE || theChild == TopAbs_VERTEX;
++    case TopAbs_WIRE:
++      return theChild == TopAbs_EDGE;
++    case TopAbs_EDGE:
++      return theChild == TopAbs_VERTEX;
++    default:
++      return false;
++  }
++}
++
++//! Walks theShape as ShapeBuild_ReShape::Apply (theShape) walks a shape in which nothing is
++//! recorded: the same children (TopoDS_Iterator (shape, false), ShapeBuild_ReShape.cxx:191), the
++//! same test of Value() (:158-169), and the Free (false) that B.Add (result, child) sets on every
++//! child it keeps (:205, TopoDS_Builder.cxx:49) - here set on a child only after its whole subtree
++//! passed, so when the walk stops the stock Apply sets the same flags again and the others. Reads
++//! the vertex tolerances in the order TopExp_Explorer (SF, TopAbs_VERTEX) meets them (children are
++//! never null: BRep_Tool::Tolerance cannot throw). False at the first sub-shape Apply would replace
++//! or remove, or at a parent / child pair the fast path does not take.
++static bool walkUnrecorded(const occ::handle<ShapeBuild_ReShape>& theCtx,
++                           const bool                             theConsLoc,
++                           const TopoDS_Shape&                    theShape,
++                           double&                                theMaxTolVert)
++{
++  const TopAbs_ShapeEnum aType = theShape.ShapeType();
++  for (TopoDS_Iterator anIt(theShape, false); anIt.More(); anIt.Next())
++  {
++    const TopoDS_Shape&    aSub     = anIt.Value();
++    const TopAbs_ShapeEnum aSubType = aSub.ShapeType();
++    if (!isFaceChild(aType, aSubType))
++      return false;
++    const TopoDS_Shape aVal = theCtx->Value(aSub);
++    if (aVal.IsNull() || (theConsLoc ? !aVal.IsPartner(aSub) : !aVal.IsSame(aSub)))
++      return false;
++    if (aSubType == TopAbs_VERTEX)
++      theMaxTolVert = Max(theMaxTolVert, BRep_Tool::Tolerance(TopoDS::Vertex(aSub)));
++    else if (!walkUnrecorded(theCtx, theConsLoc, aSub, theMaxTolVert))
++      return false;
++    aSub.TShape()->Free(false);
++  }
++  return true;
++}
++
++//! True when nothing in the face is recorded: then theSF and theMaxTolVert are what the stock code
++//! computes, and the context is left as the stock Apply leaves it - no record (it writes only when
++//! it rebuilds, :228), the same Status (OK, or DONE1 after a chain of replacements of the face),
++//! the same Free flags. Apply (face, TopAbs_FACE) follows the same chain (:157-174) and stops
++//! before copying (:176-177). False (the caller runs the stock code): the context is not exactly a
++//! ShapeBuild_ReShape (a derived class may override Apply or Value), the face or a sub-shape is
++//! removed or replaced, the chain ends at a non-face or at a shape recorded as itself in another
++//! orientation (there Apply (face, TopAbs_FACE) would return the record, the full Apply the shape).
++static bool applyFaceUnrecorded(const occ::handle<ShapeBuild_ReShape>& theCtx,
++                                const TopoDS_Face&                     theFace,
++                                TopoDS_Shape&                          theSF,
++                                double&                                theMaxTolVert)
++{
++  if (typeid(*theCtx) != typeid(ShapeBuild_ReShape))
++    return false;
++  const bool   aConsLoc = theCtx->ModeConsiderLocation();
++  TopoDS_Shape aCur     = theFace;
++  // OCCT 8.0.1 applyImpl keeps the TShapes of the chain "in flight" and returns Value() of a shape
++  // met again without walking it (ShapeBuild_ReShape.cxx:219-227): the stock code decides such a
++  // chain, and any chain through a non-face (an in-flight wire, edge or vertex could be met again
++  // under the face).
++  NCollection_Sequence<const TopoDS_TShape*> aChain;
++  for (int aStep = 0;; aStep++)
++  {
++    if (aStep > 1000 || aCur.ShapeType() != TopAbs_FACE)
++      return false;
++    for (NCollection_Sequence<const TopoDS_TShape*>::Iterator anIt(aChain); anIt.More(); anIt.Next())
++    {
++      if (anIt.Value() == aCur.TShape().get())
++        return false;
++    }
++    aChain.Append(aCur.TShape().get());
++    const TopoDS_Shape aVal = theCtx->Value(aCur);
++    if (aVal.IsNull())
++      return false;
++    if (aConsLoc ? !aVal.IsPartner(aCur) : !aVal.IsSame(aCur))
++    {
++      aCur = aVal;
++      continue;
++    }
++    if (!aVal.IsEqual(aCur))
++      return false;
++    break;
++  }
++  if (aCur.ShapeType() != TopAbs_FACE)
++    return false;
++  double aMaxTolVert = 0.0;
++  if (!walkUnrecorded(theCtx, aConsLoc, aCur, aMaxTolVert))
++    return false;
++  theSF = theCtx->Apply(theFace, TopAbs_FACE);
++  if (!theSF.IsEqual(aCur))
++    return false; // not reached (see above); the stock Apply then decides and sets the status
++  theMaxTolVert = aMaxTolVert;
++  return true;
++}
++} // namespace
++
+ //=================================================================================================
+ 
+ bool ShapeFix_IntersectionTool::FixSelfIntersectWire(occ::handle<ShapeExtend_WireData>& sewd,
+@@ -1041,12 +1167,20 @@ bool ShapeFix_IntersectionTool::FixSelfIntersectWire(occ::handle<ShapeExtend_Wir
+   // if(area2d<Precision::PConfusion()*Precision::PConfusion()) return false; //gka
+   // 06.09.04 BUG 6555
+ 
+-  TopoDS_Shape SF         = Context()->Apply(face);
++  TopoDS_Shape SF;
+   double       MaxTolVert = 0.0;
+-  for (TopExp_Explorer exp(SF, TopAbs_VERTEX); exp.More(); exp.Next())
++  // defect 020: the same SF, context and MaxTolVert without rebuilding the face when nothing in it
++  // is recorded. The maximum is still taken for every wire: this function raises tolerances of the
++  // face's vertices in place (B.UpdateVertex below) between the wires of one face.
++  if (!applyFaceUnrecorded(myContext, face, SF, MaxTolVert))
+   {
+-    double tolV = BRep_Tool::Tolerance(TopoDS::Vertex(exp.Current()));
+-    MaxTolVert  = std::max(MaxTolVert, tolV);
++    SF         = Context()->Apply(face);
++    MaxTolVert = 0.0;
++    for (TopExp_Explorer exp(SF, TopAbs_VERTEX); exp.More(); exp.Next())
++    {
++      double tolV = BRep_Tool::Tolerance(TopoDS::Vertex(exp.Current()));
++      MaxTolVert  = std::max(MaxTolVert, tolV);
++    }
+   }
+   MaxTolVert = std::min(MaxTolVert, myMaxTol);
+   ShapeAnalysis_Edge sae;
+@@ -1830,6 +1964,114 @@ bool ShapeFix_IntersectionTool::FixSelfIntersectWire(occ::handle<ShapeExtend_Wir
+   return isDone;
+ }
+ 
++//=======================================================================
++// defect 020: pairs of wires for FixIntersectingWires found by a sweep of the wire boxes instead of
++// all pairs. OCCT 8.0.1 Bnd_Box2d::IsOut (Bnd_Box2d.cxx:456-479) of two boxes without flags (not
++// void, no open side) tests Xmin - Other.Xmax > Gap + Other.Gap (and the three other sides) on the
++// stored values; it is symmetric, and apart from rounding it is "the Get() ranges are apart in x or
++// in y". The sweep takes the Get() ranges widened by 1e-9 of their magnitude and the gap - far more
++// than the rounding of either form - so a pair the stock test does not reject always intersects in
++// both x and y and is found; the stock test is still applied to every candidate pair. Boxes of
++// other kinds (void, open, not finite) and boxes recomputed after a pair was fixed are tested with
++// every wire, as before.
++//=======================================================================
++namespace
++{
++//! Widened Get() ranges (xmin, ymin, xmax, ymax) of a box for the sweep; false for a box the sweep
++//! does not take.
++static bool sweepRange(const Bnd_Box2d& theBox, double theR[4])
++{
++  if (theBox.IsVoid() || theBox.IsOpenXmin() || theBox.IsOpenXmax() || theBox.IsOpenYmin()
++      || theBox.IsOpenYmax())
++    return false;
++  theBox.Get(theR[0], theR[1], theR[2], theR[3]);
++  const double aGap = theBox.GetGap();
++  const double aMag =
++    std::abs(theR[0]) + std::abs(theR[1]) + std::abs(theR[2]) + std::abs(theR[3]) + 4.0 * std::abs(aGap);
++  if (!std::isfinite(aMag) || !(theR[0] <= theR[2] && theR[1] <= theR[3])) // not finite, NaN
++    return false;
++  const double aWiden = 1.0e-9 * aMag + std::numeric_limits<double>::min();
++  theR[0] -= aWiden;
++  theR[1] -= aWiden;
++  theR[2] += aWiden;
++  theR[3] += aWiden;
++  return true;
++}
++
++//! theSwept[n] = 1 for the boxes the sweep takes; theCand[n1] = sorted n2 > n1 whose ranges
++//! intersect those of n1.
++static void sweepWireBoxes(const NCollection_Sequence<Bnd_Box2d>& theBoxes,
++                           std::vector<char>&                     theSwept,
++                           std::vector<std::vector<int>>&         theCand)
++{
++  const int                          aNb = theBoxes.Length();
++  std::vector<std::array<double, 4>> aR(aNb + 1);
++  std::vector<int>                   anOrder;
++  int                                n = 1;
++  for (NCollection_Sequence<Bnd_Box2d>::Iterator anIt(theBoxes); anIt.More(); anIt.Next(), n++)
++  {
++    if (sweepRange(anIt.Value(), aR[n].data()))
++    {
++      theSwept[n] = 1;
++      anOrder.push_back(n);
++    }
++  }
++  std::sort(anOrder.begin(), anOrder.end(), [&aR](const int a, const int b) {
++    return aR[a][0] < aR[b][0] || (aR[a][0] == aR[b][0] && a < b);
++  });
++  std::vector<int> anActive;
++  for (const int aCur : anOrder)
++  {
++    std::size_t aKeep = 0;
++    for (std::size_t k = 0; k < anActive.size(); k++)
++    {
++      const int a = anActive[k];
++      if (aR[a][2] < aR[aCur][0])
++        continue; // ends before aCur starts: before every later box too
++      anActive[aKeep++] = a;
++      if (!(aR[a][3] < aR[aCur][1] || aR[a][1] > aR[aCur][3]))
++        theCand[(std::min)(a, aCur)].push_back((std::max)(a, aCur));
++    }
++    anActive.resize(aKeep);
++    anActive.push_back(aCur);
++  }
++  for (std::vector<int>& aList : theCand)
++    std::sort(aList.begin(), aList.end());
++}
++
++//! The second wires n2 > n1 the stock loop has to test, in increasing order: all of them when the
++//! box of n1 is not swept (or was recomputed), else the swept candidates of n1 and every not swept
++//! wire above n1.
++static void secondWires(const int               n1,
++                        const int               theNb,
++                        const bool              theSwept1,
++                        const std::vector<int>& theCand1,
++                        const std::vector<int>& theNotSwept,
++                        std::vector<int>&       theOut)
++{
++  theOut.clear();
++  if (!theSwept1)
++  {
++    for (int n2 = n1 + 1; n2 <= theNb; n2++)
++      theOut.push_back(n2);
++    return;
++  }
++  const std::vector<int>::const_iterator anUp =
++    std::upper_bound(theNotSwept.begin(), theNotSwept.end(), n1);
++  std::merge(theCand1.begin(), theCand1.end(), anUp, theNotSwept.end(), std::back_inserter(theOut));
++  theOut.erase(std::unique(theOut.begin(), theOut.end()), theOut.end());
++}
++
++//! The box of wire n was recomputed: from now on the wire is tested with every other wire.
++static void unsweepWire(const int n, std::vector<char>& theSwept, std::vector<int>& theNotSwept)
++{
++  if (!theSwept[n])
++    return;
++  theSwept[n] = 0;
++  theNotSwept.insert(std::upper_bound(theNotSwept.begin(), theNotSwept.end(), n), n);
++}
++} // namespace
++
+ //=================================================================================================
+ 
+ bool ShapeFix_IntersectionTool::FixIntersectingWires(TopoDS_Face& face) const
+@@ -1885,17 +2127,58 @@ bool ShapeFix_IntersectionTool::FixIntersectingWires(TopoDS_Face& face) const
+     aSeqWirBoxes.Append(aTotalBox);
+   }
+ 
++  // defect 020: the second wires that can pass the box test below, from a sweep of the boxes (see
++  // sweepWireBoxes). aBox1 is the box of n1 at the start of its loop (not updated inside it, as
++  // before), aBox2 the current box of n2. std::bad_alloc from these vectors (here, in secondWires
++  // or in unsweepWire; a few bytes per wire and per candidate pair, while the loop allocates a
++  // ShapeExtend_WireData per tested pair): the sweep is dropped and from there on every n1 tests
++  // all n2 > n1, as the stock loop does - the same pairs reach the box test, nothing is thrown that
++  // the stock code would not throw (review M1).
++  const int                     aNbWir = SeqWir.Length();
++  std::vector<char>             aSwept;
++  std::vector<std::vector<int>> aCandWir;
++  std::vector<int>              aNotSwept, aSecond;
++  bool                          aUseSweep = true;
++  try
++  {
++    aSwept.assign(aNbWir + 1, 0);
++    aCandWir.resize(aNbWir + 1);
++    sweepWireBoxes(aSeqWirBoxes, aSwept, aCandWir);
++    for (int n = 1; n <= aNbWir; n++)
++    {
++      if (!aSwept[n])
++        aNotSwept.push_back(n);
++    }
++  }
++  catch (const std::bad_alloc&)
++  {
++    aUseSweep = false;
++  }
++
+   for (int n1 = 1; n1 <= SeqWir.Length() - 1; n1++)
+   {
+     TopoDS_Wire                       wire1 = TopoDS::Wire(SeqWir.Value(n1));
+     occ::handle<ShapeExtend_WireData> sewd1 = new ShapeExtend_WireData(wire1);
+     NCollection_DataMap<TopoDS_Shape, Bnd_Box2d, TopTools_ShapeMapHasher>& boxes1 =
+       aSeqWirEdgeBoxes.ChangeValue(n1);
+-    Bnd_Box2d aBox1 = aSeqWirBoxes(n1);
+-    for (int n2 = n1 + 1; n2 <= SeqWir.Length(); n2++)
++    Bnd_Box2d aBox1   = aSeqWirBoxes(n1);
++    bool      aSweep1 = aUseSweep;
++    if (aSweep1)
+     {
+-      TopoDS_Wire                       wire2 = TopoDS::Wire(SeqWir.Value(n2));
+-      occ::handle<ShapeExtend_WireData> sewd2 = new ShapeExtend_WireData(wire2);
++      try
++      {
++        secondWires(n1, aNbWir, aSwept[n1] != 0, aCandWir[n1], aNotSwept, aSecond);
++      }
++      catch (const std::bad_alloc&)
++      {
++        aUseSweep = aSweep1 = false;
++      }
++    }
++    const std::size_t aNbSecond = aSweep1 ? aSecond.size() : (std::size_t)(aNbWir - n1);
++    for (std::size_t aK = 0; aK < aNbSecond; aK++)
++    {
++      const int   n2    = aSweep1 ? aSecond[aK] : n1 + 1 + (int)aK;
++      TopoDS_Wire wire2 = TopoDS::Wire(SeqWir.Value(n2));
+       NCollection_DataMap<TopoDS_Shape, Bnd_Box2d, TopTools_ShapeMapHasher>& boxes2 =
+         aSeqWirEdgeBoxes.ChangeValue(n2);
+       Bnd_Box2d aBox2 = aSeqWirBoxes(n2);
+@@ -1903,6 +2186,9 @@ bool ShapeFix_IntersectionTool::FixIntersectingWires(TopoDS_Face& face) const
+       {
+         continue;
+       }
++      // defect 020: created after the box test (the stock created it before); the constructor only
++      // reads wire2
++      occ::handle<ShapeExtend_WireData> sewd2 = new ShapeExtend_WireData(wire2);
+       // detect possible intersections:
+       int  NbModif      = 0;
+       int  nbReplaced   = 0;     // gka 06.09.04
+@@ -2500,6 +2786,21 @@ bool ShapeFix_IntersectionTool::FixIntersectingWires(TopoDS_Face& face) const
+         boxes2.Clear();
+         Bnd_Box2d aNewBox2 = CreateBoxes2d(sewd2, face, boxes2);
+         aSeqWirBoxes.SetValue(n2, aNewBox2);
++        // defect 020: both boxes were recomputed - from now on these wires are tested with every
++        // other wire
++        if (aUseSweep)
++        {
++          try
++          {
++            unsweepWire(n1, aSwept, aNotSwept);
++            unsweepWire(n2, aSwept, aNotSwept);
++          }
++          catch (const std::bad_alloc&)
++          {
++            aUseSweep =
++              false; // the list of n2 of this n1 stays right: the loop changes no box of a later n2
++          }
++        }
+       }
+     }
+   }
+diff --git a/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_Shell.cxx b/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_Shell.cxx
+index 0a97fb36..076674cc 100644
+--- a/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_Shell.cxx
++++ b/src/ModelingAlgorithms/TKShHealing/ShapeFix/ShapeFix_Shell.cxx
+@@ -47,8 +47,13 @@
+ #include <NCollection_IndexedDataMap.hxx>
+ #include <NCollection_Sequence.hxx>
+ 
++#include <Standard_OutOfMemory.hxx>
++
+ #include <stack>
+ #include <algorithm>
++#include <cstdint>
++#include <new>
++#include <vector>
+ 
+ IMPLEMENT_STANDARD_RTTIEXT(ShapeFix_Shell, ShapeFix_Root)
+ 
+@@ -296,42 +301,13 @@ static NCollection_List<NCollection_Sequence<TopoDS_Shape>> GetConnectedFaceGrou
+   return aConnectedGroups;
+ }
+ 
+-/// Creates shells from connected face groups using connectivity analysis.
+-/// Processes only the largest connected group for shell construction, improving efficiency
+-/// by focusing on faces that are actually topologically connected.
+-/// @param theLfaces Input sequence of faces to process; returns unprocessed faces
+-/// @param theMapMultiConnectEdges Map of edges shared by more than 2 faces (multiconnectivity mode)
+-/// @param theSeqShells Output sequence of created shells
+-/// @param theMapFaceShells Output map linking faces to their containing shells
+-/// @param theErrFaces Output sequence of faces that could not be processed (e.g., Mobius-like)
+-/// @return true if shell construction was successful, false otherwise
+-static bool GetShells(
+-  NCollection_Sequence<TopoDS_Shape>&                                       theLfaces,
+-  const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>&             theMapMultiConnectEdges,
+-  NCollection_Sequence<TopoDS_Shape>&                                       theSeqShells,
+-  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theMapFaceShells,
+-  NCollection_Sequence<TopoDS_Shape>&                                       theErrFaces)
++/// Face -> edges and edge -> faces maps of theLfaces (the first part of the stock GetShells; defect
++/// 020 also runs it on a part of the faces).
++/// @return the number of edges met (with repeats)
++static size_t buildFaceEdgeMaps(const NCollection_Sequence<TopoDS_Shape>& theLfaces,
++                                FaceEdgesMap&                             aFaceEdges,
++                                EdgeFacesMap&                             aEdgeFaces)
+ {
+-  bool aDone = false;
+-  if (!theLfaces.Length())
+-  {
+-    return false;
+-  }
+-  TopoDS_Shell nshell;
+-  BRep_Builder B;
+-  B.MakeShell(nshell);
+-  bool                               anIsMultiConnex = !theMapMultiConnectEdges.IsEmpty();
+-  int                                aFaceIdx = 1, aFacesInShellCount = 1;
+-  NCollection_Sequence<TopoDS_Shape> aSeqUnconnectFaces;
+-
+-  // Using STL containers because number of faces or edges can be too high
+-  // to keep them on flat basket OCCT map
+-  using EdgeOrientedMap =
+-    NCollection_DataMap<TopoDS_Edge, std::pair<bool, bool>, TopTools_ShapeMapHasher>;
+-  using TempProcessedEdges =
+-    NCollection_DataMap<TopoDS_Edge, std::pair<bool, bool>, TopTools_ShapeMapHasher>;
+-
+-  FaceEdgesMap aFaceEdges;
+   aFaceEdges.ReSize(theLfaces.Length());
+   size_t                                aNumberOfEdges = 0;
+   NCollection_DynamicArray<TopoDS_Edge> aTempEdges;
+@@ -353,7 +329,7 @@ static bool GetShells(
+     aFaceEdges.Add(aFace, std::move(aFaceEdgesArray));
+   }
+ 
+-  EdgeFacesMap aEdgeFaces(static_cast<int>(aNumberOfEdges));
++  aEdgeFaces.ReSize(static_cast<int>(aNumberOfEdges));
+ 
+   for (int aFaceInd = 1; aFaceInd <= aFaceEdges.Length(); ++aFaceInd)
+   {
+@@ -389,24 +365,43 @@ static bool GetShells(
+       }
+     }
+   }
++  return aNumberOfEdges;
++}
+ 
+-  // Get connected groups of faces using existing connectivity data
+-  NCollection_List<NCollection_Sequence<TopoDS_Shape>> aConnectedGroups =
+-    GetConnectedFaceGroups(aFaceEdges, aEdgeFaces);
+-
+-  // Process only the largest connected group for shell construction
+-  if (aConnectedGroups.IsEmpty())
+-  {
+-    return false;
+-  }
++/// Builds shells from the first (largest) connected group (the second part of the stock GetShells).
++/// @param aProcessingFaces the faces of the group in the order of the connected-group search;
++///        returns the faces not added to a shell
++/// @param aFaceEdges the edges of each face of the group (it may hold other faces too)
++/// @param aNumberOfEdges a size hint for the edge maps (it changes no result: the maps are only
++///        searched, bound and unbound, never iterated)
++/// @param aSeqUnconnectFaces receives the faces of one-face shells taken apart
++/// @return true if a face was reversed
++static bool buildShellsOfGroup(
++  NCollection_Sequence<TopoDS_Shape>&                                       aProcessingFaces,
++  const FaceEdgesMap&                                                       aFaceEdges,
++  const size_t                                                              aNumberOfEdges,
++  const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>&             theMapMultiConnectEdges,
++  NCollection_Sequence<TopoDS_Shape>&                                       theSeqShells,
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theMapFaceShells,
++  NCollection_Sequence<TopoDS_Shape>&                                       theErrFaces,
++  NCollection_Sequence<TopoDS_Shape>&                                       aSeqUnconnectFaces)
++{
++  bool aDone = false;
++  TopoDS_Shell nshell;
++  BRep_Builder B;
++  B.MakeShell(nshell);
++  bool anIsMultiConnex = !theMapMultiConnectEdges.IsEmpty();
++  int  aFaceIdx = 1, aFacesInShellCount = 1;
+ 
+-  // Some assumption that each edge can be in two orientations
+-  aNumberOfEdges = static_cast<size_t>((aNumberOfEdges / 2) + 1);
++  // Using STL containers because number of faces or edges can be too high
++  // to keep them on flat basket OCCT map
++  using EdgeOrientedMap =
++    NCollection_DataMap<TopoDS_Edge, std::pair<bool, bool>, TopTools_ShapeMapHasher>;
++  using TempProcessedEdges =
++    NCollection_DataMap<TopoDS_Edge, std::pair<bool, bool>, TopTools_ShapeMapHasher>;
+ 
+   EdgeOrientedMap aProcessedEdges(static_cast<int>(aNumberOfEdges));
+ 
+-  NCollection_Sequence<TopoDS_Shape> aProcessingFaces = std::move(aConnectedGroups.First());
+-
+   TempProcessedEdges aTempProcessedEdges(static_cast<int>(aNumberOfEdges));
+   for (; aFaceIdx <= aProcessingFaces.Length(); aFaceIdx++)
+   {
+@@ -617,6 +612,58 @@ static bool GetShells(
+       aProcessingFaces.Append(aFace);
+     }
+   }
++  return aDone;
++}
++
++/// Creates shells from connected face groups using connectivity analysis.
++/// Processes only the largest connected group for shell construction, improving efficiency
++/// by focusing on faces that are actually topologically connected.
++/// @param theLfaces Input sequence of faces to process; returns unprocessed faces
++/// @param theMapMultiConnectEdges Map of edges shared by more than 2 faces (multiconnectivity mode)
++/// @param theSeqShells Output sequence of created shells
++/// @param theMapFaceShells Output map linking faces to their containing shells
++/// @param theErrFaces Output sequence of faces that could not be processed (e.g., Mobius-like)
++/// @return true if shell construction was successful, false otherwise
++static bool GetShells(
++  NCollection_Sequence<TopoDS_Shape>&                                       theLfaces,
++  const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>&             theMapMultiConnectEdges,
++  NCollection_Sequence<TopoDS_Shape>&                                       theSeqShells,
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theMapFaceShells,
++  NCollection_Sequence<TopoDS_Shape>&                                       theErrFaces)
++{
++  if (!theLfaces.Length())
++  {
++    return false;
++  }
++  NCollection_Sequence<TopoDS_Shape> aSeqUnconnectFaces;
++
++  FaceEdgesMap aFaceEdges;
++  EdgeFacesMap aEdgeFaces;
++  size_t       aNumberOfEdges = buildFaceEdgeMaps(theLfaces, aFaceEdges, aEdgeFaces);
++
++  // Get connected groups of faces using existing connectivity data
++  NCollection_List<NCollection_Sequence<TopoDS_Shape>> aConnectedGroups =
++    GetConnectedFaceGroups(aFaceEdges, aEdgeFaces);
++
++  // Process only the largest connected group for shell construction
++  if (aConnectedGroups.IsEmpty())
++  {
++    return false;
++  }
++
++  // Some assumption that each edge can be in two orientations
++  aNumberOfEdges = static_cast<size_t>((aNumberOfEdges / 2) + 1);
++
++  NCollection_Sequence<TopoDS_Shape> aProcessingFaces = std::move(aConnectedGroups.First());
++
++  const bool aDone = buildShellsOfGroup(aProcessingFaces,
++                                        aFaceEdges,
++                                        aNumberOfEdges,
++                                        theMapMultiConnectEdges,
++                                        theSeqShells,
++                                        theMapFaceShells,
++                                        theErrFaces,
++                                        aSeqUnconnectFaces);
+ 
+   // Add all unprocessed connected groups (second group and after) to unconnected faces
+   int aGroupIndex = 1;
+@@ -647,6 +694,333 @@ static bool GetShells(
+   return aDone;
+ }
+ 
++//=======================================================================
++// defect 020 (row 8 of the audit) on OCCT 8.0.1. FixFaceOrientation calls GetShells until a call
++// builds no shell; each stock call (#584) builds the face / edge maps and the connected groups of
++// ALL remaining faces, turns the largest group into shells and puts the other groups back into
++// Lface - on a shell of many separate bodies that is O(faces) per body, quadratic in all
++// (512 boxes in one shell: 2.4-2.9 s on the weekly). ShellGroupsState keeps the stock Lface between
++// the calls of one FixFaceOrientation as
++//   Front                 the faces the last call left: its leftovers, then the faces of one-face
++//                         shells it took apart (they lead the stock Lface),
++//   Groups not processed  the other connected groups, in the order of the stock group list.
++// A call groups only the Front (its groups cannot touch the others: each of those was a whole
++// connected group of an earlier Lface), and takes the first group of the stock list: the largest,
++// and among equal sizes the first in Lface - the stock list is a stable sort by size of the groups
++// in the order of their first face in Lface, i.e. of [groups of the Front, then the groups kept, in
++// the previous list order]. Key: size (descending), call that found it (descending), place in that
++// call's list. The only other thing a stock call does to a group it does not process is to rebuild
++// its face order: the connected-group search (a depth-first search from its first face, over edge
++// -> faces arrays filled in Lface order) runs on it again, and the result depends on the group's
++// own order only. So a group records the call of its order, and when it is needed that search is
++// repeated once per call it missed - on its own faces, with integer ids; the order sequence of a
++// group is deterministic, so once an order repeats the rest is read from the cycle. The group
++// taken is turned into shells by the stock code (buildShellsOfGroup) on the same sequence.
++// Allocation failure while preparing a call (std::bad_alloc, Standard_OutOfMemory): the stock Lface
++// is rebuilt from this state and the stock GetShells does that call and all later ones.
++//=======================================================================
++namespace
++{
++//! One connected group of faces of the stock Lface, not processed yet.
++struct ShellFaceGroup
++{
++  std::vector<TopoDS_Shape> Faces; //!< its faces (the Lface objects) in the order of call Stamp
++  int                       Stamp = 0;
++  int                       Call  = 0; //!< the call that found the group
++  int                       Rank  = 0; //!< its place in that call's group list
++};
++
++//! The stock Lface between the GetShells calls of one FixFaceOrientation (see above).
++struct ShellGroupsState
++{
++  NCollection_Sequence<TopoDS_Shape> Front;
++  std::vector<ShellFaceGroup>        Groups;
++  std::vector<int>                   Heap; //!< ids of the groups not processed (heap by key)
++  int                                CallNo       = 0;
++  int                                NbGroupFaces = 0;
++  bool                               Stock        = false;
++
++  int NbFaces() const { return Front.Length() + NbGroupFaces; }
++};
++
++//! True when group a comes before group b in the stock group list.
++static bool groupBefore(const ShellFaceGroup& a, const ShellFaceGroup& b)
++{
++  const size_t aSize = a.Faces.size(), bSize = b.Faces.size();
++  if (aSize != bSize)
++    return aSize > bSize;
++  if (a.Call != b.Call)
++    return a.Call > b.Call;
++  return a.Rank < b.Rank;
++}
++
++struct GroupHeapLess
++{
++  const std::vector<ShellFaceGroup>* myGroups;
++
++  bool operator()(const int a, const int b) const
++  {
++    return groupBefore((*myGroups)[b], (*myGroups)[a]);
++  }
++};
++
++//! One stock connected-group search on a group whose faces are in the order theIn (local face
++//! ids): edge -> faces arrays filled in that order (a face once per edge: it is appended only by
++//! itself, so the stock scan for it finds it last), then a depth-first search with a stack from
++//! theIn[0], neighbours in the edge order of the face (TopExp_Explorer, with repeats) and the face
++//! order of each edge array (GetConnectedFaceGroups).
++static void groupSearchOnce(const std::vector<std::vector<int>>& theFaceEdges,
++                            std::vector<std::vector<int>>&       theEdgeFaces,
++                            const std::vector<int>&              theIn,
++                            std::vector<char>&                   theVisited,
++                            std::vector<int>&                    theStack,
++                            std::vector<int>&                    theOut)
++{
++  for (std::vector<int>& anArr : theEdgeFaces)
++    anArr.clear();
++  for (const int aF : theIn)
++  {
++    for (const int anE : theFaceEdges[aF])
++    {
++      std::vector<int>& anArr = theEdgeFaces[anE];
++      if (anArr.empty() || anArr.back() != aF)
++        anArr.push_back(aF);
++    }
++  }
++  theVisited.assign(theIn.size(), 0);
++  theStack.clear();
++  theOut.clear();
++  theStack.push_back(theIn[0]);
++  theVisited[theIn[0]] = 1;
++  while (!theStack.empty())
++  {
++    const int aCur = theStack.back();
++    theStack.pop_back();
++    theOut.push_back(aCur);
++    for (const int anE : theFaceEdges[aCur])
++    {
++      for (const int aNb : theEdgeFaces[anE])
++      {
++        if (!theVisited[aNb])
++        {
++          theVisited[aNb] = 1;
++          theStack.push_back(aNb);
++        }
++      }
++    }
++  }
++}
++
++static uint64_t orderHash(const std::vector<int>& theOrder)
++{
++  uint64_t aH = 1469598103934665603ULL;
++  for (const int a : theOrder)
++    aH = (aH ^ static_cast<uint64_t>(static_cast<unsigned int>(a))) * 1099511628211ULL;
++  return aH;
++}
++
++//! Brings the face order of the group to what the stock Lface holds after call theCall: one
++//! connected-group search per call since Stamp. Changes the group only on success.
++static void materializeGroup(ShellFaceGroup& theGroup, const int theCall)
++{
++  const int aPending = theCall - theGroup.Stamp;
++  const int aNb      = static_cast<int>(theGroup.Faces.size());
++  if (aPending <= 0 || aNb <= 2) // an order of one or two faces is its own search result
++  {
++    theGroup.Stamp = std::max(theGroup.Stamp, theCall);
++    return;
++  }
++  NCollection_DataMap<TopoDS_Shape, int, TopTools_ShapeMapHasher> anEdgeIds;
++  std::vector<std::vector<int>>                                   aFaceEdges(aNb);
++  for (int i = 0; i < aNb; ++i)
++  {
++    for (TopExp_Explorer anExp(theGroup.Faces[i], TopAbs_EDGE); anExp.More(); anExp.Next())
++    {
++      const int anId = anEdgeIds.Extent();
++      aFaceEdges[i].push_back(anEdgeIds.TryBound(anExp.Current(), anId));
++    }
++  }
++  std::vector<std::vector<int>> anEdgeFaces(anEdgeIds.Extent());
++  std::vector<char>             aVisited;
++  std::vector<int>              aStack, aCur(aNb), aNext;
++  for (int i = 0; i < aNb; ++i)
++    aCur[i] = i;
++  constexpr int                 THE_MAX_HISTORY = 16;
++  std::vector<std::vector<int>> aHistory(1, aCur);
++  std::vector<uint64_t>         aHashes(1, orderHash(aCur));
++  for (int aStep = 1; aStep <= aPending; ++aStep)
++  {
++    groupSearchOnce(aFaceEdges, anEdgeFaces, aCur, aVisited, aStack, aNext);
++    aCur.swap(aNext);
++    if (aStep >= THE_MAX_HISTORY)
++      continue; // no more history: plain repetition, as the stock calls do
++    const uint64_t aHash = orderHash(aCur);
++    int            aSeen = -1;
++    for (int t = 0; t < static_cast<int>(aHistory.size()) && aSeen < 0; ++t)
++    {
++      if (aHashes[t] == aHash && aHistory[t] == aCur)
++        aSeen = t;
++    }
++    if (aSeen >= 0)
++    {
++      // order(aStep) == order(aSeen): from aSeen on the orders repeat with this period
++      const int aPeriod = aStep - aSeen;
++      aCur              = aHistory[aSeen + (aPending - aSeen) % aPeriod];
++      break;
++    }
++    aHistory.push_back(aCur);
++    aHashes.push_back(aHash);
++  }
++  std::vector<TopoDS_Shape> aFaces(aNb);
++  for (int i = 0; i < aNb; ++i)
++    aFaces[i] = theGroup.Faces[aCur[i]];
++  theGroup.Faces.swap(aFaces);
++  theGroup.Stamp = theCall;
++}
++
++//! The stock Lface of this state after call theCall (the Front, then the groups in list order).
++static void materializeLface(ShellGroupsState&                   theState,
++                             const int                           theCall,
++                             NCollection_Sequence<TopoDS_Shape>& theLfaces)
++{
++  std::vector<int> anOrder(theState.Heap);
++  std::sort(anOrder.begin(), anOrder.end(), [&theState](const int a, const int b) {
++    return groupBefore(theState.Groups[a], theState.Groups[b]);
++  });
++  NCollection_Sequence<TopoDS_Shape> aLfaces(theState.Front);
++  for (const int anId : anOrder)
++  {
++    ShellFaceGroup& aGroup = theState.Groups[anId];
++    materializeGroup(aGroup, theCall);
++    for (const TopoDS_Shape& aFace : aGroup.Faces)
++      aLfaces.Append(aFace);
++  }
++  theLfaces = std::move(aLfaces);
++}
++
++//! One GetShells call of FixFaceOrientation on the state (the same result as the stock GetShells
++//! on the stock Lface); after an allocation failure, and from then on, the stock GetShells on
++//! theLfaces.
++static bool GetShellsOfGroups(
++  ShellGroupsState&                                                         theState,
++  NCollection_Sequence<TopoDS_Shape>&                                       theLfaces,
++  const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>&             theMapMultiConnectEdges,
++  NCollection_Sequence<TopoDS_Shape>&                                       theSeqShells,
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theMapFaceShells,
++  NCollection_Sequence<TopoDS_Shape>&                                       theErrFaces)
++{
++  if (!theState.Stock)
++  {
++    const int                          aCall = theState.CallNo + 1;
++    std::vector<ShellFaceGroup>        aNew;
++    FaceEdgesMap                       aFrontEdges;
++    size_t                             aNumberOfEdges = 0;
++    int                                aTaken         = -1; // id of an old group, or -1: aNew[0]
++    NCollection_Sequence<TopoDS_Shape> aProcessingFaces;
++    FaceEdgesMap                       aTakenEdges;
++    bool                               aPrepared = false;
++    try
++    {
++      // groups of the Front, in the stock list order (they lead the stock Lface)
++      if (theState.Front.Length())
++      {
++        EdgeFacesMap aEdgeFaces;
++        aNumberOfEdges = buildFaceEdgeMaps(theState.Front, aFrontEdges, aEdgeFaces);
++        NCollection_List<NCollection_Sequence<TopoDS_Shape>> aList =
++          GetConnectedFaceGroups(aFrontEdges, aEdgeFaces);
++        aNew.reserve(static_cast<size_t>(aList.Size()));
++        int aRank = 0;
++        for (NCollection_List<NCollection_Sequence<TopoDS_Shape>>::Iterator anIt(aList);
++             anIt.More();
++             anIt.Next())
++        {
++          ShellFaceGroup aGroup;
++          aGroup.Faces.reserve(static_cast<size_t>(anIt.Value().Length()));
++          for (NCollection_Sequence<TopoDS_Shape>::Iterator aFIt(anIt.Value()); aFIt.More();
++               aFIt.Next())
++            aGroup.Faces.push_back(aFIt.Value());
++          aGroup.Stamp = aCall;
++          aGroup.Call  = aCall;
++          aGroup.Rank  = aRank++;
++          aNew.push_back(std::move(aGroup));
++        }
++      }
++      if (aNew.empty() && theState.Heap.empty())
++      {
++        return false; // no faces (the stock: empty Lface)
++      }
++      theState.Groups.reserve(theState.Groups.size() + aNew.size());
++      theState.Heap.reserve(theState.Heap.size() + aNew.size());
++      // the first group of the stock list
++      if (aNew.empty()
++          || (!theState.Heap.empty()
++              && groupBefore(theState.Groups[theState.Heap.front()], aNew.front())))
++      {
++        aTaken = theState.Heap.front();
++        // a copy: the state stays as it was until the commit (the fallback rebuilds Lface from it)
++        ShellFaceGroup aGroup = theState.Groups[aTaken];
++        materializeGroup(aGroup, aCall);
++        NCollection_Sequence<TopoDS_Shape> aFaces;
++        for (const TopoDS_Shape& aFace : aGroup.Faces)
++          aFaces.Append(aFace);
++        EdgeFacesMap aEdgeFaces;
++        aNumberOfEdges = buildFaceEdgeMaps(aFaces, aTakenEdges, aEdgeFaces);
++        aProcessingFaces = std::move(aFaces);
++      }
++      else
++      {
++        for (const TopoDS_Shape& aFace : aNew.front().Faces)
++          aProcessingFaces.Append(aFace);
++      }
++      aPrepared = true;
++    }
++    catch (const std::bad_alloc&)
++    {
++    }
++    catch (const Standard_OutOfMemory&)
++    {
++    }
++    if (aPrepared)
++    {
++      // commit: nothing below allocates before the stock code
++      theState.CallNo = aCall;
++      if (aTaken >= 0)
++      {
++        std::pop_heap(theState.Heap.begin(), theState.Heap.end(), GroupHeapLess{&theState.Groups});
++        theState.Heap.pop_back();
++        theState.NbGroupFaces -= static_cast<int>(theState.Groups[aTaken].Faces.size());
++        std::vector<TopoDS_Shape>().swap(theState.Groups[aTaken].Faces);
++      }
++      for (size_t i = (aTaken >= 0 ? 0 : 1); i < aNew.size(); ++i)
++      {
++        theState.NbGroupFaces += static_cast<int>(aNew[i].Faces.size());
++        theState.Groups.push_back(std::move(aNew[i]));
++        theState.Heap.push_back(static_cast<int>(theState.Groups.size()) - 1);
++        std::push_heap(theState.Heap.begin(), theState.Heap.end(), GroupHeapLess{&theState.Groups});
++      }
++      theState.Front.Clear();
++      // the stock code on the taken group
++      NCollection_Sequence<TopoDS_Shape> aSeqUnconnectFaces;
++      const bool aDone = buildShellsOfGroup(aProcessingFaces,
++                                            aTaken >= 0 ? aTakenEdges : aFrontEdges,
++                                            static_cast<size_t>((aNumberOfEdges / 2) + 1),
++                                            theMapMultiConnectEdges,
++                                            theSeqShells,
++                                            theMapFaceShells,
++                                            theErrFaces,
++                                            aSeqUnconnectFaces);
++      theState.Front = std::move(aProcessingFaces);
++      theState.Front.Append(aSeqUnconnectFaces);
++      return aDone;
++    }
++    // allocation failure: the stock Lface after the last call, and the stock code from here on
++    materializeLface(theState, theState.CallNo, theLfaces);
++    theState.Stock = true;
++  }
++  return GetShells(theLfaces, theMapMultiConnectEdges, theSeqShells, theMapFaceShells, theErrFaces);
++}
++} // namespace
++
+ //=======================================================================
+ // function : AddMultiConexityFaces
+ // purpose  : In this function faces have only of multiconnexity boundary
+@@ -1480,10 +1854,19 @@ bool ShapeFix_Shell::FixFaceOrientation(const TopoDS_Shell& shell,
+   }
+   bool isGetShells = true;
+   // Gets possible shells with taking in account of multiconnexity.
+-  while (isGetShells && Lface.Length())
++  // defect 020: the calls work on a state that holds Lface (ShellGroupsState, GetShellsOfGroups)
++  ShellGroupsState aGroupsState;
++  aGroupsState.Front = std::move(Lface);
++  Lface.Clear();
++  while (isGetShells && (aGroupsState.Stock ? Lface.Length() : aGroupsState.NbFaces()))
+   {
+     NCollection_Sequence<TopoDS_Shape> aTmpSeqShells;
+-    if (GetShells(Lface, aMapMultiConnectEdges, aTmpSeqShells, aMapFaceShells, aErrFaces))
++    if (GetShellsOfGroups(aGroupsState,
++                          Lface,
++                          aMapMultiConnectEdges,
++                          aTmpSeqShells,
++                          aMapFaceShells,
++                          aErrFaces))
+     {
+       done = true;
+     }
+@@ -1493,6 +1876,10 @@ bool ShapeFix_Shell::FixFaceOrientation(const TopoDS_Shell& shell,
+       aSeqShells.Append(aTmpSeqShells);
+     }
+   }
++  if (!aGroupsState.Stock)
++  {
++    materializeLface(aGroupsState, aGroupsState.CallNo, Lface);
++  }
+   if (!done)
+   {
+     done = (aSeqShells.Length() > 1);

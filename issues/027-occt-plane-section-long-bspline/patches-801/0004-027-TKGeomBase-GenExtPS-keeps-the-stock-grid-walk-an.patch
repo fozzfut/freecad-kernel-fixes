@@ -1,0 +1,257 @@
+From 0a593b53f0be42dc850caa209ec3c05c34f1c888 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 16:45:12 +0700
+Subject: [PATCH 4/4] 027 (TKGeomBase): GenExtPS keeps the stock grid walk and
+ defers the edge evaluations, sorted by V
+
+The V-major walk of the previous commit removed the B-spline cache rebuilds but walked the grid
+arrays across rows; measured on the whole-screw oblique section it was no faster (profile: RebuildCache
+gone, BuildGrid self time up). Now the grid is walked in the stock U-major order (streaming memory),
+and for an edge whose closest point is inside, computeEdgeDeferred027 (ComputeEdgeParameters without
+the evaluation, same arithmetic expression by expression) stores the parameters; the surface points
+are then evaluated in (V column, U row) order, so consecutive evaluations share a V span.
+
+Measured (native harness, sequential, one run): face 149 5.79 -> 4.28 s, face 150 5.46 -> 4.57 s,
+whole-screw oblique section 68.4 -> 64.6 s (with the two TKBO commits in both).
+
+EXTREMA_027_VERIFY: every edge recomputed with the stock ComputeEdgeParameters and compared bit for
+bit; EXTREMA_027_MUTANT: the last deferred point is not evaluated (negative control).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../TKGeomBase/Extrema/Extrema_GenExtPS.cxx   | 187 ++++++++++++++----
+ 1 file changed, 147 insertions(+), 40 deletions(-)
+
+diff --git a/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx b/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx
+index e0434474..d4a162d5 100644
+--- a/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx
++++ b/src/ModelingData/TKGeomBase/Extrema/Extrema_GenExtPS.cxx
+@@ -44,6 +44,9 @@
+ #include <StdFail_NotDone.hxx>
+ #include <Standard_Integer.hxx>
+ #include <NCollection_Array2.hxx>
++#include <NCollection_Vector.hxx>
++
++#include <algorithm>
+ 
+ // IMPLEMENT_HARRAY1(Extrema_HArray1OfSphere)
+ class Bnd_SphereUBTreeSelector : public NCollection_UBTree<int, Bnd_Sphere>::Selector
+@@ -255,6 +258,66 @@ static void verify027Same(const Extrema_POnSurfParams& theA, const Extrema_POnSu
+ } // namespace
+ #endif
+ 
++namespace
++{
++//! 027: Extrema_GenExtPS::ComputeEdgeParameters() without the surface evaluation.
++//! Writes into theOut exactly what the stock function returns, except that for a point inside the
++//! edge the 3D point and the square distance are left to the caller (they need S(u, v)).
++//! Returns true in that case. The arithmetic is the stock one, expression by expression.
++static bool computeEdgeDeferred027(const bool                   IsUEdge,
++                                   const Extrema_POnSurfParams& theParam0,
++                                   const Extrema_POnSurfParams& theParam1,
++                                   const gp_Pnt&                thePoint,
++                                   const double                 theDiffTol,
++                                   Extrema_POnSurfParams&       theOut)
++{
++  const double aSqrDist01 = theParam0.Value().SquareDistance(theParam1.Value());
++
++  if (aSqrDist01 <= theDiffTol)
++  {
++    // The points are confused. Get the first point and change its type.
++    theOut = theParam0;
++    return false;
++  }
++  const double aDiffDist = std::abs(theParam0.GetSqrDistance() - theParam1.GetSqrDistance());
++
++  if (aDiffDist >= aSqrDist01 - theDiffTol)
++  {
++    // The shortest distance is one of the nodes.
++    theOut = theParam0.GetSqrDistance() > theParam1.GetSqrDistance() ? theParam1 : theParam0;
++    return false;
++  }
++  // The shortest distance is inside the edge.
++  gp_XYZ aPoP(thePoint.XYZ().Subtracted(theParam0.Value().XYZ()));
++  gp_XYZ aPoP1(theParam1.Value().XYZ().Subtracted(theParam0.Value().XYZ()));
++  double aRatio = aPoP.Dot(aPoP1) / aSqrDist01;
++  double aU[2];
++  double aV[2];
++
++  theParam0.Parameter(aU[0], aV[0]);
++  theParam1.Parameter(aU[1], aV[1]);
++
++  double aUPar = aU[0];
++  double aVPar = aV[0];
++
++  if (IsUEdge)
++  {
++    aUPar += aRatio * (aU[1] - aU[0]);
++  }
++  else
++  {
++    aVPar += aRatio * (aV[1] - aV[0]);
++  }
++
++  int anIndices[2];
++  theParam0.GetIndices(anIndices[0], anIndices[1]);
++  theOut.SetParameters(aUPar, aVPar, gp_Pnt(0., 0., 0.));
++  theOut.SetElementType(IsUEdge ? Extrema_UIsoEdge : Extrema_VIsoEdge);
++  theOut.SetIndices(anIndices[0], anIndices[1]);
++  return true;
++}
++} // namespace
++
+ Extrema_GenExtPS::Extrema_GenExtPS()
+     : myumin(0.0),
+       myusup(0.0),
+@@ -674,56 +737,80 @@ void Extrema_GenExtPS::BuildGrid(const gp_Pnt& thePoint)
+     // Assume UEdge(i, j) = { Point(i, j); Point(i + 1, j    ) }
+     // Assume VEdge(i, j) = { Point(i, j); Point(i,     j + 1) }
+     //
+-    // 027: every edge is computed independently of the others (from its two nodes and the
+-    // point), so the loop order does not change any value. On B-spline and Bezier surfaces the
+-    // points inside edges are evaluated through the adaptor's span cache, which holds one
+-    // (U span, V span) pair: the stock U-major order evaluates the inside edges of one U row
+-    // across all V spans and rebuilds the cache on almost every evaluation (a long face: one
+-    // rebuild per evaluation, 25-40 % of a section). Walking the grid V-major keeps consecutive
+-    // evaluations in the same V span. A cache holds the one span whose parameter interval
+-    // contains the point (BSplCLib_CacheParams::IsCacheValid, consistent with LocateParameter),
+-    // so the evaluated values do not depend on which evaluation came before.
+-    const auto aComputeEdges = [&](const int NoU, const int NoV) {
+-      const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
+-
+-      if (NoU < myusample)
++    // 027: on B-spline and Bezier surfaces the points inside edges are evaluated through the
++    // adaptor's span cache, which holds one (U span, V span) pair. The stock loop evaluates the
++    // inside edges of one U row across all V spans, so on a long face the cache is rebuilt for
++    // almost every evaluation (25-40 % of a section of the ball screw). Here the grid is walked in
++    // the stock order but the surface evaluations are deferred and done afterwards sorted by
++    // (V column, U row): consecutive evaluations stay in one V span. Every edge value depends only
++    // on its two nodes and the point (computeEdgeDeferred027 is ComputeEdgeParameters without the
++    // evaluation), and a span cache is valid only for parameters inside its span, so no value
++    // changes; the verify build compares every edge with ComputeEdgeParameters bit for bit.
++    const bool isDeferred =
++      myS->GetType() == GeomAbs_BSplineSurface || myS->GetType() == GeomAbs_BezierSurface;
++    if (isDeferred)
++    {
++      // key = (NoV * (myusample + 1) + NoU) * 2 + (0 for a U edge, 1 for a V edge)
++      NCollection_Vector<long long> aDeferred(1024);
++      const long long               aRow = (long long)myusample + 1;
++      for (int NoU = 1; NoU <= myusample; NoU++)
+       {
+-        // Compute parameters to UEdge.
+-        const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU + 1, NoV);
+-        const Extrema_POnSurfParams& anEdgeParam =
+-          ComputeEdgeParameters(true, aParam0, aParam1, thePoint, aDiffTol);
+-
+-        myUEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
+-      }
++        for (int NoV = 1; NoV <= myvsample; NoV++)
++        {
++          const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
+ 
+-      if (NoV < myvsample)
+-      {
+-        // Compute parameters to VEdge.
+-        const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU, NoV + 1);
+-        const Extrema_POnSurfParams& anEdgeParam =
+-          ComputeEdgeParameters(false, aParam0, aParam1, thePoint, aDiffTol);
++          if (NoU < myusample
++              && computeEdgeDeferred027(true,
++                                        aParam0,
++                                        myPoints.Value(NoU + 1, NoV),
++                                        thePoint,
++                                        aDiffTol,
++                                        myUEdgePntParams.ChangeValue(NoU, NoV)))
++          {
++            aDeferred.Append((NoV * aRow + NoU) * 2);
++          }
+ 
+-        myVEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++          if (NoV < myvsample
++              && computeEdgeDeferred027(false,
++                                        aParam0,
++                                        myPoints.Value(NoU, NoV + 1),
++                                        thePoint,
++                                        aDiffTol,
++                                        myVEdgePntParams.ChangeValue(NoU, NoV)))
++          {
++            aDeferred.Append((NoV * aRow + NoU) * 2 + 1);
++          }
++        }
+       }
+-    };
+-    const bool isVMajor =
+-      myS->GetType() == GeomAbs_BSplineSurface || myS->GetType() == GeomAbs_BezierSurface;
+-    if (isVMajor)
+-    {
++      if (!aDeferred.IsEmpty())
++      {
++        NCollection_Array1<long long> aKeys(0, aDeferred.Length() - 1);
++        for (int k = 0; k < aDeferred.Length(); ++k)
++        {
++          aKeys.SetValue(k, aDeferred.Value(k));
++        }
++        std::sort(&aKeys.ChangeFirst(), &aKeys.ChangeFirst() + aKeys.Length());
+ #ifdef EXTREMA_027_MUTANT
+-      const int aLastV = myvsample - 1; // negative control: the last V column keeps stale edges
++        const int aNbEval = aKeys.Length() - 1; // negative control: the last point stays unevaluated
+ #else
+-      const int aLastV = myvsample;
++        const int aNbEval = aKeys.Length();
+ #endif
+-      for (int NoV = 1; NoV <= aLastV; NoV++)
+-      {
+-        for (int NoU = 1; NoU <= myusample; NoU++)
++        for (int k = 0; k < aNbEval; ++k)
+         {
+-          aComputeEdges(NoU, NoV);
++          const long long        aKey  = aKeys.Value(k);
++          const bool             isV   = (aKey & 1) != 0;
++          const int              NoU   = int((aKey >> 1) % aRow);
++          const int              NoV   = int((aKey >> 1) / aRow);
++          Extrema_POnSurfParams& anEdge = isV ? myVEdgePntParams.ChangeValue(NoU, NoV)
++                                              : myUEdgePntParams.ChangeValue(NoU, NoV);
++          double                 aUPar, aVPar;
++          anEdge.Parameter(aUPar, aVPar);
++          anEdge.SetParameters(aUPar, aVPar, myS->Value(aUPar, aVPar));
++          anEdge.SetSqrDistance(thePoint.SquareDistance(anEdge.Value()));
+         }
+       }
+ #ifdef EXTREMA_027_VERIFY
+-      // recompute every edge in the stock U-major order and compare bit for bit
++      // recompute every edge with the stock ComputeEdgeParameters and compare bit for bit
+       for (int NoU = 1; NoU <= myusample; NoU++)
+       {
+         for (int NoV = 1; NoV <= myvsample; NoV++)
+@@ -751,7 +838,27 @@ void Extrema_GenExtPS::BuildGrid(const gp_Pnt& thePoint)
+       {
+         for (int NoV = 1; NoV <= myvsample; NoV++)
+         {
+-          aComputeEdges(NoU, NoV);
++          const Extrema_POnSurfParams& aParam0 = myPoints.Value(NoU, NoV);
++
++          if (NoU < myusample)
++          {
++            // Compute parameters to UEdge.
++            const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU + 1, NoV);
++            const Extrema_POnSurfParams& anEdgeParam =
++              ComputeEdgeParameters(true, aParam0, aParam1, thePoint, aDiffTol);
++
++            myUEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++          }
++
++          if (NoV < myvsample)
++          {
++            // Compute parameters to VEdge.
++            const Extrema_POnSurfParams& aParam1 = myPoints.Value(NoU, NoV + 1);
++            const Extrema_POnSurfParams& anEdgeParam =
++              ComputeEdgeParameters(false, aParam0, aParam1, thePoint, aDiffTol);
++
++            myVEdgePntParams.SetValue(NoU, NoV, anEdgeParam);
++          }
+         }
+       }
+     }
+-- 
+2.52.0.windows.1
+

@@ -1,0 +1,49 @@
+From c41ddbaeedbfa0ebdcab014f7948138963163c4a Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 02:07:29 +0700
+Subject: [PATCH 2/2] PartDesign: Chamfer saves ReferenceFaces with the
+ document
+
+Review of the consistent-face change: ReferenceFaces was transient, so a
+document reopened from disk had an empty record until the chamfer was
+recomputed. The task panel then placed the Size gizmo by the old
+topology-order fallback - on the other face than the one the stored result
+was measured on - and tools reading the record showed nothing. The record is
+now saved like any output property; nothing is written on restore.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/PartDesign/App/FeatureChamfer.cpp | 2 +-
+ src/Mod/PartDesign/App/FeatureChamfer.h   | 3 ++-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/Mod/PartDesign/App/FeatureChamfer.cpp b/src/Mod/PartDesign/App/FeatureChamfer.cpp
+index 540dc6a..daf98be 100644
+--- a/src/Mod/PartDesign/App/FeatureChamfer.cpp
++++ b/src/Mod/PartDesign/App/FeatureChamfer.cpp
+@@ -119,7 +119,7 @@ Chamfer::Chamfer()
+         ReferenceFaces,
+         (),
+         "Chamfer",
+-        App::PropertyType(App::Prop_Output | App::Prop_Transient | App::Prop_ReadOnly),
++        App::PropertyType(App::Prop_Output | App::Prop_ReadOnly),
+         "EdgeN:FaceM per chamfered edge: the base face Size and Angle are measured on"
+     );
+ 
+diff --git a/src/Mod/PartDesign/App/FeatureChamfer.h b/src/Mod/PartDesign/App/FeatureChamfer.h
+index 1494b5b..7fa9e6a 100644
+--- a/src/Mod/PartDesign/App/FeatureChamfer.h
++++ b/src/Mod/PartDesign/App/FeatureChamfer.h
+@@ -50,7 +50,8 @@ public:
+     /// "Legacy": the first adjacent face in the shape's topology order (FlipDirection: the last),
+     /// FreeCAD 1.1 / 26.3 stock; documents saved without this property keep it.
+     App::PropertyEnumeration ReferenceMode;
+-    /// Output, not saved: "EdgeN:FaceM" per chamfered edge (base shape numbering), the face that
++    /// Output, saved with the document so that the task panel has it before any recompute:
++    /// "EdgeN:FaceM" per chamfered edge (base shape numbering), the face that
+     /// Size and Angle are measured on. Empty for "Equal distance".
+     App::PropertyStringList ReferenceFaces;
+ 
+-- 
+2.52.0.windows.1
+

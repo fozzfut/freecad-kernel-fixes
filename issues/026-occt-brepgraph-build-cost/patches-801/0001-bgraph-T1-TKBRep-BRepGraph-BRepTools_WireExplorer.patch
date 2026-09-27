@@ -1,0 +1,496 @@
+From 6016f3b8f1e4a50e02bb2902628800f1d11c2592 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 11:38:57 +0700
+Subject: [PATCH 1/3] =?UTF-8?q?bgraph=20T1=20(TKBRep):=20=D0=BF=D0=BE?=
+ =?UTF-8?q?=D1=80=D1=8F=D0=B4=D0=BE=D0=BA=20=D1=80=D1=91=D0=B1=D0=B5=D1=80?=
+ =?UTF-8?q?=20=D0=BF=D1=80=D0=BE=D0=B2=D0=BE=D0=B4=D0=B0=20=D0=BF=D1=80?=
+ =?UTF-8?q?=D0=B8=20=D0=BF=D0=BE=D1=81=D1=82=D1=80=D0=BE=D0=B5=D0=BD=D0=B8?=
+ =?UTF-8?q?=D0=B8=20BRepGraph=20=D0=B1=D0=B5=D0=B7=20BRepTools=5FWireExplo?=
+ =?UTF-8?q?rer=20=D1=82=D0=B0=D0=BC,=20=D0=B3=D0=B4=D0=B5=20=D0=BE=D0=BD?=
+ =?UTF-8?q?=20=D0=BE=D0=B4=D0=BD=D0=BE=D0=B7=D0=BD=D0=B0=D1=87=D0=B5=D0=BD?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Populate (orderExtractedWire) для каждого провода из 2+ рёбер запускал BRepTools_WireExplorer,
+а Init(W, F) для граней Cone/BSpline/Bezier считал BRepTools::UVBounds всей грани заново на
+каждом проводе (ballscrew: 32 % времени Add). Теперь:
+- провод без ветвлений (FORWARD или REVERSED, единичное положение, все дети - рёбра
+  FORWARD/REVERSED с двумя вершинами, нет замкнутых рёбер, из каждой вершины начинается не больше
+  одного ребра; у REVERSED-провода концы рёбер меняются местами, как при накоплении ориентации в
+  проводнике, и ни одно ребро не встречается дважды - иначе сопоставление по ориентации выбрало
+  бы другое вхождение, такой провод идёт через проводник) обходится
+  цепочкой напрямую: в этом случае проводник на каждой вершине берёт единственного кандидата,
+  не читая ни грань, ни допуски UV, ни p-кривые. Стартовая вершина выбирается как в Init:
+  карта чётности вершин с семантикой NCollection_IndexedMap (RemoveKey переносит последний
+  ключ в дыру), первая FORWARD-запись; если её нет - начало последнего ребра; замкнутый провод -
+  с первого ребра. Возврат "пустой провод" невозможен: BRep_Tool::Tolerance(вершины) >= Confusion;
+- остальные провода идут через проводник, как раньше, но UV-границы грани считаются один раз
+  на грань и только если такой провод есть (тот же тест типа поверхности и тот же вызов);
+- сопоставление ответа проводника с извлечёнными рёбрами не изменено; если порядок совпал с
+  исходным (частый случай), массив рёбер не пересобирается - он содержал бы те же значения.
+Сборка проверки BRepGraphInc_WIREORDER_VERIFY: на каждом проводе быстрого пути запускается и
+сток-проводник, при любом расхождении - abort. Отрицательный контроль
+BRepGraphInc_WIREORDER_MUTANT (старт со второго ребра цепочки).
+Доказательства: C:/dev/occt8-mig/bgp.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepGraphInc/BRepGraphInc_Populate.cxx    | 364 +++++++++++++++++-
+ 1 file changed, 351 insertions(+), 13 deletions(-)
+
+diff --git a/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Populate.cxx b/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Populate.cxx
+index 645297b8..cffc81e8 100644
+--- a/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Populate.cxx
++++ b/src/ModelingData/TKBRep/BRepGraphInc/BRepGraphInc_Populate.cxx
+@@ -29,6 +29,8 @@
+ #include <BRep_TEdge.hxx>
+ #include <BRep_TVertex.hxx>
+ #include <BRep_Tool.hxx>
++#include <BRepAdaptor_Surface.hxx>
++#include <BRepTools.hxx>
+ #include <BRepTools_WireExplorer.hxx>
+ #include <Geom_Plane.hxx>
+ #include <Geom_RectangularTrimmedSurface.hxx>
+@@ -36,6 +38,7 @@
+ #include <NCollection_DataMap.hxx>
+ #include <NCollection_FlatMap.hxx>
+ #include <NCollection_LinearVector.hxx>
++#include <NCollection_Map.hxx>
+ #include <Precision.hxx>
+ #include <OSD_Parallel.hxx>
+ #include <Poly_Polygon2D.hxx>
+@@ -43,6 +46,8 @@
+ #include <Poly_PolygonOnTriangulation.hxx>
+ #include <Poly_Triangle.hxx>
+ #include <TopAbs.hxx>
++#include <TopExp.hxx>
++#include <TopTools_ShapeMapHasher.hxx>
+ #include <TopoDS.hxx>
+ #include <TopoDS_CompSolid.hxx>
+ #include <TopoDS_Compound.hxx>
+@@ -57,6 +62,29 @@
+ #include <algorithm>
+ #include <cmath>
+ #include <utility>
++#include <vector>
++
++#ifdef BRepGraphInc_WIREORDER_VERIFY
++  #include <atomic>
++  #include <cstdio>
++  #include <cstdlib>
++
++//! Verify build: number of wires whose fast-path order was checked against the explorer.
++static std::atomic<long long>& bgpVerifiedWires()
++{
++  static std::atomic<long long> THE_COUNT{0};
++  return THE_COUNT;
++}
++
++struct BgpVerifyReport
++{
++  ~BgpVerifyReport()
++  {
++    std::fprintf(stderr, "BGP-T1-VERIFY wires_checked=%lld\n", bgpVerifiedWires().load());
++  }
++};
++static BgpVerifyReport THE_BGP_VERIFY_REPORT;
++#endif
+ 
+ #include "BRepGraphInc_BoundaryBuilder.pxx"
+ 
+@@ -1081,18 +1109,61 @@ uint32_t findExtractedEdgeByExplorerEdge(const ExtractedWire&         theWireDat
+   return aNbEdges;
+ }
+ 
+-bool orderExtractedWire(ExtractedWire& theWireData, const TopoDS_Face* theFace)
++//! UV bounds that BRepTools_WireExplorer::Init(W, F) computes for every wire of a face.
++//! They are a pure function of the face, so they are computed once per face, and only when a
++//! wire of that face really goes through the explorer (perf/801-bgraph T1).
++struct ExplorerFaceUVBounds
+ {
+-  const uint32_t aNbEdges = static_cast<uint32_t>(theWireData.Edges.Size());
+-  if (aNbEdges < 2)
++  bool   IsComputed = false;
++  double UMin       = 0.0;
++  double UMax       = 0.0;
++  double VMin       = 0.0;
++  double VMax       = 0.0;
++
++  void Ensure(const TopoDS_Face& theFace)
+   {
+-    return true;
++    if (IsComputed)
++    {
++      return;
++    }
++    IsComputed = true;
++    // Same test and call as BRepTools_WireExplorer::Init(const TopoDS_Wire&, const TopoDS_Face&).
++    const GeomAbs_SurfaceType aSurfType = BRepAdaptor_Surface(theFace, false).GetType();
++    if (aSurfType == GeomAbs_Cone || aSurfType == GeomAbs_BSplineSurface
++        || aSurfType == GeomAbs_BezierSurface)
++    {
++      BRepTools::UVBounds(theFace, UMin, UMax, VMin, VMax);
++    }
+   }
++};
++
++//! Stock ordering: BRepTools_WireExplorer, then each explorer edge is matched back to the first
++//! unused extracted edge (same edge and orientation first, then same edge only).
++//! Appends the matched extracted-edge indices to theMatched in explorer order.
++static void explorerWireOrder(const ExtractedWire&                theWireData,
++                              const TopoDS_Face*                  theFace,
++                              ExplorerFaceUVBounds*               theUVBounds,
++                              NCollection_LinearVector<uint32_t>& theMatched)
++{
++  const uint32_t aNbEdges = static_cast<uint32_t>(theWireData.Edges.Size());
+ 
+   BRepTools_WireExplorer anExplorer;
+   if (theFace != nullptr && !theFace->IsNull())
+   {
+-    anExplorer.Init(theWireData.Shape, *theFace);
++    if (theUVBounds != nullptr)
++    {
++      theUVBounds->Ensure(*theFace);
++      anExplorer.Init(theWireData.Shape,
++                      *theFace,
++                      theUVBounds->UMin,
++                      theUVBounds->UMax,
++                      theUVBounds->VMin,
++                      theUVBounds->VMax);
++    }
++    else
++    {
++      anExplorer.Init(theWireData.Shape, *theFace);
++    }
+   }
+   else
+   {
+@@ -1101,8 +1172,6 @@ bool orderExtractedWire(ExtractedWire& theWireData, const TopoDS_Face* theFace)
+ 
+   BRepGraphInc_BitFlags aUsed;
+   aUsed.Resize(aNbEdges);
+-
+-  NCollection_LinearVector<OrderedExtractedEdge> anOrder(aNbEdges);
+   for (; anExplorer.More(); anExplorer.Next())
+   {
+     const TopoDS_Edge& anExplorerEdge = anExplorer.Current();
+@@ -1116,18 +1185,276 @@ bool orderExtractedWire(ExtractedWire& theWireData, const TopoDS_Face* theFace)
+     {
+       continue;
+     }
+-
+     aUsed.Set(aMatchedIdx);
+-    OrderedExtractedEdge anOrdered;
+-    anOrdered.EdgeIndex = aMatchedIdx;
+-    anOrder.Append(anOrdered);
++    theMatched.Append(aMatchedIdx);
+   }
++}
++
++//! Scratch buffers of chainWireOrder, reused per thread (P2 may run in parallel).
++struct ChainWireScratch
++{
++  std::vector<TopoDS_Shape> Vertices;
++  std::vector<uint32_t>     EdgeStartingAt;
++  std::vector<uint32_t>     StartVertex;
++  std::vector<uint32_t>     EndVertex;
++  std::vector<uint32_t>     ParityPos;
++  std::vector<uint32_t>     ParityKeys;
++  std::vector<char>         ParityForward;
++  std::vector<char>         Consumed;
++};
+ 
+-  if (anOrder.IsEmpty())
++//! Exact fast path for the explorer order of a wire without branching (perf/801-bgraph T1).
++//! Applies only when BRepTools_WireExplorer provably takes its single-candidate branch at every
++//! vertex, where neither the face, its UV tolerances nor p-curves are read:
++//! - the wire has identity location, so the explorer edges are the raw children (same edge and
++//!   location), with the orientation composed with the wire's. For a FORWARD wire the stock
++//!   match-back (same edge and orientation first) finds exactly the child the explorer returned.
++//!   For a REVERSED wire the explorer edge has the opposite orientation of its child; when no
++//!   edge occurs twice in the wire, the orientation pass finds nothing and the second pass finds
++//!   the only child with that edge, i.e. again the child the explorer returned (a wire with a
++//!   repeated edge goes to the explorer);
++//! - every child is an edge, FORWARD or REVERSED, with both vertices, and not closed (a closed
++//!   next edge makes the explorer compare p-curve end points);
++//! - no two edges start at the same vertex (cumulated orientation), i.e. no multi-edge list;
++//! - with a face, the explorer's "empty wire" return needs every vertex tolerance below
++//!   Precision::Confusion(), impossible because BRep_Tool::Tolerance(vertex) is clamped to it.
++//! The start vertex is chosen as in BRepTools_WireExplorer::Init: the parity map of vertices
++//! (NCollection_IndexedMap semantics: RemoveKey moves the last key into the hole) gives the first
++//! FORWARD entry of an open wire, and if there is none the start vertex of the last edge; a
++//! closed wire starts at its first edge. Returns false when the wire is not eligible.
++static bool chainWireOrder(const ExtractedWire&                theWireData,
++                           NCollection_LinearVector<uint32_t>& theMatched)
++{
++  const TopoDS_Wire& aWire = theWireData.Shape;
++  const bool isReversedWire = aWire.Orientation() == TopAbs_REVERSED;
++  if ((aWire.Orientation() != TopAbs_FORWARD && !isReversedWire) || !aWire.Location().IsIdentity())
++  {
++    return false;
++  }
++  const uint32_t aNbEdges = static_cast<uint32_t>(theWireData.Edges.Size());
++  if (aWire.NbChildren() != static_cast<int>(aNbEdges))
+   {
+     return false;
+   }
+ 
++  thread_local ChainWireScratch aScratch;
++  ChainWireScratch&             aS = aScratch;
++  aS.Vertices.clear();
++  aS.EdgeStartingAt.clear();
++  aS.StartVertex.clear();
++  aS.EndVertex.clear();
++  aS.ParityPos.clear();
++  aS.ParityKeys.clear();
++  aS.ParityForward.clear();
++  aS.Consumed.clear();
++
++  constexpr uint32_t THE_NONE = UINT32_MAX;
++  // Vertex dictionary with IsSame identity (the explorer's maps use TopTools_ShapeMapHasher).
++  NCollection_DataMap<TopoDS_Shape, uint32_t, TopTools_ShapeMapHasher> aVertexIndex;
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>                anEdges;
++  const bool isLinearLookup = aNbEdges <= 16;
++  const auto aVertexId      = [&](const TopoDS_Vertex& theVertex) -> uint32_t {
++    if (isLinearLookup)
++    {
++      for (uint32_t anIdx = 0; anIdx < static_cast<uint32_t>(aS.Vertices.size()); ++anIdx)
++      {
++        if (aS.Vertices[anIdx].IsSame(theVertex))
++        {
++          return anIdx;
++        }
++      }
++    }
++    else if (const uint32_t* aFound = aVertexIndex.Seek(theVertex))
++    {
++      return *aFound;
++    }
++    const uint32_t aNew = static_cast<uint32_t>(aS.Vertices.size());
++    aS.Vertices.push_back(theVertex);
++    aS.EdgeStartingAt.push_back(THE_NONE);
++    aS.ParityPos.push_back(0u);
++    if (!isLinearLookup)
++    {
++      aVertexIndex.Bind(theVertex, aNew);
++    }
++    return aNew;
++  };
++  const auto aToggle = [&](const uint32_t theVertex, const bool theIsForward) {
++    const uint32_t aPos = aS.ParityPos[theVertex];
++    if (aPos == 0)
++    {
++      aS.ParityKeys.push_back(theVertex);
++      aS.ParityForward.push_back(theIsForward ? 1 : 0);
++      aS.ParityPos[theVertex] = static_cast<uint32_t>(aS.ParityKeys.size());
++      return;
++    }
++    const uint32_t aLast = static_cast<uint32_t>(aS.ParityKeys.size());
++    if (aPos != aLast)
++    {
++      const uint32_t aMoved       = aS.ParityKeys[aLast - 1];
++      aS.ParityKeys[aPos - 1]    = aMoved;
++      aS.ParityForward[aPos - 1] = aS.ParityForward[aLast - 1];
++      aS.ParityPos[aMoved]       = aPos;
++    }
++    aS.ParityKeys.pop_back();
++    aS.ParityForward.pop_back();
++    aS.ParityPos[theVertex] = 0;
++  };
++
++  for (uint32_t anIdx = 0; anIdx < aNbEdges; ++anIdx)
++  {
++    const TopoDS_Edge&       anEdge = theWireData.Edges.Value(static_cast<size_t>(anIdx)).Shape;
++    const TopAbs_Orientation anOri  = anEdge.Orientation();
++    if (anOri != TopAbs_FORWARD && anOri != TopAbs_REVERSED)
++    {
++      return false;
++    }
++    TopoDS_Vertex aV1, aV2;
++    TopExp::Vertices(anEdge, aV1, aV2, true);
++    if (aV1.IsNull() || aV2.IsNull() || aV1.IsSame(aV2))
++    {
++      return false;
++    }
++    if (isReversedWire)
++    {
++      // the explorer sees the edge with the composed (opposite) orientation: ends swapped
++      std::swap(aV1, aV2);
++      // a repeated edge would make the stock match-back pick by orientation: use the explorer
++      if (isLinearLookup)
++      {
++        for (uint32_t aPrev = 0; aPrev < anIdx; ++aPrev)
++        {
++          if (theWireData.Edges.Value(static_cast<size_t>(aPrev)).Shape.IsSame(anEdge))
++          {
++            return false;
++          }
++        }
++      }
++      else if (!anEdges.Add(anEdge))
++      {
++        return false;
++      }
++    }
++    const uint32_t aStart = aVertexId(aV1);
++    const uint32_t anEnd  = aVertexId(aV2);
++    if (aS.EdgeStartingAt[aStart] != THE_NONE)
++    {
++      return false; // two edges start here: the explorer chooses by 2D geometry
++    }
++    aS.EdgeStartingAt[aStart] = anIdx;
++    aS.StartVertex.push_back(aStart);
++    aS.EndVertex.push_back(anEnd);
++    aToggle(aStart, true);
++    aToggle(anEnd, false);
++  }
++
++  uint32_t aStartV = THE_NONE;
++  if (!aS.ParityKeys.empty())
++  {
++    for (size_t aPos = 0; aPos < aS.ParityKeys.size(); ++aPos)
++    {
++      if (aS.ParityForward[aPos] != 0)
++      {
++        aStartV = aS.ParityKeys[aPos];
++        break;
++      }
++    }
++    if (aStartV == THE_NONE)
++    {
++      aStartV = aS.StartVertex[aNbEdges - 1];
++    }
++  }
++  else
++  {
++    aStartV = aS.StartVertex[0];
++  }
++
++  // Walk the unique chain; each start-vertex list is consumed once, as in the explorer.
++  aS.Consumed.assign(aS.Vertices.size(), 0);
++  uint32_t aVertex = aStartV;
++  while (aS.Consumed[aVertex] == 0)
++  {
++    const uint32_t anEdgeIdx = aS.EdgeStartingAt[aVertex];
++    if (anEdgeIdx == THE_NONE)
++    {
++      break;
++    }
++    aS.Consumed[aVertex] = 1;
++    theMatched.Append(anEdgeIdx);
++    aVertex = aS.EndVertex[anEdgeIdx];
++  }
++  return true;
++}
++
++bool orderExtractedWire(ExtractedWire&        theWireData,
++                        const TopoDS_Face*    theFace,
++                        ExplorerFaceUVBounds* theUVBounds = nullptr)
++{
++  const uint32_t aNbEdges = static_cast<uint32_t>(theWireData.Edges.Size());
++  if (aNbEdges < 2)
++  {
++    return true;
++  }
++
++  NCollection_LinearVector<uint32_t> aMatched(aNbEdges);
++#ifdef BRepGraphInc_WIREORDER_MUTANT
++  // negative control: never take the fast path's start, start from the second chain element
++  if (chainWireOrder(theWireData, aMatched) && aMatched.Size() > 1)
++  {
++    const uint32_t aFirst = aMatched.First();
++    aMatched.Erase(0);
++    aMatched.Append(aFirst);
++  }
++  else if (aMatched.IsEmpty())
++  {
++    explorerWireOrder(theWireData, theFace, theUVBounds, aMatched);
++  }
++#else
++  if (!chainWireOrder(theWireData, aMatched))
++  {
++    aMatched.Clear();
++    explorerWireOrder(theWireData, theFace, theUVBounds, aMatched);
++  }
++#endif
++#ifdef BRepGraphInc_WIREORDER_VERIFY
++  else
++  {
++    NCollection_LinearVector<uint32_t> aStock(aNbEdges);
++    explorerWireOrder(theWireData, theFace, nullptr, aStock);
++    bool isSame = aStock.Size() == aMatched.Size();
++    for (size_t anIdx = 0; isSame && anIdx < aStock.Size(); ++anIdx)
++    {
++      isSame = aStock.Value(anIdx) == aMatched.Value(anIdx);
++    }
++    if (!isSame)
++    {
++      std::fprintf(stderr,
++                   "BGP-T1-VERIFY-MISMATCH edges=%u fast=%u stock=%u\n",
++                   aNbEdges,
++                   static_cast<unsigned>(aMatched.Size()),
++                   static_cast<unsigned>(aStock.Size()));
++      std::fflush(stderr);
++      std::abort();
++    }
++    bgpVerifiedWires().fetch_add(1, std::memory_order_relaxed);
++  }
++#endif
++
++  if (aMatched.IsEmpty())
++  {
++    return false;
++  }
++
++  BRepGraphInc_BitFlags aUsed;
++  aUsed.Resize(aNbEdges);
++  NCollection_LinearVector<OrderedExtractedEdge> anOrder(aNbEdges);
++  for (const uint32_t anIdx : aMatched)
++  {
++    aUsed.Set(anIdx);
++    OrderedExtractedEdge anOrdered;
++    anOrdered.EdgeIndex = anIdx;
++    anOrder.Append(anOrdered);
++  }
++
+   const bool isCompleteExplorerOrder = anOrder.Size() == aNbEdges;
+ 
+   for (uint32_t anIdx = 0; anIdx < aNbEdges; ++anIdx)
+@@ -1147,6 +1474,16 @@ bool orderExtractedWire(ExtractedWire& theWireData, const TopoDS_Face* theFace)
+     return false;
+   }
+ 
++  bool isIdentityOrder = true;
++  for (uint32_t anIdx = 0; isIdentityOrder && anIdx < aNbEdges; ++anIdx)
++  {
++    isIdentityOrder = anOrder.Value(anIdx).EdgeIndex == anIdx;
++  }
++  if (isIdentityOrder)
++  {
++    return isCompleteExplorerOrder; // the rebuilt array would hold the same values in order
++  }
++
+   NCollection_DynamicArray<ExtractedEdge> aReordered(THE_EDGE_BUCKET);
+   for (const OrderedExtractedEdge& anOrdered : anOrder)
+   {
+@@ -1201,6 +1538,7 @@ void extractFaceData(FaceBuildData& theData)
+   aPCurveContext.SurfaceLocation       = aSurfCombinedLoc;
+   aPCurveContext.TriangulationLocation = aTriangulationLoc;
+ 
++  ExplorerFaceUVBounds aUVBounds;
+   for (TopoDS_Iterator aChildIt(aForwardFace, false, false); aChildIt.More(); aChildIt.Next())
+   {
+     const TopoDS_Shape& aChild = aChildIt.Value();
+@@ -1230,7 +1568,7 @@ void extractFaceData(FaceBuildData& theData)
+                         aWireData.DefinitionLocation);
+     }
+     aWireData.HasPartialExplorerOrder =
+-      !orderExtractedWire(aWireData, aRawSurface.IsNull() ? nullptr : &aForwardFace);
++      !orderExtractedWire(aWireData, aRawSurface.IsNull() ? nullptr : &aForwardFace, &aUVBounds);
+   }
+ 
+   if (theData.Wires.IsEmpty() && BRep_Tool::NaturalRestriction(aFace))
+-- 
+2.52.0.windows.1
+

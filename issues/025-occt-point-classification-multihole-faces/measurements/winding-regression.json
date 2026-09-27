@@ -1,0 +1,62 @@
+[
+  {
+    "name": "TopFace5",
+    "points": 1643,
+    "pcurve_types": {
+      "Geom2d_Line": 8,
+      "Geom2d_Circle": 93
+    },
+    "stats": {
+      "index_nodes": 31080,
+      "arc_nodes": 55079,
+      "angles": 28876,
+      "new": 936,
+      "fallback": 202,
+      "new_on": 505
+    },
+    "mismatch_count": 0,
+    "mismatches": [],
+    "mutant_omit_holes_mismatches": 93,
+    "mutant_chords_mismatches": 4
+  },
+  {
+    "name": "cubic",
+    "points": 158,
+    "pcurve_types": {
+      "Geom2d_BezierCurve": 1,
+      "Geom2d_Line": 1
+    },
+    "stats": {
+      "index_nodes": 158,
+      "arc_nodes": 1252,
+      "angles": 722,
+      "new": 144,
+      "fallback": 4,
+      "new_on": 10
+    },
+    "mismatch_count": 0,
+    "mismatches": [],
+    "mutant_omit_holes_mismatches": 0,
+    "mutant_chords_mismatches": 74
+  },
+  {
+    "name": "rational_cubic",
+    "points": 158,
+    "pcurve_types": {
+      "Geom2d_BezierCurve": 1,
+      "Geom2d_Line": 1
+    },
+    "stats": {
+      "index_nodes": 158,
+      "arc_nodes": 1237,
+      "angles": 715,
+      "new": 144,
+      "fallback": 4,
+      "new_on": 10
+    },
+    "mismatch_count": 0,
+    "mismatches": [],
+    "mutant_omit_holes_mismatches": 0,
+    "mutant_chords_mismatches": 77
+  }
+]

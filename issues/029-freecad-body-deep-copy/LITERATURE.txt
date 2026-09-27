@@ -1,0 +1,96 @@
+Issue 029 (FreeCAD 26.3: PartDesign::Body::execute deep-copies the tip shape on every recompute) - literature pass,
+26.09.2026 (lane bodycopy).
+
+Question: a derived value (the Body's shape = the tip's shape with the tip's transformation baked into a copy) is
+recomputed on every recompute that reaches the Body, although its input usually did not change. How can the
+recomputation be made cheaper without changing any result: when may a previous result be reused, how is "the input
+did not change" decided exactly and cheaply when the input is a shared, mutable pointer graph (OCCT TShapes), and what
+does the persistent naming (element map) require?
+
+1. Driscoll J.R., Sarnak N., Sleator D.D., Tarjan R.E. Making data structures persistent. J. Computer and System
+   Sciences 38(1):86-124, 1989. DOI 10.1016/0022-0000(89)90034-2 (conference version STOC '86,
+   DOI 10.1145/12130.12142). Venue: JCSS IF ~1.1 (< 5) - cited for its STOC version (top theory conference).
+   Full text: https://www.cs.cmu.edu/~sleator/papers/making-data-structures-persistent.pdf
+   Idea: old versions stay valid if nodes are never modified in place (path copying / fat nodes); sharing
+   unchanged parts between versions is safe exactly when shared nodes are immutable.
+   Applied: as the criterion. OCCT shares TShapes between shapes but they are NOT immutable (BRep_Builder updates
+   tolerances, pcurves, ranges, triangulations in place; the view provider's BRepTools::Clean + BRepMesh rewrite the
+   Body's own copy). Sharing the tip's TShapes with the Body (the "new TopLoc_Location, no copy" option) would make
+   the Body a partner of the tip (isPartner True where stock says False), carry the tip's flags/triangulation into the
+   Body's BREP state and let the view provider's in-place meshing of one reach the other: rejected. The Body keeps
+   its own private copy; only an unchanged copy is handed out again.
+
+2. Acar U.A., Blelloch G.E., Harper R. Adaptive functional programming. POPL 2002, 247-259.
+   DOI 10.1145/503272.503296. Venue: ACM POPL (conference; top venue of the field). Abstract + author PDF.
+   Idea: self-adjusting computation - memoize a function's result with its input and, when inputs change, re-run
+   only what depends on the change (change propagation); a memo hit requires the recorded inputs to be equal.
+   Applied: yes, in its simplest form - the Body's copy is memoized per Body with its complete input (tip TopoDS
+   shape, element map object, tag, hasher, transformation) and reused only when every input is equal; any
+   difference falls back to the stock copy.
+
+3. Mokhov A., Mitchell N., Peyton Jones S. Build systems a la carte. Proc. ACM Program. Lang. 2 (ICFP), 79:1-79:29,
+   2018. DOI 10.1145/3236774. Venue: ICFP/PACMPL (conference). Open access (Microsoft Research PDF).
+   Idea: "verifying traces": a build system records, for each result, the values (or hashes) of the inputs it read,
+   and rebuilds only if a recorded input differs; correctness needs every input that the task reads to be in the
+   trace (a missing dependency = a stale result).
+   Applied: yes. The trace is an exact record (no hash, so no collision question) of everything BRepBuilderAPI_Transform
+   reads from the tip and everything the Body's view provider leaves in the copy: each TShape once (type, 8 flags,
+   children with orientation and location), faces (surface, location, tolerance, natural restriction, all
+   triangulations with node/triangle counts, UV/normal presence, deflection), edges (tolerance, same-parameter/range,
+   degenerated, every curve representation with its 3D curve, pcurves, surfaces, range, UV points, continuity,
+   polygons), vertices (point, tolerance, point representations). Objects are recorded by address AND held by
+   handle, so an address cannot be recycled while it is in a trace (no ABA). Missing-dependency lesson applied twice
+   during the lane: the Body's own placement and visibility decide how the view provider meshes the copy (found by the
+   identity probe, s9 and u2) and are part of the trace now.
+
+4. Kripac J. A mechanism for persistently naming topological entities in history-based parametric solid models.
+   Computer-Aided Design 29(2):113-122, 1997. DOI 10.1016/S0010-4485(96)00040-1. Specialist CAD journal (full
+   source). Abstract only.
+   Idea: topological IDs are assigned per modelling step and mapped from the old to the new version when the
+   history is re-evaluated; names must be a function of the history, not of object identity.
+   Applied: as a requirement. The Body's element map is produced by the unchanged stock path (the reused copy carries
+   the tip's element map object exactly as the fresh copy would; Shape.setValue re-tags it as before), so the names,
+   their hashes and the element history are those of stock; checked on a 23-feature chain with fillets/chamfer
+   whose references must survive two Pad edits and a sketch edit (REFS lines, FCStd element maps).
+
+5. Farjana S.H., Han S. Mechanisms of persistent identification of topological entities in CAD systems: a review.
+   Alexandria Engineering Journal 57(4):2837-2849, 2018. DOI 10.1016/j.aej.2018.01.007. IF ~6 (>= 5). Open access.
+   Idea: survey of naming schemes (topology-, geometry-, history-based); history-based schemes (FreeCAD's element
+   map is one) are sensitive to any change of the generating operation's input or of the op code chain.
+   Applied: confirms that a cache in front of a naming-producing operation must key on the naming input (the tip's
+   element map object, its tag and hasher), not only on geometry - done (tipMap/tipTag/tipHasher in the key).
+
+6. Camba J.D., Contero M., Company P. Parametric CAD modeling: an analysis of strategies for design reusability.
+   Computer-Aided Design 74:18-31, 2016. DOI 10.1016/j.cad.2016.01.003. Specialist CAD journal. Abstract only.
+   Idea: history-based models are regenerated along the design tree; regeneration cost and robustness depend on how
+   much of the tree an edit touches.
+   Applied: background for the measured pattern - in a PartDesign body most recomputes that reach the Body do not
+   touch its tip (a sketch added or edited before it is used, a second pass), so a reuse test in front of the copy
+   removes the cost exactly where the tree did not change; an edit of a used feature still pays the full copy.
+
+7. Lee S.H., Lee K. Partial entity structure: a compact non-manifold boundary representation based on partial
+   topological entities. Proc. 6th ACM Symposium on Solid Modeling and Applications (SMA 2001), 159-170.
+   DOI 10.1145/376957.376976 (journal version JCISE 2(1), 2002, DOI 10.1115/1.1433486). SPM/SMA proceedings (full
+   source). Abstract only.
+   Idea: B-rep data structures trade storage (sharing of entities) against the cost of keeping shared entities
+   consistent under local modification.
+   Applied: argument against the sharing option: OCCT's TShape sharing is the compact structure, and the Body's copy
+   is exactly the price FreeCAD pays so that local modifications (meshing, tolerance updates) of the Body and of the
+   tip stay independent; the reuse keeps that independence.
+
+Better-known method? For a shared mutable graph without version counters there is no cheaper exact validity test than
+reading the mutable state; the trace is one pass over the TShapes. Measured as a whole (not the trace alone): a hicmos
+Body recompute with an unchanged tip takes 31 ms headless on the reuse path (three traces + Shape.setValue with the
+element map re-tag) vs 88-100 ms with the copy (out/smoke-bc-*.txt), and 123-146 ms vs 598-701 ms in the GUI; the miss
+path (Pad edit, copy + traces) 2094 vs 2110 ms (README table). An OCCT-side version
+counter per TShape (a kernel change, cf. persistent structures in 1.) would make the test O(1) but touches every
+BRep_Builder update in TKBRep; not done here (FreeCAD-side lane, kernel unchanged).
+
+Review addendum (26.09.2026, reviewer). The lane's pass covers the two relevant lines (memoisation with verified
+input traces: Acar POPL02, Mokhov ICFP18; persistence and sharing of mutable B-rep nodes: Driscoll et al.) and the
+naming requirement (Kripac CAD97, Farjana AEJ18). No better-known method for this narrow problem was found: OCCT has
+no per-TShape version counter, so an exact input trace (or a kernel patch adding such a counter) is the known option.
+The review found one more MISSING DEPENDENCY in the trace, exactly the failure mode Mokhov et al. warn about: the
+view provider's last rendered shape (it re-meshes a non-partner shape and reads its deflection from a bounding box
+that uses the shape's existing triangulation). It is now part of the key (Body.Shape still holds the copy), commit
+a24de8f.

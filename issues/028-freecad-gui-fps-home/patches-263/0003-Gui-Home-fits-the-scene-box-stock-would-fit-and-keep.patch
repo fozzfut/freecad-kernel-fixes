@@ -1,0 +1,90 @@
+From b593a6f858a1c06201adc0754835bef07f9138a8 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 19:18:38 +0700
+Subject: [PATCH] Gui: Home fits the scene box stock would fit and keeps a
+ matching orientation
+
+Review of 8ac5bee. HomeAnimation took the scene bounding box for its final
+fit at the end of the animation. Nodes that keep a constant size on screen
+(the origin axes, SoShapeScale) report a box that depends on the zoom of the
+last rendered frame, so on a document with a visible origin the final view
+differed from stock Home (which takes the box after its rotation, at the
+starting zoom): Top.FCStd, 6 of 7 poses differ, zoom up to 4 %. The fit now
+uses the box taken when Home is called (the one the path already uses), so
+the last animation frame and the fit agree; no fit when the scene has no
+box any more, as viewAll().
+
+Stock Home keeps an orientation that already matches the home one within
+Camera::rotationsMatch (viewAll() only); the animation snapped it to the
+exact home orientation. It now keeps it too.
+
+Measured in a visible window (Top.FCStd, stock vs this): final camera
+bit-identical in 5 of 7 poses; the rest are the first Home after an
+unanimated one (0.04 % zoom) and a perspective camera, where stock's own
+result varies by 4 % between two identical Home presses.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/View3DInventorViewer.cpp | 26 +++++++++++++++++---------
+ 1 file changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/src/Gui/View3DInventorViewer.cpp b/src/Gui/View3DInventorViewer.cpp
+index 5612c64..3a4a59b 100644
+--- a/src/Gui/View3DInventorViewer.cpp
++++ b/src/Gui/View3DInventorViewer.cpp
+@@ -4547,10 +4547,14 @@ float interpolateScale(float from, float to, float t)
+  * a perspective height angle changes linearly to the 45 degrees viewAll() sets. The camera
+  * position follows as focal point - direction * focal distance.
+  *
+- * End: exactly what stock Home ends with - the target orientation set exactly, then viewAll()'s
+- * fit of the scene bounding box computed at that moment (perspective height angle 45 degrees,
+- * viewBoundBox's aspect rule, SoCamera::viewBoundingBox with slack 1). Interrupted: the camera
+- * stays where it is and no fit follows (as when the stock rotation is interrupted).
++ * End: what stock Home ends with - the target orientation set exactly, then viewAll()'s fit
++ * (perspective height angle 45 degrees, viewBoundBox's aspect rule, SoCamera::viewBoundingBox with
++ * slack 1) of the scene bounding box taken when Home was called, with the zoom the camera had then.
++ * Stock takes that box after its rotation, which keeps the zoom; nodes that keep a constant size
++ * on screen (the origin axes, SoShapeScale) report a box that depends on the zoom of the last
++ * rendered frame, so a box taken at the end of this animation would fit a different view. No fit
++ * when the scene has no bounding box any more (as viewAll()). Interrupted: the camera stays where
++ * it is and no fit follows (as when the stock rotation is interrupted).
+  */
+ class HomeAnimation: public NavigationAnimation
+ {
+@@ -4688,15 +4692,15 @@ private:
+             NavigationStyle::OrientationChangeSource::Programmatic
+         );
+ 
+-        // What viewAll() does at the end of stock Home
+-        SbBox3f finalBox;
+-        if (!viewer->getSceneBoundBox(finalBox)) {
++        // What viewAll() does at the end of stock Home, with the box stock would use (see above)
++        SbBox3f current;
++        if (!viewer->getSceneBoundBox(current)) {
+             return;
+         }
+         if (isPerspective(camera)) {
+             static_cast<SoPerspectiveCamera*>(camera)->heightAngle = (float)(M_PI / 4.0);  // NOLINT
+         }
+-        fitCameraToBox(viewer, camera, finalBox);
++        fitCameraToBox(viewer, camera, box);
+     }
+ };
+ }  // namespace
+@@ -4728,8 +4732,12 @@ void View3DInventorViewer::viewHome()
+         const auto easingCurve = static_cast<QEasingCurve::Type>(
+             hGrp->GetInt("NavigationAnimationEasingCurve", QEasingCurve::Type::InOutCubic)
+         );
++        // Stock keeps an orientation that already matches the home one (viewAll() only)
++        const SbRotation target = Camera::rotationsMatch(camera->orientation.getValue(), orientation)
++            ? camera->orientation.getValue()
++            : orientation;
+         navigation->startAnimating(
+-            std::make_shared<HomeAnimation>(navigation, this, orientation, box, duration, easingCurve)
++            std::make_shared<HomeAnimation>(navigation, this, target, box, duration, easingCurve)
+         );
+         return;
+     }
+-- 
+2.52.0.windows.1
+

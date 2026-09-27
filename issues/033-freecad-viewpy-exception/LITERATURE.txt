@@ -1,0 +1,27 @@
+033 - C++ exceptions thrown through the Python interpreter from View3DInventorPy method wrappers (lane section-hang, 27.09.2026)
+
+Problem class: an exception of one language's runtime crossing a foreign-function boundary into another runtime
+(here C++ -> CPython's C frames). The narrow question has no journal paper of IF >= 5; the field publishes at PL
+conferences. Said plainly; the sources below are what the fix rests on.
+
+1. S. Li, G. Tan. "Finding bugs in exception handling code of JNI programs" / JET: "Exception checking in the Java
+   Native Interface". OOPSLA 2011, 10.1145/2048066.2048095 (conference, PL). Idea: at a native boundary an exception
+   is a PENDING STATE that the native code must return through, not a control transfer across the boundary; they
+   find real bugs where native code keeps running or unwinds with an exception pending. Applied: the wrapper sets the
+   Python error and RETURNS NULL (CPython's protocol, same as JNI's pending exception).
+2. B. Lee, B. Wiedermann, M. Hirzel, R. Grimm, K. S. McKinley. "Jinn: synthesizing dynamic bug detectors for foreign
+   language interfaces". PLDI 2010, 10.1145/1806596.1806601 (conference). Idea: FFI rules (who may throw/return what
+   across the boundary) as state machines checked at every crossing; "exception state must be propagated by return
+   values" is one of the rules. Applied as the rule the fix follows at the three wrappers.
+3. S. Li, G. Tan. "Finding reference-counting errors in Python/C programs with affine analysis". ECOOP 2014,
+   10.1007/978-3-662-44202-9_4 (conference). Context: Python/C extension code must keep the interpreter's invariants
+   (refcounts, error indicator, frame stack) at every return; an unwinding C++ exception breaks all of them at once
+   (the lost frame stack is what we measured). Considered; no analysis tool applied.
+4. Python/C API reference, "Exception Handling" (docs.python.org, 3.14): a function that fails must set an exception
+   and return NULL; C++ exceptions must not propagate through the interpreter. Normative source (not a paper).
+5. ISO C++ [except.handle]/MSVC /EHa documentation: unwinding through frames compiled without C++ EH (CPython is C)
+   runs no cleanup for them. Explains why the interpreter state is left inconsistent (normative, not a paper).
+
+Alternatives considered: catching in every View3DInventorPy method (dozens of sites, same effect, larger diff);
+converting to Base::Exception::setPyException (would change the Python exception TYPE from RuntimeError - identity
+rule: kept RuntimeError and the same message).

@@ -1,0 +1,3580 @@
+From 55b0e9ad0e5d8b40817ff2590bb2ad3afeca5428 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sat, 26 Sep 2026 04:34:45 +0700
+Subject: [PATCH] =?UTF-8?q?018=20(TKTopAlgo):=20=D0=BF=D1=80=D0=BE=D0=B2?=
+ =?UTF-8?q?=D0=B5=D1=80=D0=BA=D0=B0=20=D0=B3=D1=80=D0=B0=D0=BD=D0=B8=20?=
+ =?UTF-8?q?=D1=81=20=D0=BC=D0=BD=D0=BE=D0=B3=D0=B8=D0=BC=D0=B8=20=D0=BF?=
+ =?UTF-8?q?=D0=B5=D1=82=D0=BB=D1=8F=D0=BC=D0=B8=20=D0=B1=D0=B5=D0=B7=20?=
+ =?UTF-8?q?=D0=BA=D0=B2=D0=B0=D0=B4=D1=80=D0=B0=D1=82=D0=B8=D1=87=D0=BD?=
+ =?UTF-8?q?=D1=8B=D1=85=20=D0=BF=D1=80=D0=BE=D1=85=D0=BE=D0=B4=D0=BE=D0=B2?=
+ =?UTF-8?q?=20=E2=80=94=20=D0=BF=D0=B5=D1=80=D0=B5=D0=BD=D0=BE=D1=81=20?=
+ =?UTF-8?q?=D0=BD=D0=B0=208.0.1=20=D0=BF=D0=BE=D0=B2=D0=B5=D1=80=D1=85=20#?=
+ =?UTF-8?q?1375?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Эталон — сток 8.0.1: пропуск пар петель с разнесёнными боксами (PR #1375) идёт первым и с теми же
+ролями; наши механизмы работают только на парах, которые 8.0.1 ещё классифицирует.
+- ClassifyWires: пары-кандидаты разверткой по боксам #1375 (BRepCheck_BoxPairs, надмножество,
+  затем тест стока), точка петли один раз там, где её впервые считает сток, пропуск Perform
+  только при доказанном IsFarOutside, сетка точек (NearBox) — #1375 на реальных отверстиях
+  почти не срабатывает (дуга окружности 2π+ulp или периодический сдвиг: бокса нет).
+- BRepCheck_WireClass2d сгенерирован заново из BRepTopAdaptor_FClass2d 8.0.1
+  (safeIncrement/isDegenerated #733, CSLib_Class2d по значению), доказательство IsFarOutside
+  переписано под SiDans 8.0.1 (быстрый отказ, защита PConfusion).
+- Развёртки пар (IntersectWires, SelfIntersect) — с запасом: быстрый путь Bnd_Box2d::IsOut 8.0.1
+  не равен побитно тесту диапазонов Get().
+- IntersectWires, OrientationOfWires, InContext (карта подобъектов), Wire Closed2d/Orientation
+  (Contained() вместо Added())/SelfIntersect, Shell Orientation/NbConnectedSet — как в 018 для
+  7.8.1, сверены с кодом 8.0.1.
+- Сборка проверки BREPCHECK_VERIFY_018: сравнение со стоком на каждом вызове, счётчики.
+Новые файлы в TKTopAlgo/BRepCheck + FILES.cmake. Доказательства: C:/dev/occt8-mig/k018.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepCheck/BRepCheck_Analyzer.cxx          |  10 +-
+ .../BRepCheck/BRepCheck_BoxPairs.hxx          | 161 ++++
+ .../TKTopAlgo/BRepCheck/BRepCheck_Edge.cxx    |  78 +-
+ .../TKTopAlgo/BRepCheck/BRepCheck_Face.cxx    | 709 ++++++++++++--
+ .../BRepCheck/BRepCheck_FaceCache.cxx         | 129 +++
+ .../BRepCheck/BRepCheck_FaceCache.hxx         |  74 ++
+ .../TKTopAlgo/BRepCheck/BRepCheck_Shell.cxx   | 268 +++++-
+ .../BRepCheck/BRepCheck_SubShapeIndex.cxx     | 129 +++
+ .../BRepCheck/BRepCheck_SubShapeIndex.hxx     |  64 ++
+ .../TKTopAlgo/BRepCheck/BRepCheck_Vertex.cxx  |  13 +-
+ .../TKTopAlgo/BRepCheck/BRepCheck_Wire.cxx    | 373 +++++++-
+ .../BRepCheck/BRepCheck_WireClass2d.cxx       | 867 ++++++++++++++++++
+ .../BRepCheck/BRepCheck_WireClass2d.hxx       | 236 +++++
+ .../TKTopAlgo/BRepCheck/FILES.cmake           |   7 +
+ 14 files changed, 2977 insertions(+), 141 deletions(-)
+ create mode 100644 src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_BoxPairs.hxx
+ create mode 100644 src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_FaceCache.cxx
+ create mode 100644 src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_FaceCache.hxx
+ create mode 100644 src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_SubShapeIndex.cxx
+ create mode 100644 src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_SubShapeIndex.hxx
+ create mode 100644 src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_WireClass2d.cxx
+ create mode 100644 src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_WireClass2d.hxx
+
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Analyzer.cxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Analyzer.cxx
+index c9e31157..4507db6f 100644
+--- a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Analyzer.cxx
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Analyzer.cxx
+@@ -15,6 +15,8 @@
+ // commercial license or contractual agreement.
+ 
+ #include <BRepCheck_Analyzer.hxx>
++#include <BRepCheck_SubShapeIndex.hxx>
++#include <BRepCheck_FaceCache.hxx>
+ 
+ #include <BRepCheck_Edge.hxx>
+ #include <BRepCheck_Face.hxx>
+@@ -55,7 +57,13 @@ public:
+ 
+   void operator()(const int theVectorIndex) const
+   {
+-    TopExp_Explorer exp;
++    // defect 018, Task 6b: per-face results (seam edges, the face surface in position) are reused
++    // by the wires and edges of a face while this call runs; the call modifies no shape
++    BRepCheck_FaceCacheScope aFaceCacheScope;
++    // defect 018: sub-shape checks of InContext() use a map per context while this call runs (it
++    // modifies no shape)
++    BRepCheck_SubShapeScope aSubShapeScope;
++    TopExp_Explorer         exp;
+     for (int aShapeIter = myArray[theVectorIndex].Lower();
+          aShapeIter <= myArray[theVectorIndex].Upper();
+          ++aShapeIter)
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_BoxPairs.hxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_BoxPairs.hxx
+new file mode 100644
+index 00000000..069666e1
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_BoxPairs.hxx
+@@ -0,0 +1,161 @@
++// Copyright (c) 2026 - modification of Open CASCADE Technology 8.0.1 for FreeCAD (defect 018,
++// https://github.com/fozzfut/freecad-kernel-fixes). Distributed under GNU LGPL 2.1 with the Open
++// CASCADE exception, as the rest of OCCT.
++
++#ifndef _BRepCheck_BoxPairs_HeaderFile
++#define _BRepCheck_BoxPairs_HeaderFile
++
++#include <Bnd_Box2d.hxx>
++
++#include <algorithm>
++#include <cmath>
++#include <cstddef>
++#include <cstdlib>
++#include <utility>
++#include <vector>
++
++//! Defect 018 (internal, not exported). BRepCheck visits pairs of 2D boxes (wires of a face, edges
++//! of a wire) and skips a pair when Bnd_Box2d::IsOut() says the boxes are apart; the loops test all
++//! N^2/2 pairs. Candidates() finds, by a sweep, a SUPERSET of the pairs that such a test does not
++//! skip; every caller then applies the loop's own test, with the loop's roles, to each candidate
++//! and visits the survivors in the loop's order. So the visited pairs are exactly the loop's.
++//!
++//! Why a superset (OCCT 8.0.1, Bnd_Box2d.cxx:456-479). For two boxes without flags (not void, not
++//! open, not whole) IsOut() is the fast path
++//!   A.Xmin - B.Xmax > A.Gap + B.Gap  or  B.Xmin - A.Xmax > ...  (same on y),
++//! and it is symmetric in A and B. It is not bit-for-bit the test "the Get() ranges are apart"
++//! (Get() rounds Xmin - Gap and Xmax + Gap separately), so the sweep does not compare the Get()
++//! ranges themselves: every range is widened by s = 1e-9 * (1 + 2 (|lo| + |hi|) + 4 Gap) on each
++//! side (lo, hi from Get(); |Xmin| <= |lo| + Gap, |Xmax| <= |hi| + Gap). If IsOut() is false, then
++//! in real numbers A.lo - B.hi <= 4u (|A.Xmin| + |B.Xmax| + A.Gap + B.Gap) + u (|A.lo| + |B.hi|)
++//! (u = 2^-53: one rounding in each of the subtraction, the sum of the gaps and the two Get()
++//! values), far below s_A + s_B, so the widened ranges overlap on both axes and the sweep reports
++//! the pair. The sweep only compares the widened doubles, it computes nothing with them.
++//! A box that is null (no box), void, open, whole, or whose widened range is not finite (NaN or
++//! overflow) is "special": it is paired with every other box, and the caller's own test decides.
++class BRepCheck_BoxPairs
++{
++public:
++  //! Unordered pairs (a, b), a < b, of indices into theBoxes, sorted and unique, that contain every
++  //! pair whose boxes IsOut() does not separate (see the class comment). Returns false (the caller
++  //! runs its original loop) if there would be more than theLimit candidates. May throw
++  //! std::bad_alloc (the callers catch it and run their original loop).
++  static bool Candidates(const std::vector<const Bnd_Box2d*>& theBoxes,
++                         const size_t                         theLimit,
++                         std::vector<std::pair<int, int>>&    thePairs)
++  {
++    thePairs.clear();
++    const int aNb = (int)theBoxes.size();
++    if (aNb < 2)
++    {
++      return true;
++    }
++    std::vector<int>    aFinite, aSpecial;
++    std::vector<double> aLo[2], aHi[2];
++    for (int a = 0; a < 2; ++a)
++    {
++      aLo[a].assign((size_t)aNb, 0.);
++      aHi[a].assign((size_t)aNb, 0.);
++    }
++#ifdef BREPCHECK_VERIFY_018
++    // verification build: BRCHK018_ALLPAIRS=1 makes every box special (all pairs are candidates),
++    // so the callers' own tests alone decide - the path of faces without reliable boxes
++    const bool isAllPairs = std::getenv("BRCHK018_ALLPAIRS") != nullptr;
++#else
++    const bool isAllPairs = false;
++#endif
++    for (int i = 0; i < aNb; ++i)
++    {
++      const Bnd_Box2d* aBox = theBoxes[(size_t)i];
++      if (isAllPairs || aBox == nullptr || aBox->IsVoid() || aBox->IsWhole() || aBox->IsOpenXmin()
++          || aBox->IsOpenXmax() || aBox->IsOpenYmin() || aBox->IsOpenYmax())
++      {
++        aSpecial.push_back(i);
++        continue;
++      }
++      double aX0 = 0., aY0 = 0., aX1 = 0., aY1 = 0.;
++      aBox->Get(aX0, aY0, aX1, aY1);
++      const double aGap = aBox->GetGap();
++      const double aSx  = 1.e-9 * (1. + 2. * (std::fabs(aX0) + std::fabs(aX1)) + 4. * aGap);
++      const double aSy  = 1.e-9 * (1. + 2. * (std::fabs(aY0) + std::fabs(aY1)) + 4. * aGap);
++      aLo[0][(size_t)i] = aX0 - aSx;
++      aHi[0][(size_t)i] = aX1 + aSx;
++      aLo[1][(size_t)i] = aY0 - aSy;
++      aHi[1][(size_t)i] = aY1 + aSy;
++      if (std::isfinite(aLo[0][(size_t)i]) && std::isfinite(aHi[0][(size_t)i])
++          && std::isfinite(aLo[1][(size_t)i]) && std::isfinite(aHi[1][(size_t)i]))
++      {
++        aFinite.push_back(i);
++      }
++      else
++      {
++        aSpecial.push_back(i); // NaN would break the ordering of the sort: not swept
++      }
++    }
++    for (size_t s = 0; s < aSpecial.size(); ++s)
++    {
++      for (int j = 0; j < aNb; ++j)
++      {
++        if (j != aSpecial[s])
++        {
++          thePairs.push_back(std::make_pair(std::min(aSpecial[s], j), std::max(aSpecial[s], j)));
++        }
++      }
++      if (thePairs.size() > theLimit)
++      {
++        return false;
++      }
++    }
++    // sweep along the axis on which the ranges overlap less (either axis gives the same pairs)
++    double aDensity[2] = {0., 0.};
++    for (int a = 0; a < 2 && !aFinite.empty(); ++a)
++    {
++      double aSum = 0., aMin = aLo[a][(size_t)aFinite[0]], aMax = aHi[a][(size_t)aFinite[0]];
++      for (size_t k = 0; k < aFinite.size(); ++k)
++      {
++        const size_t i = (size_t)aFinite[k];
++        aSum += aHi[a][i] - aLo[a][i];
++        aMin = std::min(aMin, aLo[a][i]);
++        aMax = std::max(aMax, aHi[a][i]);
++      }
++      aDensity[a] = aSum / std::max(aMax - aMin, 1.e-300);
++    }
++    const int        anA = (aDensity[1] < aDensity[0]) ? 1 : 0;
++    const int        anO = 1 - anA;
++    std::vector<int> anOrder(aFinite);
++    std::sort(anOrder.begin(), anOrder.end(), [&](const int theA, const int theB) {
++      return aLo[anA][(size_t)theA] < aLo[anA][(size_t)theB]
++             || (aLo[anA][(size_t)theA] == aLo[anA][(size_t)theB] && theA < theB);
++    });
++    std::vector<int> anActive;
++    for (size_t k = 0; k < anOrder.size(); ++k)
++    {
++      const int c     = anOrder[k];
++      size_t    aKeep = 0;
++      for (size_t m = 0; m < anActive.size(); ++m)
++      {
++        const int b = anActive[m];
++        if (aHi[anA][(size_t)b] < aLo[anA][(size_t)c])
++        {
++          continue; // apart from c and from every later box on this axis: leaves the active list
++        }
++        anActive[aKeep++] = b;
++        if (!(aHi[anO][(size_t)b] < aLo[anO][(size_t)c] || aLo[anO][(size_t)b] > aHi[anO][(size_t)c]))
++        {
++          thePairs.push_back(std::make_pair(std::min(b, c), std::max(b, c)));
++        }
++      }
++      anActive.resize(aKeep);
++      anActive.push_back(c);
++      if (thePairs.size() > theLimit)
++      {
++        return false;
++      }
++    }
++    std::sort(thePairs.begin(), thePairs.end());
++    thePairs.erase(std::unique(thePairs.begin(), thePairs.end()), thePairs.end());
++    return true;
++  }
++};
++
++#endif // _BRepCheck_BoxPairs_HeaderFile
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Edge.cxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Edge.cxx
+index 2cf31eeb..7dde7289 100644
+--- a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Edge.cxx
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Edge.cxx
+@@ -25,6 +25,9 @@
+ #include <BRepAdaptor_Curve.hxx>
+ #include <BRepCheck.hxx>
+ #include <BRepCheck_Edge.hxx>
++#include <BRepCheck_SubShapeIndex.hxx>
++#include <BRepCheck_FaceCache.hxx>
++#include <gp_Vec.hxx>
+ #include <BRepCheck_Status.hxx>
+ #include <NCollection_List.hxx>
+ #include <NCollection_Shared.hxx>
+@@ -286,15 +289,9 @@ void BRepCheck_Edge::InContext(const TopoDS_Shape& S)
+ 
+   TopAbs_ShapeEnum styp = S.ShapeType();
+   //  for (TopExp_Explorer exp(S,TopAbs_EDGE); exp.More(); exp.Next()) {
+-  TopExp_Explorer exp(S, TopAbs_EDGE);
+-  for (; exp.More(); exp.Next())
+-  {
+-    if (exp.Current().IsSame(myShape))
+-    {
+-      break;
+-    }
+-  }
+-  if (!exp.More())
++  // defect 018: the same answer as walking TopExp_Explorer(S, TopAbs_EDGE) until IsSame(); O(1)
++  // inside the analyzer
++  if (!BRepCheck_SubShapeIndex::Contains(S, TopAbs_EDGE, myShape))
+   {
+     BRepCheck::Add(lst, BRepCheck_SubshapeNotInShape);
+     return;
+@@ -400,9 +397,61 @@ void BRepCheck_Edge::InContext(const TopoDS_Shape& S)
+             if (myGctrl)
+             {
+               occ::handle<Geom_Surface> Sb = cr->Surface();
+-              Sb                           = Handle(Geom_Surface)::DownCast
+-                //	      (Su->Transformed(L.Transformation()));
+-                (Su->Transformed(/*L*/ (Floc * TFloc).Transformation()));
++              // defect 018, Task 6b: the face surface in position depends only on S (TF->Surface(),
++              // Floc * TFloc); inside the analyzer (BRepCheck_FaceCacheScope) one copy per face is
++              // made instead of one per edge. It is only read (GeomAdaptor_Surface below; Geom
++              // surfaces keep no evaluation state), so every edge gets the same values as from its
++              // own copy.
++              BRepCheck_FaceCache* aFaceCache = BRepCheck_FaceCache::Get(S);
++              if (aFaceCache != nullptr && !aFaceCache->Surface.IsNull())
++              {
++                Sb = aFaceCache->Surface;
++#ifdef BREPCHECK_VERIFY_018
++                BRepCheck_VerifyCall("surface");
++                if (BRepCheck_VerifyBreak("surface"))
++                {
++                  Sb = occ::down_cast<Geom_Surface>(Sb->Translated(gp_Vec(0., 0., 1.e-3)));
++                }
++                if (BRepCheck_VerifyOn())
++                {
++                  const occ::handle<Geom_Surface> aStock = occ::down_cast<Geom_Surface>(
++                    Su->Transformed((Floc * TFloc).Transformation()));
++                  double u1, u2, v1, v2;
++                  aStock->Bounds(u1, u2, v1, v2);
++                  if (Precision::IsInfinite(u1))
++                    u1 = -1.;
++                  if (Precision::IsInfinite(u2))
++                    u2 = 1.;
++                  if (Precision::IsInfinite(v1))
++                    v1 = -1.;
++                  if (Precision::IsInfinite(v2))
++                    v2 = 1.;
++                  for (int a = 0; a <= 2; ++a)
++                  {
++                    for (int b = 0; b <= 2; ++b)
++                    {
++                      const double u = u1 + (u2 - u1) * a / 2., v = v1 + (v2 - v1) * b / 2.;
++                      const gp_Pnt aP1 = aStock->Value(u, v), aP2 = Sb->Value(u, v);
++                      if (aP1.X() != aP2.X() || aP1.Y() != aP2.Y() || aP1.Z() != aP2.Z())
++                      {
++                        BRepCheck_VerifyFail("surface",
++                                               "cached surface in position != a fresh copy");
++                      }
++                    }
++                  }
++                }
++#endif
++              }
++              else
++              {
++                Sb = occ::down_cast<Geom_Surface>
++                  //	      (Su->Transformed(L.Transformation()));
++                  (Su->Transformed(/*L*/ (Floc * TFloc).Transformation()));
++                if (aFaceCache != nullptr)
++                {
++                  aFaceCache->Surface = Sb;
++                }
++              }
+               occ::handle<Geom2d_Curve>             PC   = cr->PCurve();
+               occ::handle<GeomAdaptor_Surface>      GAHS = new GeomAdaptor_Surface(Sb);
+               occ::handle<Geom2dAdaptor_Curve>      GHPC = new Geom2dAdaptor_Curve(PC, f, l);
+@@ -518,7 +567,10 @@ void BRepCheck_Edge::InContext(const TopoDS_Shape& S)
+     case TopAbs_SOLID: {
+       // on verifie que l`edge est bien connectee 2 fois (pas de bord libre)
+       int nbconnection = 0;
+-      // TopExp_Explorer exp;
++      // defect 018: the explorer is declared here, where it is used (it was declared above for the
++      // removed walk; a default-constructed TopExp_Explorer allocates its stack, so every other
++      // context would pay for it)
++      TopExp_Explorer exp;
+       for (exp.Init(S, TopAbs_FACE); exp.More(); exp.Next())
+       {
+         const TopoDS_Face& fac = TopoDS::Face(exp.Current());
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Face.cxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Face.cxx
+index f91bcbe1..5cd56aa7 100644
+--- a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Face.cxx
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Face.cxx
+@@ -41,6 +41,7 @@
+ #include <Standard_Type.hxx>
+ #include <gp_Pnt.hxx>
+ #include <NCollection_Sequence.hxx>
++#include <TopAbs.hxx>
+ #include <TopAbs_State.hxx>
+ #include <TopExp.hxx>
+ #include <TopExp_Explorer.hxx>
+@@ -51,6 +52,16 @@
+ #include <TopoDS_Wire.hxx>
+ #include <TopTools_ShapeMapHasher.hxx>
+ #include <NCollection_Map.hxx>
++#include <BRepCheck_BoxPairs.hxx>
++#include <BRepCheck_FaceCache.hxx>
++#include <BRepCheck_SubShapeIndex.hxx>
++#include <BRepCheck_WireClass2d.hxx>
++
++#include <algorithm>
++#include <cmath>
++#include <new>
++#include <utility>
++#include <vector>
+ 
+ IMPLEMENT_STANDARD_RTTIEXT(BRepCheck_Face, BRepCheck_Result)
+ 
+@@ -74,6 +85,260 @@ static bool ComputeWireUVBounds(const TopoDS_Face& theFace,
+ 
+ static bool CheckThin(const TopoDS_Shape& w, const TopoDS_Shape& f);
+ 
++static bool WirePointToClassify(const TopoDS_Wire& theWire,
++                                const TopoDS_Face& theFace,
++                                gp_Pnt2d&          thePoint);
++
++namespace
++{
++//! Defect 018: the answer of the original IsInside() (BRepCheck_Face.cxx:934-941 @V8_0_1) for the
++//! state of its point.
++inline bool InsideByState(const TopAbs_State theState, const bool theWireBienOriente)
++{
++  return theWireBienOriente ? (theState == TopAbs_OUT) : (theState == TopAbs_IN);
++}
++
++//! Defect 018: FClass2d.IsFarOutside(theP) for a finite point only: a point with an infinite or NaN
++//! coordinate always gets the full Perform(theP, false). The shortcut is used with Perform(P, false)
++//! only - the call IsFarOutside() is proven for.
++inline bool IsProvenFarOutside(const BRepCheck_WireClass2d& theClass, const gp_Pnt2d& theP)
++{
++  return std::isfinite(theP.X()) && std::isfinite(theP.Y()) && theClass.IsFarOutside(theP);
++}
++
++//! Defect 018: the point the original IsInside() classifies for one wire, computed once.
++struct WirePoint
++{
++  int      State = 0; //!< 0 - not computed yet, 1 - Point is valid, 2 - IsInside() finds no edge
++  gp_Pnt2d Point;
++};
++
++//! Defect 018: uniform grid over the valid points of a vector of WirePoint (about one point per
++//! cell, cells shaped like the point cloud). Query() gives, in ascending index order, every index
++//! whose point lies in the box, plus every point with a non-finite coordinate (the grid cannot
++//! place those).
++class PointGrid
++{
++public:
++  void Build(const std::vector<WirePoint>& thePoints)
++  {
++    myAlways.clear();
++    double x0 = 0., y0 = 0., x1 = 0., y1 = 0.;
++    int    aNb = 0;
++    for (size_t i = 0; i < thePoints.size(); ++i)
++    {
++      if (thePoints[i].State != 1)
++      {
++        continue;
++      }
++      const double x = thePoints[i].Point.X(), y = thePoints[i].Point.Y();
++      if (!std::isfinite(x) || !std::isfinite(y))
++      {
++        myAlways.push_back((int)i);
++        continue;
++      }
++      if (aNb == 0)
++      {
++        x0 = x1 = x;
++        y0 = y1 = y;
++      }
++      x0 = std::min(x0, x);
++      x1 = std::max(x1, x);
++      y0 = std::min(y0, y);
++      y1 = std::max(y1, y);
++      ++aNb;
++    }
++    myNx = myNy = 0;
++    if (aNb == 0)
++    {
++      return;
++    }
++    const double w = x1 - x0, h = y1 - y0;
++    if (!(w > 0.) && !(h > 0.))
++    {
++      myNx = 1;
++      myNy = 1;
++    }
++    else if (!(h > 0.))
++    {
++      myNx = aNb;
++      myNy = 1;
++    }
++    else if (!(w > 0.))
++    {
++      myNx = 1;
++      myNy = aNb;
++    }
++    else
++    {
++      const double r = std::sqrt((double)aNb * w / h);
++      myNx           = (r < (double)aNb) ? std::max(1, (int)std::ceil(r)) : aNb;
++      myNy           = std::max(1, std::min(aNb, (int)std::ceil((double)aNb / myNx)));
++    }
++    myX0 = x0;
++    myY0 = y0;
++    myIx = (w > 0.) ? myNx / w : 0.;
++    myIy = (h > 0.) ? myNy / h : 0.;
++    if (!std::isfinite(myIx))
++    {
++      myNx = 1;
++      myIx = 0.;
++    }
++    if (!std::isfinite(myIy))
++    {
++      myNy = 1;
++      myIy = 0.;
++    }
++    const size_t aNbCells = (size_t)myNx * (size_t)myNy;
++    myStart.assign(aNbCells + 1, 0);
++    for (size_t i = 0; i < thePoints.size(); ++i)
++    {
++      if (isGridPoint(thePoints[i]))
++      {
++        ++myStart[cell(thePoints[i].Point) + 1];
++      }
++    }
++    for (size_t c = 0; c < aNbCells; ++c)
++    {
++      myStart[c + 1] += myStart[c];
++    }
++    myIndex.assign((size_t)myStart[aNbCells], 0);
++    std::vector<int> aFill(myStart.begin(), myStart.end() - 1);
++    for (size_t i = 0; i < thePoints.size();
++         ++i) // ascending i: every cell keeps its indices sorted
++    {
++      if (isGridPoint(thePoints[i]))
++      {
++        myIndex[(size_t)aFill[cell(thePoints[i].Point)]++] = (int)i;
++      }
++    }
++  }
++
++  //! theU0 <= theU1, theV0 <= theV1, all finite (BRepCheck_WireClass2d::NearBox)
++  void Query(const double      theU0,
++             const double      theV0,
++             const double      theU1,
++             const double      theV1,
++             std::vector<int>& theOut) const
++  {
++    theOut = myAlways;
++    if (myNx > 0)
++    {
++      const int ia = axis(theU0, myX0, myIx, myNx), ib = axis(theU1, myX0, myIx, myNx);
++      const int ja = axis(theV0, myY0, myIy, myNy), jb = axis(theV1, myY0, myIy, myNy);
++      for (int j = ja; j <= jb; ++j)
++      {
++        for (int i = ia; i <= ib; ++i)
++        {
++          const size_t c = (size_t)j * (size_t)myNx + (size_t)i;
++          theOut.insert(theOut.end(),
++                        myIndex.begin() + myStart[c],
++                        myIndex.begin() + myStart[c + 1]);
++        }
++      }
++    }
++    std::sort(theOut.begin(), theOut.end());
++  }
++
++private:
++  static bool isGridPoint(const WirePoint& theP)
++  {
++    return theP.State == 1 && std::isfinite(theP.Point.X()) && std::isfinite(theP.Point.Y());
++  }
++
++  //! cell of a coordinate: monotone in the coordinate, clamped to [0, theN - 1]
++  static int axis(const double theV, const double theV0, const double theInv, const int theN)
++  {
++    const double f = (theV - theV0) * theInv;
++    if (!(f > 0.))
++    {
++      return 0;
++    }
++    if (f >= (double)theN)
++    {
++      return theN - 1;
++    }
++    return std::min((int)f, theN - 1);
++  }
++
++  size_t cell(const gp_Pnt2d& theP) const
++  {
++    return (size_t)axis(theP.Y(), myY0, myIy, myNy) * (size_t)myNx
++           + (size_t)axis(theP.X(), myX0, myIx, myNx);
++  }
++
++  int              myNx = 0, myNy = 0;
++  double           myX0 = 0., myY0 = 0., myIx = 0., myIy = 0.;
++  std::vector<int> myStart, myIndex, myAlways;
++};
++
++//! Defect 018: at most this many candidate pairs are kept (else the original loops run)
++const size_t THE_MAX_PAIRS = (size_t)1 << 22;
++} // namespace
++
++//! Defect 018. The pairs (i, j), i < j, of the wires of theFace (0-based, in the order of
++//! TopExp_Explorer(theFace, TopAbs_WIRE)) for which the double loop of IntersectWires()
++//! (BRepCheck_Face.cxx:252-296 @V8_0_1) calls Intersect(), in the order it calls it: i ascending,
++//! then j ascending. That loop skips a pair only when both wire boxes are non-void and the first
++//! IsOut() the second. BRepCheck_BoxPairs::Candidates() gives a superset of the pairs the loop does
++//! not skip; the loop's own test, with the same roles, then filters it. Returns false (the caller
++//! runs the original loop) if a wire has no box in theMap, if the explorer does not give theNbWire
++//! wires, if there would be more than THE_MAX_PAIRS candidates, or if memory for the lists cannot
++//! be allocated (std::bad_alloc does not reach the analyzer).
++static bool WirePairsToIntersect(const TopoDS_Shape&               theFace,
++                                 const DataMapOfShapeBox2d&        theMap,
++                                 const int                         theNbWire,
++                                 std::vector<TopoDS_Wire>&         theWires,
++                                 std::vector<std::pair<int, int>>& thePairs)
++{
++  try
++  {
++    theWires.clear();
++    for (TopExp_Explorer anExp(theFace, TopAbs_WIRE); anExp.More(); anExp.Next())
++    {
++      theWires.push_back(TopoDS::Wire(anExp.Current()));
++    }
++    const int aNb = (int)theWires.size();
++    if (aNb != theNbWire)
++    {
++      return false;
++    }
++    std::vector<const Bnd_Box2d*> aBoxes((size_t)aNb, nullptr);
++    for (int i = 0; i < aNb; ++i)
++    {
++      aBoxes[(size_t)i] = theMap.Seek(theWires[(size_t)i]);
++      if (aBoxes[(size_t)i] == nullptr)
++      {
++        return false;
++      }
++    }
++    std::vector<std::pair<int, int>> aCand;
++    if (!BRepCheck_BoxPairs::Candidates(aBoxes, THE_MAX_PAIRS, aCand))
++    {
++      return false;
++    }
++    thePairs.clear();
++    thePairs.reserve(aCand.size());
++    for (size_t k = 0; k < aCand.size(); ++k)
++    {
++      const Bnd_Box2d& aBox1 = *aBoxes[(size_t)aCand[k].first];
++      const Bnd_Box2d& aBox2 = *aBoxes[(size_t)aCand[k].second];
++      if (!aBox1.IsVoid() && !aBox2.IsVoid() && aBox1.IsOut(aBox2))
++      {
++        continue; // the test of the original loop, same roles (line 281 @V8_0_1)
++      }
++      thePairs.push_back(aCand[k]); // aCand is sorted by (i, j): the loop's order
++    }
++    return true;
++  }
++  catch (const std::bad_alloc&)
++  {
++    theWires.clear();
++    thePairs.clear();
++    return false;
++  }
++}
++
+ //=================================================================================================
+ 
+ BRepCheck_Face::BRepCheck_Face(const TopoDS_Face& F)
+@@ -137,15 +402,9 @@ void BRepCheck_Face::InContext(const TopoDS_Shape& S)
+   }
+   NCollection_List<BRepCheck_Status>& lst = *aHList;
+ 
+-  TopExp_Explorer exp(S, TopAbs_FACE);
+-  for (; exp.More(); exp.Next())
+-  {
+-    if (exp.Current().IsSame(myShape))
+-    {
+-      break;
+-    }
+-  }
+-  if (!exp.More())
++  // defect 018: the same answer as walking TopExp_Explorer(S, TopAbs_FACE) until IsSame(); O(1)
++  // inside the analyzer
++  if (!BRepCheck_SubShapeIndex::Contains(S, TopAbs_FACE, myShape))
+   {
+     BRepCheck::Add(lst, BRepCheck_SubshapeNotInShape);
+     return;
+@@ -252,6 +511,67 @@ BRepCheck_Status BRepCheck_Face::IntersectWires(const bool Update)
+   int Nbwire, Index, Indexbis;
+   Nbwire = myMapImb.Extent();
+ 
++  // defect 018: the loop below visits every pair of wires - Nbwire^2/2 box tests, and for each
++  // outer index a walk of the explorer from the start. Visit only the pairs it does not skip, in
++  // the same order, so the first intersecting pair (and any exception of Intersect()) is the same.
++  // The loop stays as the fallback for faces where WirePairsToIntersect() cannot reproduce it
++  // exactly.
++  {
++    std::vector<TopoDS_Wire>         aWires;
++    std::vector<std::pair<int, int>> aPairs;
++    if (WirePairsToIntersect(myShape, aMapShapeBox2d, Nbwire, aWires, aPairs))
++    {
++#ifdef BREPCHECK_VERIFY_018
++      BRepCheck_VerifyCall("fpairs");
++      if (BRepCheck_VerifyBreak("fpairs") && !aPairs.empty())
++      {
++        aPairs.pop_back();
++      }
++      if (BRepCheck_VerifyOn())
++      {
++        std::vector<std::pair<int, int>> aStock; // the pairs the stock loop does not skip
++        for (int a = 0; a < (int)aWires.size(); ++a)
++        {
++          for (int b = a + 1; b < (int)aWires.size(); ++b)
++          {
++            const Bnd_Box2d& aB1 = aMapShapeBox2d(aWires[(size_t)a]);
++            const Bnd_Box2d& aB2 = aMapShapeBox2d(aWires[(size_t)b]);
++            if (!aB1.IsVoid() && !aB2.IsVoid() && aB1.IsOut(aB2))
++            {
++              continue;
++            }
++            aStock.push_back(std::make_pair(a, b));
++          }
++        }
++        if (aStock != aPairs)
++        {
++          BRepCheck_VerifyFail("fpairs", "swept wire pairs != the pairs of the stock loop");
++        }
++      }
++#endif
++      for (size_t k = 0; k < aPairs.size(); ++k)
++      {
++        if (Intersect(aWires[(size_t)aPairs[k].first],
++                      aWires[(size_t)aPairs[k].second],
++                      TopoDS::Face(myShape),
++                      aMapShapeBox2d))
++        {
++          myIntres = BRepCheck_IntersectingWires;
++          if (Update)
++          {
++            BRepCheck::Add(aStatusList, myIntres);
++          }
++          return myIntres;
++        }
++      }
++      if (Update)
++      {
++        BRepCheck::Add(aStatusList, myIntres);
++      }
++      return myIntres;
++    }
++  }
++
+   Index = 1;
+   while (Index < Nbwire)
+   {
+@@ -365,45 +685,270 @@ BRepCheck_Status BRepCheck_Face::ClassifyWires(const bool Update)
+     }
+   }
+ 
+-  for (exp1.Init(aForwardFace, TopAbs_WIRE); exp1.More(); exp1.Next())
++  // defect 018: the loop below classifies the point of every wire j against every other wire i
++  // whose box it does not skip (PR #1375) - for boxes it cannot skip (a wire without a reliable box,
++  // overlapping boxes) Nbwire^2 IsInside() calls, each recomputing that point and building a
++  // BRepAdaptor_Surface in Perform(), and always Nbwire^2 box tests and map lookups. Here:
++  //  - the j that the box test may keep come from a sweep (BRepCheck_BoxPairs, a superset), and
++  //    the loop's own test, with the same roles, decides each of them; j ascending, as the loop;
++  //  - the point of a wire is computed once, at the first pair that computes it in the loop (so an
++  //    exception is thrown where the loop throws it); it depends on the wire, the surface and the
++  //    location only (BRep_Tool.cxx:335-397 @V8_0_1; newFace is an empty copy of myShape with
++  //    orientation FORWARD, BRep_TFace.cxx:36-43);
++  //  - a Perform() call is skipped only where BRepCheck_WireClass2d::IsFarOutside() proves its
++  //    answer.
++  // The classifier is BRepCheck_WireClass2d, a generated copy of BRepTopAdaptor_FClass2d (same
++  // answers). The order of the outer loop, the map updates and the order of Append() are the
++  // original ones. If the lists cannot be allocated, the original loop runs (below).
++  std::vector<TopoDS_Wire>      aWires;
++  std::vector<const Bnd_Box2d*> aBoxes;
++  std::vector<WirePoint>        aPoints;
++  std::vector<size_t>           aRowStart;
++  std::vector<int>              aRowJ;
++  std::vector<int>              aCandidates;
++  PointGrid                     aGrid;
++  bool                          isPrepared = false, isRows = false, isGridBuilt = false;
++  int                           aNbUnknown = 0; // points not computed yet
++  try
+   {
++    for (exp1.Init(aForwardFace, TopAbs_WIRE); exp1.More(); exp1.Next())
++    {
++      aWires.push_back(TopoDS::Wire(exp1.Current()));
++    }
++    const size_t aNb = aWires.size();
++    aBoxes.assign(aNb, nullptr);
++    for (size_t i = 0; i < aNb; ++i)
++    {
++      aBoxes[i] = aWireBoxMap.Seek(aWires[i]);
++    }
++    aPoints.assign(aNb, WirePoint());
++    aNbUnknown = (int)aNb;
++    std::vector<std::pair<int, int>> aPairs;
++    if (BRepCheck_BoxPairs::Candidates(aBoxes, THE_MAX_PAIRS, aPairs))
++    {
++      // row i: the j paired with i, ascending (aPairs is sorted by (a, b): the j < i of row i come
++      // first, by ascending j, then the j > i, by ascending j)
++      aRowStart.assign(aNb + 1, 0);
++      for (size_t k = 0; k < aPairs.size(); ++k)
++      {
++        ++aRowStart[(size_t)aPairs[k].first + 1];
++        ++aRowStart[(size_t)aPairs[k].second + 1];
++      }
++      for (size_t i = 0; i < aNb; ++i)
++      {
++        aRowStart[i + 1] += aRowStart[i];
++      }
++      aRowJ.assign(aRowStart[aNb], 0);
++      std::vector<size_t> aFill(aRowStart.begin(), aRowStart.end() - 1);
++      for (size_t k = 0; k < aPairs.size(); ++k)
++      {
++        aRowJ[aFill[(size_t)aPairs[k].first]++]  = aPairs[k].second;
++        aRowJ[aFill[(size_t)aPairs[k].second]++] = aPairs[k].first;
++      }
++      isRows = true;
++    }
++    isPrepared = true;
++  }
++  catch (const std::bad_alloc&)
++  {
++    isPrepared = false;
++  }
+ 
+-    const TopoDS_Wire& wir1        = TopoDS::Wire(exp1.Current());
+-    TopoDS_Shape       aLocalShape = myShape.EmptyCopied();
+-    TopoDS_Face        newFace     = TopoDS::Face(aLocalShape);
++  if (isPrepared)
++  {
++    const int aNbW = (int)aWires.size();
++    for (int i = 0; i < aNbW; ++i)
++    {
++      const TopoDS_Wire& wir1        = aWires[(size_t)i];
++      TopoDS_Shape       aLocalShape = myShape.EmptyCopied();
++      TopoDS_Face        newFace     = TopoDS::Face(aLocalShape);
+ 
+-    newFace.Orientation(TopAbs_FORWARD);
+-    B.Add(newFace, wir1);
++      newFace.Orientation(TopAbs_FORWARD);
++      B.Add(newFace, wir1);
+ 
+-    BRepTopAdaptor_FClass2d FClass2d(newFace, Precision::PConfusion());
+-    bool                    WireBienOriente = false;
+-    if (FClass2d.PerformInfinitePoint() != TopAbs_OUT)
+-    {
+-      WireBienOriente = true;
+-      // the given wire defines a hole
+-      myMapImb.UnBind(wir1);
+-      myMapImb.Bind(wir1.Reversed(), theListOfShape);
+-    }
++      BRepCheck_WireClass2d FClass2d(newFace, Precision::PConfusion());
++      bool                  WireBienOriente = false;
++      if (FClass2d.PerformInfinitePoint() != TopAbs_OUT)
++      {
++        WireBienOriente = true;
++        // the given wire defines a hole
++        myMapImb.UnBind(wir1);
++        myMapImb.Bind(wir1.Reversed(), theListOfShape);
++      }
+ 
+-    const Bnd_Box2d* aBox1 = aWireBoxMap.Seek(wir1);
++      const Bnd_Box2d* aBox1 = aBoxes[(size_t)i];
++      // the answer of IsInside() for a point where FClass2d.IsFarOutside() holds
++      const bool   isFarInside = InsideByState(FClass2d.OutsideState(), WireBienOriente);
++      size_t       aFirst      = isRows ? aRowStart[(size_t)i] : 0;
++      size_t       anEnd       = isRows ? aRowStart[(size_t)i + 1] : (size_t)aNbW;
++      // Where the answer for far points is "not inside" and every point is already known (the
++      // loop computed each of them - usually rows 0 and 1 do, since without boxes every pair is
++      // classified), only the points in NearBox() are visited, j ascending: a finite point outside
++      // NearBox() is far outside (IsFarOutside), so IsInside() is false for it and the loop appends
++      // nothing, calls nothing that can throw (its point is computed); non-finite points are always
++      // candidates (PointGrid::Query) and get the full Perform(). The loop's own tests (IsSame, the
++      // box test) still decide each visited j.
++      bool   isGridRow = false;
++      double aU0 = 0., aV0 = 0., aU1 = 0., aV1 = 0.;
++      if (aNbUnknown == 0 && anEnd - aFirst > 32 && !isFarInside
++          && FClass2d.NearBox(aU0, aV0, aU1, aV1))
++      {
++        try
++        {
++          if (!isGridBuilt)
++          {
++            aGrid.Build(aPoints);
++            isGridBuilt = true;
++          }
++          aGrid.Query(aU0, aV0, aU1, aV1, aCandidates);
++          isGridRow = true;
++          aFirst    = 0;
++          anEnd     = aCandidates.size();
++        }
++        catch (const std::bad_alloc&)
++        {
++          isGridBuilt = false; // the rows above, as before
++        }
++      }
++#ifdef BREPCHECK_VERIFY_018
++      BRepCheck_VerifyCall("classify");
++      std::vector<int> aVisited, anAppended; // j classified, j appended
++#endif
++      for (size_t k = aFirst; k < anEnd; ++k)
++      {
++        const int j = isGridRow ? aCandidates[k] : (isRows ? aRowJ[k] : (int)k);
++        const TopoDS_Wire& wir2 = aWires[(size_t)j];
++        if (wir2.IsSame(wir1))
++        {
++          continue;
++        }
+ 
+-    for (exp2.Init(aForwardFace, TopAbs_WIRE); exp2.More(); exp2.Next())
+-    {
+-      const TopoDS_Wire& wir2 = TopoDS::Wire(exp2.Current());
+-      if (wir2.IsSame(wir1))
++        const Bnd_Box2d* aBox2 = aBoxes[(size_t)j];
++        // Wires with disjoint UV bounds cannot contain one another.
++        if (aBox1 != nullptr && aBox2 != nullptr && aBox1->IsOut(*aBox2))
++        {
++          continue; // the test of the original loop, same roles (line 400 @V8_0_1)
++        }
++        WirePoint& aWP = aPoints[(size_t)j];
++#ifdef BREPCHECK_VERIFY_018
++        aVisited.push_back(j);
++#endif
++        if (aWP.State == 0)
++        {
++          aWP.State = WirePointToClassify(wir2, newFace, aWP.Point) ? 1 : 2;
++          --aNbUnknown;
++        }
++        if (aWP.State != 1)
++        {
++          continue; // IsInside() returns false: wir2 has no edge to classify
++        }
++#ifdef BREPCHECK_VERIFY_018
++        const bool isFar = IsProvenFarOutside(FClass2d, aWP.Point);
++        if (isFar && BRepCheck_VerifyOn()
++            && FClass2d.Perform(aWP.Point, false) != FClass2d.OutsideState())
++        {
++          BRepCheck_VerifyFail("classify", "IsFarOutside() but Perform() != OutsideState()");
++        }
++        const bool isIn =
++          isFar ? (isFarInside != BRepCheck_VerifyBreak("classify"))
++                : InsideByState(FClass2d.Perform(aWP.Point, false), WireBienOriente);
++        if (isIn)
++        {
++          anAppended.push_back(j);
++        }
++        if (isIn)
++#else
++        if (IsProvenFarOutside(FClass2d, aWP.Point)
++              ? isFarInside
++              : InsideByState(FClass2d.Perform(aWP.Point, false), WireBienOriente))
++#endif
++        {
++          myMapImb(wir1).Append(wir2);
++        }
++      }
++#ifdef BREPCHECK_VERIFY_018
++      if (BRepCheck_VerifyOn())
+       {
+-        continue;
++        // the stock loop for this wire: BRepTopAdaptor_FClass2d, the explorer order, IsInside()
++        BRepTopAdaptor_FClass2d aStockClass(newFace, Precision::PConfusion());
++        const bool isStockBien = aStockClass.PerformInfinitePoint() != TopAbs_OUT;
++        std::vector<int> aStockVisited, aStockAppended;
++        int              j = 0;
++        for (TopExp_Explorer anExp(aForwardFace, TopAbs_WIRE); anExp.More(); anExp.Next(), ++j)
++        {
++          const TopoDS_Wire& wir2 = TopoDS::Wire(anExp.Current());
++          if (wir2.IsSame(wir1))
++          {
++            continue;
++          }
++          const Bnd_Box2d* aB1 = aWireBoxMap.Seek(wir1);
++          const Bnd_Box2d* aB2 = aWireBoxMap.Seek(wir2);
++          if (aB1 != nullptr && aB2 != nullptr && aB1->IsOut(*aB2))
++          {
++            continue;
++          }
++          aStockVisited.push_back(j);
++          if (IsInside(wir2, isStockBien, aStockClass, newFace))
++          {
++            aStockAppended.push_back(j);
++          }
++        }
++        if (isGridRow)
++        {
++          BRepCheck_VerifyCall("grid");
++        }
++        if (isStockBien != WireBienOriente || (!isGridRow && aStockVisited != aVisited)
++            || aStockAppended != anAppended)
++        {
++          BRepCheck_VerifyFail("classify", "wire pairs or answers != the stock loop");
++        }
+       }
++#endif
++    }
++  }
++  else
++  {
++    // the original loop (BRepCheck_Face.cxx:368-409 @V8_0_1)
++    for (exp1.Init(aForwardFace, TopAbs_WIRE); exp1.More(); exp1.Next())
++    {
++
++      const TopoDS_Wire& wir1        = TopoDS::Wire(exp1.Current());
++      TopoDS_Shape       aLocalShape = myShape.EmptyCopied();
++      TopoDS_Face        newFace     = TopoDS::Face(aLocalShape);
++
++      newFace.Orientation(TopAbs_FORWARD);
++      B.Add(newFace, wir1);
+ 
+-      const Bnd_Box2d* aBox2 = aWireBoxMap.Seek(wir2);
+-      // Wires with disjoint UV bounds cannot contain one another.
+-      if (aBox1 != nullptr && aBox2 != nullptr && aBox1->IsOut(*aBox2))
++      BRepTopAdaptor_FClass2d FClass2d(newFace, Precision::PConfusion());
++      bool                    WireBienOriente = false;
++      if (FClass2d.PerformInfinitePoint() != TopAbs_OUT)
+       {
+-        continue;
++        WireBienOriente = true;
++        // the given wire defines a hole
++        myMapImb.UnBind(wir1);
++        myMapImb.Bind(wir1.Reversed(), theListOfShape);
+       }
+-      if (IsInside(wir2, WireBienOriente, FClass2d, newFace))
++
++      const Bnd_Box2d* aBox1 = aWireBoxMap.Seek(wir1);
++
++      for (exp2.Init(aForwardFace, TopAbs_WIRE); exp2.More(); exp2.Next())
+       {
+-        myMapImb(wir1).Append(wir2);
++        const TopoDS_Wire& wir2 = TopoDS::Wire(exp2.Current());
++        if (wir2.IsSame(wir1))
++        {
++          continue;
++        }
++
++        const Bnd_Box2d* aBox2 = aWireBoxMap.Seek(wir2);
++        // Wires with disjoint UV bounds cannot contain one another.
++        if (aBox1 != nullptr && aBox2 != nullptr && aBox1->IsOut(*aBox2))
++        {
++          continue;
++        }
++        if (IsInside(wir2, WireBienOriente, FClass2d, newFace))
++        {
++          myMapImb(wir1).Append(wir2);
++        }
+       }
+     }
+   }
+@@ -530,6 +1075,16 @@ BRepCheck_Status BRepCheck_Face::OrientationOfWires(const bool Update)
+     return myOrires;
+   }
+ 
++  // defect 018: the loop below looked up the key of myMapImb that IsSame() each wire by walking the
++  // whole map (Nbwire^2 steps). The keys are unique under IsSame() - the map's own hasher,
++  // TopTools_ShapeMapHasher - so a map from each key to its orientation, with the same hasher,
++  // gives the orientation of the key the walk finds.
++  NCollection_DataMap<TopoDS_Shape, TopAbs_Orientation, TopTools_ShapeMapHasher> aKeyOrientation;
++  for (itm.Reset(); itm.More(); itm.Next())
++  {
++    aKeyOrientation.Bind(itm.Key(), itm.Key().Orientation());
++  }
++
+   // BRep_Builder B;
+   TopExp_Explorer exp(myShape.Oriented(TopAbs_FORWARD), TopAbs_WIRE);
+   for (; exp.More(); exp.Next())
+@@ -554,15 +1109,49 @@ BRepCheck_Status BRepCheck_Face::OrientationOfWires(const bool Update)
+     }
+     else
+     {
+-      for (itm.Reset(); itm.More(); itm.Next())
++      const TopAbs_Orientation* aKeyOri = aKeyOrientation.Seek(wir);
++#ifdef BREPCHECK_VERIFY_018
++      TopAbs_Orientation aSpoiled = TopAbs_FORWARD;
++      if (aKeyOri != nullptr)
+       {
+-        if (itm.Key().IsSame(wir))
++        BRepCheck_VerifyCall("forient");
++        if (BRepCheck_VerifyBreak("forient"))
+         {
+-          break;
++          aSpoiled = TopAbs::Reverse(*aKeyOri);
++          aKeyOri  = &aSpoiled;
++        }
++        if (BRepCheck_VerifyOn())
++        {
++          NCollection_DataMap<TopoDS_Shape,
++                              NCollection_List<TopoDS_Shape>,
++                              TopTools_ShapeMapHasher>::Iterator itv(myMapImb);
++          for (; itv.More(); itv.Next())
++          {
++            if (itv.Key().IsSame(wir))
++            {
++              break;
++            }
++          }
++          if (!itv.More() || itv.Key().Orientation() != *aKeyOri)
++          {
++            BRepCheck_VerifyFail("forient", "key orientation != the map walk");
++          }
++        }
++      }
++#endif
++      if (aKeyOri == nullptr)
++      {
++        // not a key (IntersectWires() bound every wire, so not expected): the original walk
++        for (itm.Reset(); itm.More(); itm.Next())
++        {
++          if (itm.Key().IsSame(wir))
++          {
++            break;
++          }
+         }
+       }
+       // No control on More()
+-      if (itm.Key().Orientation() == wir.Orientation())
++      if ((aKeyOri != nullptr ? *aKeyOri : itm.Key().Orientation()) == wir.Orientation())
+       {
+         // the given wire does not define a hole
+         myOrires = BRepCheck_BadOrientationOfSubshape;
+@@ -868,10 +1457,9 @@ static bool ComputeWireUVBounds(const TopoDS_Face& theFace,
+ 
+ //=================================================================================================
+ 
+-static bool IsInside(const TopoDS_Wire&             theWire,
+-                     const bool                     WireBienOriente,
+-                     const BRepTopAdaptor_FClass2d& FClass2d,
+-                     const TopoDS_Face&             theFace)
++static bool WirePointToClassify(const TopoDS_Wire& theWire,
++                                const TopoDS_Face& theFace,
++                                gp_Pnt2d&          thePoint)
+ {
+   double aParameter, aFirst, aLast;
+ 
+@@ -927,22 +1515,31 @@ static bool IsInside(const TopoDS_Wire&             theWire,
+     }
+ 
+     // Find point on curve (edge)
+-    gp_Pnt2d aPoint2D(aCurve2D->Value(aParameter));
+-    // Compute the topological position of a point relative to face
+-    TopAbs_State aState = FClass2d.Perform(aPoint2D, false);
+-
+-    if (WireBienOriente)
+-    {
+-      return aState == TopAbs_OUT;
+-    }
+-    else
+-    {
+-      return aState == TopAbs_IN;
+-    }
++    thePoint = aCurve2D->Value(aParameter);
++    // defect 018: the original IsInside() classified this point here with
++    // FClass2d.Perform(thePoint, false) and answered InsideByState(); its callers now do that
++    return true;
+   }
+   return false;
+ }
+ 
++//=================================================================================================
++
++static bool IsInside(const TopoDS_Wire&             theWire,
++                     const bool                     WireBienOriente,
++                     const BRepTopAdaptor_FClass2d& FClass2d,
++                     const TopoDS_Face&             theFace)
++{
++  // defect 018: the original body, split in two: the point (WirePointToClassify), then its state
++  gp_Pnt2d aPoint2D;
++  if (!WirePointToClassify(theWire, theFace, aPoint2D))
++  {
++    return false;
++  }
++  // Compute the topological position of a point relative to face
++  return InsideByState(FClass2d.Perform(aPoint2D, false), WireBienOriente);
++}
++
+ bool CheckThin(const TopoDS_Shape& w, const TopoDS_Shape& f)
+ {
+   TopoDS_Face aF = TopoDS::Face(f);
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_FaceCache.cxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_FaceCache.cxx
+new file mode 100644
+index 00000000..4acf20e2
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_FaceCache.cxx
+@@ -0,0 +1,129 @@
++// Copyright (c) 2026 - modification of Open CASCADE Technology 8.0.1 for FreeCAD (defect 018,
++// https://github.com/fozzfut/freecad-kernel-fixes). Distributed under GNU LGPL 2.1 with the Open
++// CASCADE exception, as the rest of OCCT.
++
++#include <BRepCheck_FaceCache.hxx>
++
++namespace
++{
++//! the cache of the innermost BRepCheck_FaceCacheScope of this thread, or nullptr
++thread_local BRepCheck_FaceCache* THE_ACTIVE_FACE_CACHE = nullptr;
++} // namespace
++
++BRepCheck_FaceCacheScope::BRepCheck_FaceCacheScope()
++    : myPrev(THE_ACTIVE_FACE_CACHE)
++{
++  THE_ACTIVE_FACE_CACHE = &myCache;
++}
++
++BRepCheck_FaceCacheScope::~BRepCheck_FaceCacheScope()
++{
++  THE_ACTIVE_FACE_CACHE = myPrev;
++}
++
++BRepCheck_FaceCache* BRepCheck_FaceCache::Get(const TopoDS_Shape& theFace)
++{
++  BRepCheck_FaceCache* aCache = THE_ACTIVE_FACE_CACHE;
++  if (aCache == nullptr)
++  {
++    return nullptr;
++  }
++  if (!aCache->myFace.IsEqual(theFace))
++  {
++    aCache->myFace   = theFace;
++    aCache->HasSeams = false;
++    aCache->Seams.Clear();
++    aCache->Surface.Nullify();
++  }
++  return aCache;
++}
++
++#ifdef BREPCHECK_VERIFY_018
++  #include <cstdio>
++  #include <cstdlib>
++  #include <cstring>
++  #include <map>
++  #include <mutex>
++  #include <string>
++
++namespace
++{
++std::mutex& verifyMutex()
++{
++  static std::mutex THE_MUTEX;
++  return THE_MUTEX;
++}
++
++//! calls and mismatches per path; written to BRCHK018_LOG and stderr at process exit
++struct VerifyCounters
++{
++  std::map<std::string, std::pair<long long, long long>> Counts;
++
++  ~VerifyCounters()
++  {
++    for (const auto& aCount : Counts)
++    {
++      char aLine[256];
++      std::snprintf(aLine,
++                    sizeof(aLine),
++                    "VERIFY-SUMMARY %s calls=%lld mismatches=%lld",
++                    aCount.first.c_str(),
++                    aCount.second.first,
++                    aCount.second.second);
++      BRepCheck_VerifyLog(aLine);
++      std::fprintf(stderr, "BRCHK018 %s\n", aLine);
++    }
++    std::fflush(stderr);
++  }
++};
++
++VerifyCounters& verifyCounters()
++{
++  static VerifyCounters THE_COUNTERS;
++  return THE_COUNTERS;
++}
++} // namespace
++
++bool BRepCheck_VerifyBreak(const char* theWhat)
++{
++  const char* aBreak = std::getenv("BRCHK018_BREAK");
++  return aBreak != nullptr && std::strcmp(aBreak, theWhat) == 0;
++}
++
++bool BRepCheck_VerifyOn()
++{
++  return std::getenv("BRCHK018_NOVERIFY") == nullptr;
++}
++
++void BRepCheck_VerifyLog(const char* theLine)
++{
++  if (const char* aPath = std::getenv("BRCHK018_LOG"))
++  {
++    if (FILE* aFile = std::fopen(aPath, "a"))
++    {
++      std::fprintf(aFile, "%s\n", theLine);
++      std::fclose(aFile);
++    }
++  }
++}
++
++void BRepCheck_VerifyCall(const char* theWhat)
++{
++  std::lock_guard<std::mutex> aLock(verifyMutex());
++  ++verifyCounters().Counts[theWhat].first;
++}
++
++void BRepCheck_VerifyFail(const char* theWhat, const char* theDetail)
++{
++  std::lock_guard<std::mutex> aLock(verifyMutex());
++  const long long aNb = ++verifyCounters().Counts[theWhat].second;
++  if (aNb <= 20)
++  {
++    char aLine[512];
++    std::snprintf(aLine, sizeof(aLine), "MISMATCH %s %s", theWhat, theDetail);
++    BRepCheck_VerifyLog(aLine);
++    std::fprintf(stderr, "BRCHK018 %s\n", aLine);
++    std::fflush(stderr);
++  }
++}
++#endif
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_FaceCache.hxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_FaceCache.hxx
+new file mode 100644
+index 00000000..41b77e4d
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_FaceCache.hxx
+@@ -0,0 +1,74 @@
++// Copyright (c) 2026 - modification of Open CASCADE Technology 8.0.1 for FreeCAD (defect 018,
++// https://github.com/fozzfut/freecad-kernel-fixes). Distributed under GNU LGPL 2.1 with the Open
++// CASCADE exception, as the rest of OCCT.
++
++#ifndef _BRepCheck_FaceCache_HeaderFile
++#define _BRepCheck_FaceCache_HeaderFile
++
++#include <Geom_Surface.hxx>
++#include <NCollection_List.hxx>
++#include <Standard.hxx>
++#include <TopoDS_Shape.hxx>
++
++//! Defect 018, Task 6b (internal, not exported). Results that depend only on one face and that
++//! BRepCheck recomputed for every wire or edge of that face:
++//!  - Seams: the seam edges IsClosed2dForPeriodicFace() (BRepCheck_Wire.cxx) collects by walking
++//!    every edge of the face - for every wire of the face, W * E steps;
++//!  - Surface: the face surface in position, Su->Transformed((Floc * TFloc).Transformation()),
++//!    which BRepCheck_Edge::InContext() copied for every edge of the face.
++//! They are kept only while a BRepCheck_FaceCacheScope lives on the calling thread - one per call of
++//! the analyzer's worker (BRepCheck_ParallelAnalyzer::operator(), one chunk of shapes), which reads
++//! shapes and never modifies them; nested scopes (a thread that steals another chunk while it
++//! waits) stack and restore - and only for the last face asked for (IsEqual: the same TShape,
++//! location and orientation - the explored edges carry the face's orientation). A value is stored
++//! only after it was computed completely: an exception leaves it empty, and the next caller
++//! computes (and throws) again, as before. Without a scope Get() returns nullptr and the callers
++//! compute everything as before.
++class BRepCheck_FaceCache
++{
++public:
++  //! The entry of theFace on this thread, or nullptr without a scope. Another face than the last
++  //! one empties it.
++  static BRepCheck_FaceCache* Get(const TopoDS_Shape& theFace);
++
++  bool                           HasSeams = false; //!< Seams holds the complete list of the face
++  NCollection_List<TopoDS_Shape> Seams;
++  occ::handle<Geom_Surface>      Surface; //!< null until computed
++
++private:
++  friend class BRepCheck_FaceCacheScope;
++  TopoDS_Shape myFace;
++};
++
++//! Defect 018, Task 6b: makes BRepCheck_FaceCache::Get() keep its entry on this thread for its
++//! lifetime.
++class BRepCheck_FaceCacheScope
++{
++public:
++  BRepCheck_FaceCacheScope();
++  ~BRepCheck_FaceCacheScope();
++
++  BRepCheck_FaceCacheScope(const BRepCheck_FaceCacheScope&)            = delete;
++  BRepCheck_FaceCacheScope& operator=(const BRepCheck_FaceCacheScope&) = delete;
++
++private:
++  BRepCheck_FaceCache  myCache;
++  BRepCheck_FaceCache* myPrev;
++};
++
++#ifdef BREPCHECK_VERIFY_018
++//! Verification build only (defect 018; never shipped). Every new path compares its answer with
++//! the stock computation on every call; a difference is counted and logged, the run goes on.
++//!  BRCHK018_BREAK=<what>  spoils the new path <what> (negative control): fpairs, classify,
++//!                         forient, subshape, pairs, orient, seams, surface, occ, nbset;
++//!  BRCHK018_NOVERIFY=1    skips the comparisons, so a spoiled answer reaches the statuses;
++//!  BRCHK018_LOG=<file>    receives "MISMATCH <what> <detail>" per difference and, at process
++//!                         exit, "VERIFY-SUMMARY <what> calls=<n> mismatches=<m>" per path.
++bool BRepCheck_VerifyBreak(const char* theWhat);
++bool BRepCheck_VerifyOn();
++void BRepCheck_VerifyLog(const char* theLine);
++void BRepCheck_VerifyCall(const char* theWhat);
++void BRepCheck_VerifyFail(const char* theWhat, const char* theDetail);
++#endif
++
++#endif // _BRepCheck_FaceCache_HeaderFile
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Shell.cxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Shell.cxx
+index f20626f9..18571757 100644
+--- a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Shell.cxx
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Shell.cxx
+@@ -35,9 +35,125 @@
+ #include <NCollection_DataMap.hxx>
+ #include <NCollection_IndexedDataMap.hxx>
+ #include <NCollection_Map.hxx>
++#include <BRepCheck_FaceCache.hxx>
++#include <TopAbs.hxx>
++
++#include <deque>
+ 
+ IMPLEMENT_STANDARD_RTTIEXT(BRepCheck_Shell, BRepCheck_Result)
+ 
++namespace
++{
++//! Defect 018, Task 6b. The main loop of Orientation() (lines 512-677 @V7_8_1) looks up, for every
++//! edge of the shell and its faces, the first occurrence of the edge in TopExp_Explorer(face,
++//! TopAbs_EDGE) - and sometimes the next one - by walking the explorer until IsSame(): E^2 steps on
++//! a face with E edges. FaceEdgeOccurrences keeps, per face with its orientation (IsEqual: the
++//! explorer composes the face orientation into the edges; in that loop a face always has the
++//! orientation MapOfShapeOrientation gives it, which does not change there), the orientations of
++//! the first and the second occurrence of each edge (IsSame), recorded in one walk of the face in
++//! the explorer's order - the answers of the walk. A face with at most 32 edge occurrences is not
++//! recorded (the walk is cheaper): Find() returns NULL, as for an edge that is not in the face, and
++//! the caller walks as before (and so meets the walk's exception, TopExp_Explorer.cxx:125, where
++//! the walk would).
++struct EdgeOccurrence
++{
++  TopAbs_Orientation First;
++  bool               HasSecond;
++  TopAbs_Orientation Second;
++};
++
++class FaceEdgeOccurrences
++{
++public:
++  const EdgeOccurrence* Find(const TopoDS_Shape& theFace, const TopoDS_Shape& theEdge)
++  {
++    const int* anIndex = myIndex.Seek(theFace);
++    if (anIndex == nullptr)
++    {
++      myRecords.emplace_back();
++      record(theFace, myRecords.back());
++      anIndex = myIndex.Bound(theFace, (int)myRecords.size() - 1);
++    }
++    const Record&         aRecord = myRecords[(size_t)*anIndex];
++    const EdgeOccurrence* anOcc   = aRecord.Mapped ? aRecord.Edges.Seek(theEdge) : nullptr;
++#ifdef BREPCHECK_VERIFY_018
++    if (aRecord.Mapped)
++    {
++      BRepCheck_VerifyCall("occ");
++      static thread_local EdgeOccurrence THE_SPOILED;
++      if (anOcc != nullptr && BRepCheck_VerifyBreak("occ"))
++      {
++        THE_SPOILED       = *anOcc;
++        THE_SPOILED.First = TopAbs::Reverse(THE_SPOILED.First);
++        anOcc             = &THE_SPOILED;
++      }
++      if (BRepCheck_VerifyOn())
++      {
++        // the stock walk: first IsSame occurrence, then the next one
++        TopExp_Explorer anExp(theFace, TopAbs_EDGE);
++        while (anExp.More() && !anExp.Current().IsSame(theEdge))
++          anExp.Next();
++        bool aSame = anExp.More() == (anOcc != nullptr);
++        if (aSame && anOcc != nullptr)
++        {
++          aSame = anExp.Current().Orientation() == anOcc->First;
++          anExp.Next();
++          while (anExp.More() && !anExp.Current().IsSame(theEdge))
++            anExp.Next();
++          aSame = aSame && anExp.More() == anOcc->HasSecond
++                  && (!anExp.More() || anExp.Current().Orientation() == anOcc->Second);
++        }
++        if (!aSame)
++        {
++          BRepCheck_VerifyFail("occ", "edge occurrence record != the explorer walk");
++        }
++      }
++    }
++#endif
++    return anOcc;
++  }
++
++private:
++  struct Record
++  {
++    bool                                                                       Mapped = false;
++    NCollection_DataMap<TopoDS_Shape, EdgeOccurrence, TopTools_ShapeMapHasher> Edges;
++  };
++
++  static void record(const TopoDS_Shape& theFace, Record& theRecord)
++  {
++    int aNb = 0;
++    for (TopExp_Explorer anExp(theFace, TopAbs_EDGE); anExp.More() && aNb <= 32; anExp.Next())
++    {
++      ++aNb;
++    }
++    theRecord.Mapped = aNb > 32;
++    if (!theRecord.Mapped)
++    {
++      return;
++    }
++    for (TopExp_Explorer anExp(theFace, TopAbs_EDGE); anExp.More(); anExp.Next())
++    {
++      const TopoDS_Shape& anEdge = anExp.Current();
++      EdgeOccurrence*     anOcc  = theRecord.Edges.ChangeSeek(anEdge);
++      if (anOcc == nullptr)
++      {
++        EdgeOccurrence aFirst = {anEdge.Orientation(), false, TopAbs_FORWARD};
++        theRecord.Edges.Bind(anEdge, aFirst);
++      }
++      else if (!anOcc->HasSecond)
++      {
++        anOcc->HasSecond = true;
++        anOcc->Second    = anEdge.Orientation();
++      }
++    }
++  }
++
++  NCollection_DataMap<TopoDS_Shape, int> myIndex; //!< face (IsEqual) -> index in myRecords
++  std::deque<Record>                     myRecords;
++};
++} // namespace
++
+ //=================================================================================================
+ 
+ static void Propagate(const NCollection_IndexedDataMap<TopoDS_Shape,
+@@ -399,7 +515,13 @@ BRepCheck_Status BRepCheck_Shell::Closed(const bool Update)
+   }
+   //
+   //
+-  int i, Nbedges, nboc, nbSet;
++  int i, Nbedges, nboc, nbSet = 0;
++  // defect 018, Task 6b: NbConnectedSet() (below) reads only myShape - MapShapesAndAncestors of the
++  // shell, its faces, shells of its own that it returns in theSet - and this loop changes none of
++  // them, so it gives the same number for every multi-connected edge. It is computed at the first
++  // such edge, as before (an exception there is the same one), and reused for the next ones instead
++  // of k identical passes over the whole shell.
++  bool isNbSetKnown = false;
+   //
+   Nbedges = myMapEF.Extent();
+   for (i = 1; i <= Nbedges; ++i)
+@@ -407,8 +529,30 @@ BRepCheck_Status BRepCheck_Shell::Closed(const bool Update)
+     nboc = myMapEF(i).Extent();
+     if (nboc == 0 || nboc >= 3)
+     {
+-      NCollection_List<TopoDS_Shape> theSet;
+-      nbSet = NbConnectedSet(theSet);
++      if (!isNbSetKnown)
++      {
++        NCollection_List<TopoDS_Shape> theSet;
++        nbSet        = NbConnectedSet(theSet);
++        isNbSetKnown = true;
++      }
++#ifdef BREPCHECK_VERIFY_018
++      else
++      {
++        BRepCheck_VerifyCall("nbset");
++        if (BRepCheck_VerifyBreak("nbset"))
++        {
++          nbSet += 2;
++        }
++        if (BRepCheck_VerifyOn())
++        {
++          NCollection_List<TopoDS_Shape> aStockSet;
++          if (NbConnectedSet(aStockSet) != nbSet)
++          {
++            BRepCheck_VerifyFail("nbset", "reused NbConnectedSet() != recomputed");
++          }
++        }
++      }
++#endif
+       // If there is more than one closed cavity the shell is considered invalid
+       // this corresponds to the criteria of a solid (not those of a shell)
+       if (nbSet > 1)
+@@ -521,9 +665,10 @@ BRepCheck_Status BRepCheck_Shell::Orientation(const bool Update)
+   // BRepCheck_BadOrientationOfSubshape and
+   //         BRepCheck_SubshapeNotInShape are checked;
+ 
+-  int                Nbedges = myMapEF.Extent();
+-  TopoDS_Face        Fref;
+-  TopAbs_Orientation orf;
++  int                 Nbedges = myMapEF.Extent();
++  TopoDS_Face         Fref;
++  TopAbs_Orientation  orf;
++  FaceEdgeOccurrences anOccurrences; // defect 018, Task 6b
+ 
+   for (int i = 1; i <= Nbedges; i++)
+   {
+@@ -564,15 +709,26 @@ BRepCheck_Status BRepCheck_Shell::Orientation(const bool Update)
+         // edge is examined
+         if (!lite.Value().IsSame(Fref)) // edge non "closed"
+         {
+-          for (ede.Init(Fref, TopAbs_EDGE); ede.More(); ede.Next())
++          // defect 018, Task 6b: the first occurrence of edg in Fref from the face's record
++          // (FaceEdgeOccurrences); not recorded -> the walk, as before
++          TopAbs_Orientation    orient;
++          const EdgeOccurrence* anOccRef = anOccurrences.Find(Fref, edg);
++          if (anOccRef != nullptr)
+           {
+-            if (ede.Current().IsSame(edg))
++            orient = anOccRef->First;
++          }
++          else
++          {
++            for (ede.Init(Fref, TopAbs_EDGE); ede.More(); ede.Next())
+             {
+-              break;
++              if (ede.Current().IsSame(edg))
++              {
++                break;
++              }
+             }
++            orient = ede.Current().Orientation();
+           }
+-          TopAbs_Orientation orient = ede.Current().Orientation();
+-          TopoDS_Face        Fcur   = TopoDS::Face(lite.Value());
++          TopoDS_Face Fcur = TopoDS::Face(lite.Value());
+           if (!MapOfShapeOrientation.IsBound(Fcur))
+           {
+             myOstat = BRepCheck_SubshapeNotInShape;
+@@ -590,42 +746,56 @@ BRepCheck_Status BRepCheck_Shell::Orientation(const bool Update)
+           //	orf = (TopAbs_Orientation)MapOfShapeOrientation.Find(Fcur);
+           Fcur.Orientation(orf);
+ 
+-          for (ede.Init(Fcur, TopAbs_EDGE); ede.More(); ede.Next())
++          // defect 018, Task 6b: the first and the next occurrence of edg in Fcur from the face's
++          // record; not recorded -> the walk, as before. isBad is the condition of the original
++          // code.
++          bool                  isBad    = false;
++          const EdgeOccurrence* anOccCur = anOccurrences.Find(Fcur, edg);
++          if (anOccCur != nullptr)
+           {
+-            if (ede.Current().IsSame(edg))
+-            {
+-              break;
+-            }
++            isBad =
++              anOccCur->First == orient && (!anOccCur->HasSecond || anOccCur->Second == orient);
+           }
+-          if (ede.Current().Orientation() == orient)
++          else
+           {
+-            // The loop is continued on the edges as many times
+-            // as the same edge is present in the wire
+-
+-            // modified by NIZHNY-MKK  Tue Sep 30 11:11:42 2003
+-            bool bfound = false;
+-            ede.Next();
+-            for (; ede.More(); ede.Next())
++            for (ede.Init(Fcur, TopAbs_EDGE); ede.More(); ede.Next())
+             {
+               if (ede.Current().IsSame(edg))
+               {
+-                // modified by NIZHNY-MKK  Tue Sep 30 11:12:03 2003
+-                bfound = true;
+                 break;
+               }
+             }
+-            // if (ede.Current().Orientation() == orient) {
+-            // modified by NIZHNY-MKK  Thu Oct  2 17:56:47 2003
+-            if (!bfound || (ede.Current().Orientation() == orient))
++            if (ede.Current().Orientation() == orient)
+             {
+-              myOstat = BRepCheck_BadOrientationOfSubshape;
+-              if (Update)
++              // The loop is continued on the edges as many times
++              // as the same edge is present in the wire
++
++              // modified by NIZHNY-MKK  Tue Sep 30 11:11:42 2003
++              bool bfound = false;
++              ede.Next();
++              for (; ede.More(); ede.Next())
+               {
+-                BRepCheck::Add(aStatusList, myOstat);
+-                break;
++                if (ede.Current().IsSame(edg))
++                {
++                  // modified by NIZHNY-MKK  Tue Sep 30 11:12:03 2003
++                  bfound = true;
++                  break;
++                }
+               }
+-              return myOstat;
++              // if (ede.Current().Orientation() == orient) {
++              // modified by NIZHNY-MKK  Thu Oct  2 17:56:47 2003
++              isBad = !bfound || (ede.Current().Orientation() == orient);
++            }
++          }
++          if (isBad)
++          {
++            myOstat = BRepCheck_BadOrientationOfSubshape;
++            if (Update)
++            {
++              BRepCheck::Add(aStatusList, myOstat);
++              break;
+             }
++            return myOstat;
+           }
+         }
+       }
+@@ -654,25 +824,37 @@ BRepCheck_Status BRepCheck_Shell::Orientation(const bool Update)
+         // orf = (TopAbs_Orientation)MapOfShapeOrientation.Find(Fcur);
+         Fcur.Orientation(orf);
+ 
+-        for (ede.Init(Fcur, TopAbs_EDGE); ede.More(); ede.Next())
++        // defect 018, Task 6b: the first occurrence of edg in Fcur - the next one when Fcur was met
++        // before for this edge - from the face's record; not recorded, or no next occurrence -> the
++        // walk, as before
++        TopAbs_Orientation    orient;
++        const EdgeOccurrence* anOcc = anOccurrences.Find(Fcur, edg);
++        if (anOcc != nullptr && (!Fmap.Contains(Fcur) || anOcc->HasSecond))
+         {
+-          if (ede.Current().IsSame(edg))
+-          {
+-            break;
+-          }
++          orient = Fmap.Contains(Fcur) ? anOcc->Second : anOcc->First;
+         }
+-        if (Fmap.Contains(Fcur)) // edge is "closed" on Fcur, we meet Fcur twice
++        else
+         {
+-          ede.Next();
+-          for (; ede.More(); ede.Next())
++          for (ede.Init(Fcur, TopAbs_EDGE); ede.More(); ede.Next())
+           {
+             if (ede.Current().IsSame(edg))
+             {
+               break;
+             }
+           }
++          if (Fmap.Contains(Fcur)) // edge is "closed" on Fcur, we meet Fcur twice
++          {
++            ede.Next();
++            for (; ede.More(); ede.Next())
++            {
++              if (ede.Current().IsSame(edg))
++              {
++                break;
++              }
++            }
++          }
++          orient = ede.Current().Orientation();
+         }
+-        TopAbs_Orientation orient = ede.Current().Orientation();
+         if (orient == TopAbs_FORWARD)
+         {
+           numF++;
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_SubShapeIndex.cxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_SubShapeIndex.cxx
+new file mode 100644
+index 00000000..bfdd090f
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_SubShapeIndex.cxx
+@@ -0,0 +1,129 @@
++// Copyright (c) 2026 - modification of Open CASCADE Technology 8.0.1 for FreeCAD (defect 018,
++// https://github.com/fozzfut/freecad-kernel-fixes). Distributed under GNU LGPL 2.1 with the Open
++// CASCADE exception, as the rest of OCCT.
++
++#include <BRepCheck_SubShapeIndex.hxx>
++#include <BRepCheck_FaceCache.hxx>
++
++#include <Standard_OutOfMemory.hxx>
++#include <TopExp_Explorer.hxx>
++
++#include <new>
++
++namespace
++{
++//! the index of the innermost BRepCheck_SubShapeScope of this thread, or nullptr
++thread_local BRepCheck_SubShapeIndex* THE_ACTIVE_INDEX = nullptr;
++
++//! a context is walked this many times before its map is built (building a map allocates; walking
++//! a few sub-shapes is cheaper, and the analyzer asks once per sub-shape, so a small context never
++//! gets a map)
++const int THE_MAX_WALKED = 32;
++
++//! the original check of InContext()
++bool walk(const TopoDS_Shape& theContext, const TopAbs_ShapeEnum theType, const TopoDS_Shape& theSub)
++{
++  TopExp_Explorer anExp(theContext, theType);
++  for (; anExp.More(); anExp.Next())
++  {
++    if (anExp.Current().IsSame(theSub))
++    {
++      break;
++    }
++  }
++  return anExp.More();
++}
++} // namespace
++
++BRepCheck_SubShapeScope::BRepCheck_SubShapeScope()
++    : myPrev(THE_ACTIVE_INDEX)
++{
++  THE_ACTIVE_INDEX = &myIndex;
++}
++
++BRepCheck_SubShapeScope::~BRepCheck_SubShapeScope()
++{
++  THE_ACTIVE_INDEX = myPrev;
++}
++
++bool BRepCheck_SubShapeIndex::Contains(const TopoDS_Shape&    theContext,
++                                       const TopAbs_ShapeEnum theType,
++                                       const TopoDS_Shape&    theSub)
++{
++  BRepCheck_SubShapeIndex* anIndex = THE_ACTIVE_INDEX;
++  bool                     aResult = false;
++  if (anIndex == nullptr || theContext.IsNull() || theContext.ShapeType() == TopAbs_EDGE)
++  {
++    // no scope, a null context, the vertices of an edge: the walk
++    return walk(theContext, theType, theSub);
++  }
++  if (anIndex->myType != theType || !anIndex->myContext.IsEqual(theContext))
++  {
++    if (!anIndex->mySubs.IsEmpty())
++    {
++      // also a partial map: an exception other than out-of-memory can leave the build loop below
++      // (myMapped stays false); the next context must not start from the sub-shapes of this one
++      anIndex->mySubs.Clear();
++    }
++    anIndex->myContext = theContext;
++    anIndex->myType    = theType;
++    anIndex->myNbWalks = 0;
++    anIndex->myMapped  = false;
++    anIndex->myNoMap   = false;
++  }
++  if (anIndex->myMapped)
++  {
++    aResult = anIndex->mySubs.Contains(theSub);
++  }
++  else if (anIndex->myNoMap)
++  {
++    return walk(theContext, theType, theSub);
++  }
++  else if (anIndex->myNbWalks < THE_MAX_WALKED)
++  {
++    ++anIndex->myNbWalks;
++    return walk(theContext, theType, theSub);
++  }
++  else
++  {
++    // the map is extra memory the walk never needed: if it cannot be allocated, this context is
++    // walked (as stock), and the out-of-memory exception does not reach the analyzer (where it
++    // would become a CheckFail status)
++    try
++    {
++      for (TopExp_Explorer anExp(theContext, theType); anExp.More(); anExp.Next())
++      {
++        anIndex->mySubs.Add(anExp.Current());
++      }
++      anIndex->myMapped = true; // only after the map is complete
++    }
++    catch (const Standard_OutOfMemory&)
++    {
++      anIndex->mySubs.Clear();
++      anIndex->myNoMap = true;
++    }
++    catch (const std::bad_alloc&)
++    {
++      anIndex->mySubs.Clear();
++      anIndex->myNoMap = true;
++    }
++    if (!anIndex->myMapped)
++    {
++      return walk(theContext, theType, theSub);
++    }
++    aResult = anIndex->mySubs.Contains(theSub);
++  }
++#ifdef BREPCHECK_VERIFY_018
++  // verification build: every answer of the map is compared with the walk
++  BRepCheck_VerifyCall("subshape");
++  if (BRepCheck_VerifyBreak("subshape"))
++  {
++    aResult = !aResult;
++  }
++  if (BRepCheck_VerifyOn() && aResult != walk(theContext, theType, theSub))
++  {
++    BRepCheck_VerifyFail("subshape", "map answer != the explorer walk");
++  }
++#endif
++  return aResult;
++}
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_SubShapeIndex.hxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_SubShapeIndex.hxx
+new file mode 100644
+index 00000000..c38c92b4
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_SubShapeIndex.hxx
+@@ -0,0 +1,64 @@
++// Copyright (c) 2026 - modification of Open CASCADE Technology 8.0.1 for FreeCAD (defect 018,
++// https://github.com/fozzfut/freecad-kernel-fixes). Distributed under GNU LGPL 2.1 with the Open
++// CASCADE exception, as the rest of OCCT.
++
++#ifndef _BRepCheck_SubShapeIndex_HeaderFile
++#define _BRepCheck_SubShapeIndex_HeaderFile
++
++#include <NCollection_Map.hxx>
++#include <Standard.hxx>
++#include <TopAbs_ShapeEnum.hxx>
++#include <TopoDS_Shape.hxx>
++#include <TopTools_ShapeMapHasher.hxx>
++
++//! Defect 018 (internal, not exported). BRepCheck_Vertex/Edge/Wire/Face::InContext(S) first check
++//! that their shape is a sub-shape of S by walking TopExp_Explorer(S, type) until IsSame(): for a
++//! face with n wires (edges, vertices) that is n^2/2 steps. Contains() gives the same answer.
++//! While a BRepCheck_SubShapeScope lives on the calling thread (one per call of the analyzer's
++//! worker, which does not modify shapes), the sub-shapes of the last context are kept in a map
++//! (TopTools_ShapeMapHasher: IsSame(), as the walk), so the check is O(1). The map is built only
++//! when the same context has already been walked 32 times (the analyzer asks once per sub-shape,
++//! so only a context with more than 32 sub-shapes of the type gets one): a smaller context - most
++//! faces - is walked, as before, with no counting pass and no allocation; an edge context (its
++//! vertices) is always walked directly.
++class BRepCheck_SubShapeIndex
++{
++public:
++  //! == TopExp_Explorer anExp (theContext, theType);
++  //!    for (; anExp.More(); anExp.Next()) { if (anExp.Current().IsSame (theSub)) break; }
++  //!    return anExp.More();
++  static bool Contains(const TopoDS_Shape&    theContext,
++                       const TopAbs_ShapeEnum theType,
++                       const TopoDS_Shape&    theSub);
++
++private:
++  friend class BRepCheck_SubShapeScope;
++  TopoDS_Shape     myContext;
++  TopAbs_ShapeEnum myType    = TopAbs_SHAPE;
++  int              myNbWalks = 0;     //!< walks done in myContext (a map is built at the 33rd call)
++  bool             myMapped  = false; //!< mySubs holds all the sub-shapes of myContext (set only
++                                      //!< after a complete build; an exception other than
++                                      //!< out-of-memory from the explorer leaves a partial mySubs
++                                      //!< with myMapped false: the next call on this context
++                                      //!< completes it, a new context clears it first)
++  bool             myNoMap   = false; //!< the map could not be allocated: myContext is walked
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> mySubs;
++};
++
++//! Defect 018: makes BRepCheck_SubShapeIndex::Contains() keep its map on this thread for its
++//! lifetime.
++class BRepCheck_SubShapeScope
++{
++public:
++  BRepCheck_SubShapeScope();
++  ~BRepCheck_SubShapeScope();
++
++  BRepCheck_SubShapeScope(const BRepCheck_SubShapeScope&)            = delete;
++  BRepCheck_SubShapeScope& operator=(const BRepCheck_SubShapeScope&) = delete;
++
++private:
++  BRepCheck_SubShapeIndex  myIndex;
++  BRepCheck_SubShapeIndex* myPrev;
++};
++
++#endif // _BRepCheck_SubShapeIndex_HeaderFile
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Vertex.cxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Vertex.cxx
+index f54f8162..e0992b0d 100644
+--- a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Vertex.cxx
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Vertex.cxx
+@@ -25,6 +25,7 @@
+ #include <NCollection_List.hxx>
+ #include <NCollection_Shared.hxx>
+ #include <BRepCheck_Vertex.hxx>
++#include <BRepCheck_SubShapeIndex.hxx>
+ #include <Geom2d_Curve.hxx>
+ #include <Geom_Curve.hxx>
+ #include <Geom_Surface.hxx>
+@@ -83,15 +84,9 @@ void BRepCheck_Vertex::InContext(const TopoDS_Shape& S)
+   }
+   NCollection_List<BRepCheck_Status>& lst = *aHList;
+ 
+-  TopExp_Explorer exp(S, TopAbs_VERTEX);
+-  for (; exp.More(); exp.Next())
+-  {
+-    if (exp.Current().IsSame(myShape))
+-    {
+-      break;
+-    }
+-  }
+-  if (!exp.More())
++  // defect 018: the same answer as walking TopExp_Explorer(S, TopAbs_VERTEX) until IsSame(); O(1)
++  // inside the analyzer
++  if (!BRepCheck_SubShapeIndex::Contains(S, TopAbs_VERTEX, myShape))
+   {
+     BRepCheck::Add(lst, BRepCheck_SubshapeNotInShape);
+     return; // leaves
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Wire.cxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Wire.cxx
+index 7d7323fa..434ef920 100644
+--- a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Wire.cxx
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_Wire.cxx
+@@ -32,11 +32,16 @@
+ #include <BRepCheck_Status.hxx>
+ #include <NCollection_List.hxx>
+ #include <NCollection_Shared.hxx>
++#include <BRepCheck_FaceCache.hxx>
+ #include <BRepCheck_Wire.hxx>
++#include <BRepCheck_SubShapeIndex.hxx>
+ #include <BRepTools_WireExplorer.hxx>
+ #include <ElCLib.hxx>
+ #include <Geom2d_Curve.hxx>
+ #include <Geom2dAdaptor_Curve.hxx>
++#include <Geom2d_OffsetCurve.hxx>
++#include <Geom2d_TrimmedCurve.hxx>
++#include <TopAbs.hxx>
+ #include <Geom2dInt_GInter.hxx>
+ #include <Geom_Curve.hxx>
+ #include <gp_Lin.hxx>
+@@ -66,6 +71,14 @@
+ #include <NCollection_Map.hxx>
+ 
+ #include <cstdio>
++#include <BRepCheck_BoxPairs.hxx>
++
++#include <algorithm>
++#include <cmath>
++#include <functional>
++#include <new>
++#include <utility>
++#include <vector>
+ IMPLEMENT_STANDARD_RTTIEXT(BRepCheck_Wire, BRepCheck_Result)
+ 
+ static void Propagate(const NCollection_IndexedDataMap<TopoDS_Shape,
+@@ -113,6 +126,225 @@ static bool GetPnt2d(const TopoDS_Vertex& theVertex,
+                      const TopoDS_Face&   theFace,
+                      gp_Pnt2d&            aPnt);
+ 
++namespace
++{
++//! Defect 018, Task 6b. The pairs (i, j), 2 <= i < j <= N, of the edges of one wire for which the
++//! double loop of BRepCheck_Wire::SelfIntersect (BRepCheck_Wire.cxx:1128-1700 @V8_0_1, rows
++//! i >= 2) gets past its box test "if (boxes(i).IsOut(boxes(j))) continue;" (line 1288), per row in
++//! ascending j - the loop's order - and the state of the loop's adaptor C2 at each of them.
++//!  - Pairs. BRepCheck_BoxPairs::Candidates() over boxes(2..N) gives a superset of the pairs whose
++//!    boxes IsOut() does not separate (a null, void, open or non-finite box is paired with every
++//!    other edge). The loop's own test, with the same roles (boxes(i).IsOut(boxes(j)), i < j),
++//!    then keeps exactly the pairs that pass. Row 1 fills tabCur, tabDom and boxes and runs
++//!    unchanged.
++//!  - C2. The loop calls C2.Load(tabCur(j)) for every j, before the box test (line 1285).
++//!    Geom2dAdaptor_Curve::load (Geom2dAdaptor_Curve.cxx:272-358 @V8_0_1) sets the range every
++//!    time; for another curve than the loaded one (myCurve != C) it rebuilds everything (myCurve,
++//!    myTypeCurve, myCurveData: B-spline / Bezier data with their evaluation representation, the
++//!    nested adaptor of an offset curve); for the loaded curve it only drops the B-spline / Bezier
++//!    cache and keeps the rest. load() compares with myCurve, which after a Geom2d_TrimmedCurve is
++//!    its BASIS (the recursive Load at :287); an offset curve keeps its basis in the nested adaptor.
++//!    So the check is on distinct effective curves: no tabCur(j), no basis of a trimmed one and no
++//!    basis of an offset one may equal another of them (otherwise the original loop runs). With
++//!    that, the load before tabCur(j) in the loop is always of another curve - tabCur(j-1), or
++//!    tabCur(N), the end of row i-1 - so the state is a full rebuild; the one exception is (N-1, N),
++//!    whose previous load is tabCur(N) of row N-2. LoadAsLoop() reproduces both: Reset() + Load()
++//!    (a full rebuild, Reset() at :262-268 empties myCurve) everywhere, and a plain Load() at
++//!    (N-1, N) when the previous Load() here was tabCur(N) of row N-2 - the loop's own state, used
++//!    by (N-2, N) in both exactly when it passed the box test and was not IsSame(). If (N-2, N) was
++//!    not loaded here, the loop had loaded it without using it: a fresh state, which Reset() +
++//!    Load() reproduces.
++//! Off (the original loop) at 32 edges or fewer (the loop is cheaper), with a repeated effective
++//! curve, above 4M candidate pairs, or if the lists cannot be allocated. The keep-state case
++//! (N-1, N) differs from a full rebuild only for an offset pcurve (its nested adaptor keeps a
++//! B-spline cache); it rests on the argument above.
++class SelfIntersectPairs
++{
++public:
++  SelfIntersectPairs()
++      : myIsOn(false),
++        myNb(0),
++        myLastRow(0),
++        myLastJ(0)
++  {
++  }
++
++  bool IsOn() const { return myIsOn; }
++
++  //! Called once, when row 1 of the loop has completed (tabCur(2..N) and boxes(1..N) are set).
++  void Build(const NCollection_Array1<Bnd_Box2d>&                 theBoxes,
++             const NCollection_Array1<occ::handle<Geom2d_Curve>>& theCurves,
++             const int                                            theNb)
++  {
++    myIsOn = false;
++    if (theNb <= 32)
++    {
++      return;
++    }
++    try
++    {
++      build(theBoxes, theCurves, theNb);
++    }
++    catch (const std::bad_alloc&)
++    {
++      myIsOn = false;
++      myStart.clear();
++      myJ.clear();
++    }
++  }
++
++  //! The smallest j >= theFrom of row theRow (2 <= theRow < N) that passes the box test, or N + 1.
++  int Next(const int theRow, const int theFrom) const
++  {
++    const int* aBegin = myJ.data() + myStart[(size_t)theRow];
++    const int* anEnd  = myJ.data() + myStart[(size_t)theRow + 1];
++    const int* anIt   = std::lower_bound(aBegin, anEnd, theFrom);
++    return anIt != anEnd ? *anIt : myNb + 1;
++  }
++
++  //! C2.Load(tabCur(j)) of row i with the state the loop's own C2.Load gives (see the class
++  //! comment).
++  void LoadAsLoop(Geom2dAdaptor_Curve&                                 theC2,
++                  const NCollection_Array1<occ::handle<Geom2d_Curve>>& theCurves,
++                  const int                                            i,
++                  const int                                            j)
++  {
++    const bool aLoopKeeps = (j == i + 1 && j == myNb);
++    if (!(aLoopKeeps && myLastRow == i - 1 && myLastJ == j))
++    {
++      theC2.Reset();
++    }
++    theC2.Load(theCurves(j));
++    myLastRow = i;
++    myLastJ   = j;
++  }
++
++private:
++  void build(const NCollection_Array1<Bnd_Box2d>&                 theBoxes,
++             const NCollection_Array1<occ::handle<Geom2d_Curve>>& theCurves,
++             const int                                            theNb)
++  {
++    // pairwise distinct effective curves of tabCur(2..N) (row 1 never loads tabCur(1) into C2):
++    // each handle, and the chain of bases of trimmed / offset curves under it
++    std::vector<const Geom2d_Curve*> aCurves;
++    aCurves.reserve((size_t)theNb * 2);
++    for (int j = 2; j <= theNb; ++j)
++    {
++      occ::handle<Geom2d_Curve> aC = theCurves(j);
++      aCurves.push_back(aC.get());
++      for (int aDepth = 0; aDepth < 8 && !aC.IsNull(); ++aDepth)
++      {
++        if (occ::handle<Geom2d_TrimmedCurve> aT = occ::down_cast<Geom2d_TrimmedCurve>(aC))
++        {
++          aC = aT->BasisCurve();
++        }
++        else if (occ::handle<Geom2d_OffsetCurve> anO = occ::down_cast<Geom2d_OffsetCurve>(aC))
++        {
++          aC = anO->BasisCurve();
++        }
++        else
++        {
++          break;
++        }
++        aCurves.push_back(aC.get());
++      }
++    }
++    std::sort(aCurves.begin(), aCurves.end(), std::less<const Geom2d_Curve*>());
++    if (std::adjacent_find(aCurves.begin(), aCurves.end()) != aCurves.end())
++    {
++      return;
++    }
++
++    // boxes(2..N) -> indices 0..N-2 of the sweep
++    std::vector<const Bnd_Box2d*> aBoxes;
++    aBoxes.reserve((size_t)theNb);
++    for (int k = 2; k <= theNb; ++k)
++    {
++      aBoxes.push_back(&theBoxes(k));
++    }
++    std::vector<std::pair<int, int>> aCand;
++    if (!BRepCheck_BoxPairs::Candidates(aBoxes, (size_t)1 << 22, aCand))
++    {
++      return;
++    }
++    for (size_t k = 0; k < aCand.size(); ++k)
++    {
++      aCand[k].first += 2;
++      aCand[k].second += 2;
++    }
++    std::vector<std::pair<int, int>> aPairs;
++    aPairs.reserve(aCand.size());
++    for (size_t k = 0; k < aCand.size(); ++k)
++    {
++      if (!theBoxes(aCand[k].first).IsOut(theBoxes(aCand[k].second)))
++      {
++        aPairs.push_back(aCand[k]); // the loop's own test, same roles (line 1288 @V8_0_1)
++      }
++    }
++    std::sort(aPairs.begin(), aPairs.end());
++    aPairs.erase(std::unique(aPairs.begin(), aPairs.end()), aPairs.end());
++#ifdef BREPCHECK_VERIFY_018
++    BRepCheck_VerifyCall("pairs");
++    if (BRepCheck_VerifyBreak("pairs"))
++    {
++      std::vector<std::pair<int, int>> aKept; // drop the last pair of every row
++      for (size_t k = 0; k < aPairs.size(); ++k)
++      {
++        if (k + 1 < aPairs.size() && aPairs[k + 1].first == aPairs[k].first)
++        {
++          aKept.push_back(aPairs[k]);
++        }
++      }
++      aPairs.swap(aKept);
++    }
++    if (BRepCheck_VerifyOn())
++    {
++      std::vector<std::pair<int, int>> aStock; // the stock double loop's box test
++      for (int i = 2; i <= theNb; ++i)
++      {
++        for (int j = i + 1; j <= theNb; ++j)
++        {
++          if (!theBoxes(i).IsOut(theBoxes(j)))
++          {
++            aStock.push_back(std::make_pair(i, j));
++          }
++        }
++      }
++      if (aStock != aPairs)
++      {
++        BRepCheck_VerifyFail("pairs", "swept pairs != the pairs passing the stock box test");
++      }
++    }
++#endif
++    myStart.assign((size_t)theNb + 2, 0);
++    for (size_t k = 0; k < aPairs.size(); ++k)
++    {
++      ++myStart[(size_t)aPairs[k].first + 1];
++    }
++    for (size_t r = 1; r < myStart.size(); ++r)
++    {
++      myStart[r] += myStart[r - 1];
++    }
++    myJ.resize(aPairs.size());
++    for (size_t k = 0; k < aPairs.size(); ++k)
++    {
++      myJ[k] = aPairs[k].second; // sorted by (i, j): row i occupies [myStart[i], myStart[i+1])
++    }
++    myNb      = theNb;
++    myLastRow = 1; // row 1 loaded tabCur(2..N) in order: its last load is tabCur(N)
++    myLastJ   = theNb;
++    myIsOn    = true;
++  }
++
++  bool                myIsOn;
++  int                 myNb;
++  int                 myLastRow;
++  int                 myLastJ;
++  std::vector<size_t> myStart;
++  std::vector<int>    myJ;
++};
++} // namespace
++
+ //  Modified by Sergey KHROMOV - Wed May 22 10:44:08 2002 End
+ 
+ //=================================================================================================
+@@ -210,15 +442,9 @@ void BRepCheck_Wire::InContext(const TopoDS_Shape& S)
+   NCollection_List<BRepCheck_Status>& lst = *aHList;
+ 
+   // check if my wire is in <S>
+-  TopExp_Explorer exp(S, TopAbs_WIRE);
+-  for (; exp.More(); exp.Next())
+-  {
+-    if (exp.Current().IsSame(myShape))
+-    {
+-      break;
+-    }
+-  }
+-  if (!exp.More())
++  // defect 018: the same answer as walking TopExp_Explorer(S, TopAbs_WIRE) until IsSame(); O(1)
++  // inside the analyzer
++  if (!BRepCheck_SubShapeIndex::Contains(S, TopAbs_WIRE, myShape))
+   {
+     BRepCheck::Add(lst, BRepCheck_SubshapeNotInShape);
+     return;
+@@ -1095,6 +1321,7 @@ BRepCheck_Status BRepCheck_Wire::SelfIntersect(const TopoDS_Face& F,
+   Geom2dAdaptor_Curve                  C1, C2;
+   Geom2dInt_GInter                     Inter;
+   IntRes2d_Domain                      myDomain1;
++  SelfIntersectPairs                   aPairs; // defect 018, Task 6b
+   NCollection_IndexedMap<TopoDS_Shape> EMap;
+   NCollection_Map<TopoDS_Shape>        auxmape;
+   //
+@@ -1128,6 +1355,12 @@ BRepCheck_Status BRepCheck_Wire::SelfIntersect(const TopoDS_Face& F,
+   //
+   for (i = 1; i <= Nbedges; i++)
+   {
++    if (i == 2)
++    {
++      aPairs.Build(boxes,
++                   tabCur,
++                   Nbedges); // defect 018, Task 6b: row 1 has filled tabCur and boxes
++    }
+     const TopoDS_Edge& E1 = TopoDS::Edge(EMap.FindKey(i));
+     if (i == 1)
+     {
+@@ -1241,6 +1474,16 @@ BRepCheck_Status BRepCheck_Wire::SelfIntersect(const TopoDS_Face& F,
+     //
+     for (j = i + 1; j <= Nbedges; j++)
+     {
++      // defect 018, Task 6b: rows i >= 2 visit only the j that pass the box test below
++      // (SelfIntersectPairs), in the same ascending order; the rest of the loop body is unchanged
++      if (i >= 2 && aPairs.IsOn())
++      {
++        j = aPairs.Next(i, j);
++        if (j > Nbedges)
++        {
++          break;
++        }
++      }
+       const TopoDS_Edge& E2 = TopoDS::Edge(EMap.FindKey(j));
+       if (i == 1)
+       {
+@@ -1280,6 +1523,13 @@ BRepCheck_Status BRepCheck_Wire::SelfIntersect(const TopoDS_Face& F,
+           return (BRepCheck_InvalidRange);
+         }
+       } // if (i == 1) {
++      else if (aPairs.IsOn())
++      {
++        aPairs.LoadAsLoop(C2,
++                          tabCur,
++                          i,
++                          j); // defect 018, Task 6b: the state the loop's C2.Load gives
++      }
+       else
+       {
+         C2.Load(tabCur(j));
+@@ -1827,6 +2077,37 @@ static TopAbs_Orientation GetOrientation(
+   const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>& mapE,
+   const TopoDS_Edge&                                            edg)
+ {
++  // defect 018, Task 6b: the orientation of the key of mapE that IsSame(edg), which the walk below
++  // finds by visiting the whole map (E^2 steps per wire). The keys are unique under IsSame (the
++  // map's hasher, TopTools_ShapeMapHasher), so Contained() (NCollection_Map.hxx:380-392 @V8_0_1,
++  // a const lookup) returns that very key. Not a key: the walk, as before.
++  if (const auto aKey = mapE.Contained(edg))
++  {
++    TopAbs_Orientation anOri = aKey->get().Orientation();
++#ifdef BREPCHECK_VERIFY_018
++    BRepCheck_VerifyCall("orient");
++    if (BRepCheck_VerifyBreak("orient"))
++    {
++      anOri = TopAbs::Reverse(anOri);
++    }
++    if (BRepCheck_VerifyOn())
++    {
++      NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>::Iterator itv(mapE);
++      for (; itv.More(); itv.Next())
++      {
++        if (itv.Key().IsSame(edg))
++        {
++          break;
++        }
++      }
++      if (itv.Key().Orientation() != anOri)
++      {
++        BRepCheck_VerifyFail("orient", "Contained() key orientation != the map walk");
++      }
++    }
++#endif
++    return anOri;
++  }
+   NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>::Iterator itm(mapE);
+   for (; itm.More(); itm.Next())
+   {
+@@ -2078,18 +2359,13 @@ static bool GetPnt2d(const TopoDS_Vertex& theVertex,
+ }
+ 
+ //=======================================================================
+-// function : Closed2dForPeriodicFace
+-// purpose  : Checks the distance between first point of the first edge
+-//           and last point of the last edge in 2d for periodic face.
++// function : CollectSeamEdges
++// purpose  : defect 018, Task 6b: the search for the seam edges of theFace
++//           that IsClosed2dForPeriodicFace() did in place (lines 1892-1912
++//           @V7_8_1), moved here unchanged
+ //=======================================================================
+-static bool IsClosed2dForPeriodicFace(const TopoDS_Face&   theFace,
+-                                      const gp_Pnt2d&      theP1,
+-                                      const gp_Pnt2d&      theP2,
+-                                      const TopoDS_Vertex& theVertex)
++static void CollectSeamEdges(const TopoDS_Face& theFace, NCollection_List<TopoDS_Shape>& aSeamEdges)
+ {
+-  // Check 2d distance for periodic faces with seam edge.
+-  // Searching for seam edges
+-  NCollection_List<TopoDS_Shape>                         aSeamEdges;
+   NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> NotSeams;
+   NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> ClosedEdges;
+   TopExp_Explorer                                        anExp(theFace, TopAbs_EDGE);
+@@ -2114,6 +2390,65 @@ static bool IsClosed2dForPeriodicFace(const TopoDS_Face&   theFace,
+       aSeamEdges.Append(anEdge);
+     }
+   }
++}
++
++//=======================================================================
++// function : Closed2dForPeriodicFace
++// purpose  : Checks the distance between first point of the first edge
++//           and last point of the last edge in 2d for periodic face.
++//=======================================================================
++static bool IsClosed2dForPeriodicFace(const TopoDS_Face&   theFace,
++                                      const gp_Pnt2d&      theP1,
++                                      const gp_Pnt2d&      theP2,
++                                      const TopoDS_Vertex& theVertex)
++{
++  // Check 2d distance for periodic faces with seam edge.
++  // Searching for seam edges
++  // defect 018, Task 6b: the seam edges depend only on theFace, but this runs for every wire of the
++  // face (BRepCheck_Wire::Closed2d) and walked every edge of the face each time - W * E steps.
++  // Inside the analyzer (BRepCheck_FaceCacheScope) the list is collected once per face, by the same
++  // code and in the same order, and stored only when complete; outside it, or before it is stored,
++  // it is collected here as before. The cached list is COPIED (usually 0-2 edges), so nothing below
++  // points into the cache.
++  NCollection_List<TopoDS_Shape> aSeamEdges;
++  BRepCheck_FaceCache*           aFaceCache = BRepCheck_FaceCache::Get(theFace);
++  if (aFaceCache != nullptr && aFaceCache->HasSeams)
++  {
++    aSeamEdges = aFaceCache->Seams;
++#ifdef BREPCHECK_VERIFY_018
++    BRepCheck_VerifyCall("seams");
++    if (BRepCheck_VerifyBreak("seams") && !aSeamEdges.IsEmpty())
++    {
++      aSeamEdges.RemoveFirst();
++    }
++    if (BRepCheck_VerifyOn())
++    {
++      NCollection_List<TopoDS_Shape> aStock;
++      CollectSeamEdges(theFace, aStock);
++      bool aSame = aStock.Extent() == aSeamEdges.Extent();
++      for (NCollection_List<TopoDS_Shape>::Iterator anItS(aStock), anItC(aSeamEdges);
++           aSame && anItS.More();
++           anItS.Next(), anItC.Next())
++      {
++        aSame = anItS.Value().IsEqual(anItC.Value());
++      }
++      if (!aSame)
++      {
++        BRepCheck_VerifyFail("seams", "cached seam list != the stock walk");
++      }
++    }
++#endif
++  }
++  else
++  {
++    CollectSeamEdges(theFace, aSeamEdges);
++    if (aFaceCache != nullptr)
++    {
++      aFaceCache->Seams    = aSeamEdges;
++      aFaceCache->HasSeams = true;
++    }
++  }
++  TopExp_Explorer anExp;
+ 
+   if (aSeamEdges.Extent() == 0)
+   {
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_WireClass2d.cxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_WireClass2d.cxx
+new file mode 100644
+index 00000000..27222f5f
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_WireClass2d.cxx
+@@ -0,0 +1,867 @@
++// Defect 018 (https://github.com/fozzfut/freecad-kernel-fixes). GENERATED by
++// issues/018-occt-brepcheck-face-quadratic-wires/build-scripts-801/gen_wireclass2d.py from
++// src/ModelingAlgorithms/TKTopAlgo/BRepTopAdaptor/BRepTopAdaptor_FClass2d.cxx of OCCT 8.0.1
++// (md5 0f602254b2572e1374d61bd048f640a2): the class is renamed and a recordPolygon() line follows each CSLib_Class2d
++// construction. Do not edit this file; change the generator and run it again.
++// Created on: 1995-03-22
++// Created by: Laurent BUCHARD
++// Copyright (c) 1995-1999 Matra Datavision
++// Copyright (c) 1999-2014 OPEN CASCADE SAS
++//
++// This file is part of Open CASCADE Technology software library.
++//
++// This library is free software; you can redistribute it and/or modify it under
++// the terms of the GNU Lesser General Public License version 2.1 as published
++// by the Free Software Foundation, with special exception defined in the file
++// OCCT_LGPL_EXCEPTION.txt. Consult the file LICENSE_LGPL_21.txt included in OCCT
++// distribution for complete text of the license and disclaimer of any warranty.
++//
++// Alternatively, this file may be used under the terms of Open CASCADE
++// commercial license or contractual agreement.
++
++#define No_Standard_OutOfRange
++
++#include <BRep_Tool.hxx>
++#include <BRepAdaptor_Curve.hxx>
++#include <BRepAdaptor_Curve2d.hxx>
++#include <BRepAdaptor_Surface.hxx>
++#include <BRepClass_FaceClassifier.hxx>
++#include <BRepTools_WireExplorer.hxx>
++#include <BRepCheck_WireClass2d.hxx>
++#include <CSLib_Class2d.hxx>
++#include <ElCLib.hxx>
++#include <Geom2dInt_Geom2dCurveTool.hxx>
++#include <GeomAbs_SurfaceType.hxx>
++#include <GCPnts_QuasiUniformDeflection.hxx>
++#include <gp_Pnt.hxx>
++#include <gp_Pnt2d.hxx>
++#include <Precision.hxx>
++#include <NCollection_Array1.hxx>
++#include <NCollection_Sequence.hxx>
++#include <TopAbs_Orientation.hxx>
++#include <TopExp.hxx>
++#include <TopExp_Explorer.hxx>
++#include <TopoDS.hxx>
++#include <TopoDS_Edge.hxx>
++#include <TopoDS_Face.hxx>
++
++#ifdef _MSC_VER
++  #include <stdio.h>
++#endif
++
++namespace
++{
++// Increments @p theValue by @p theIncrement towards @p theDirection, ensuring that the result is
++// different from @p theValue. For large values of theValue with small theIncrement the result of
++// theValue + theIncrement can be equal to theValue due to the limited resolution of double
++// precision. This function guarantees to return the next representable value in the direction of
++// theDirection in such cases.
++inline double safeIncrement(const double theValue,
++                            const double theDirection,
++                            const double theIncrement)
++{
++  const double aNextValue = theValue + theIncrement;
++  return aNextValue == theValue ? std::nextafter(theValue, theDirection) : aNextValue;
++}
++
++//=================================================================================================
++
++// Checks whether the curve is degenerated between theStartParam and theEndParam.
++// The check is performed by sampling the curve at several points and measuring the distance to the
++// start point. If all sampled points are closer than Precision::Confusion() to the start point, the
++// curve is considered degenerated.
++bool isDegenerated(const BRepAdaptor_Curve& theCurve,
++                   const double             theStartParam,
++                   const double             theEndParam)
++{
++  const double aParametricStep = (theEndParam - theStartParam) * 0.1;
++  const gp_Pnt aStartPoint     = theCurve.Value(theStartParam);
++  for (double aCurrParam = theStartParam; aCurrParam < theEndParam;
++       aCurrParam        = safeIncrement(aCurrParam, theEndParam, aParametricStep))
++  {
++    const gp_Pnt aCurrentPoint = theCurve.Value(aCurrParam);
++    if (aStartPoint.SquareDistance(aCurrentPoint) > Precision::Confusion())
++    {
++      return false;
++    }
++  }
++
++  return true;
++}
++} // namespace
++
++BRepCheck_WireClass2d::BRepCheck_WireClass2d(const TopoDS_Face& aFace, const double TolUV)
++    : Toluv(TolUV),
++      Face(aFace),
++      U1(0.0),
++      V1(0.0),
++      U2(0.0),
++      V2(0.0)
++{
++  //-- dead end on surfaces defined on more than one period
++
++  Face.Orientation(TopAbs_FORWARD);
++  occ::handle<BRepAdaptor_Surface> surf = new BRepAdaptor_Surface();
++  surf->Initialize(aFace, false);
++
++  TopoDS_Edge            edge;
++  TopAbs_Orientation     Or;
++  BRepTools_WireExplorer WireExplorer;
++
++  Umin = Vmin = 0.0; // RealLast();
++  Umax = Vmax = -Umin;
++
++  int              aNbE        = 0;
++  constexpr double eps         = 1.e-10;
++  bool             anIsBadWire = false;
++  for (TopExp_Explorer aFaceExplorer(Face, TopAbs_WIRE); (aFaceExplorer.More() && !anIsBadWire);
++       aFaceExplorer.Next())
++  {
++    int                            nbpnts = 0;
++    NCollection_Sequence<gp_Pnt2d> SeqPnt2d;
++    int                            firstpoint     = 1;
++    double                         FlecheU        = 0.0;
++    double                         FlecheV        = 0.0;
++    bool                           WireIsNotEmpty = false;
++    int                            NbEdges        = 0;
++
++    TopExp_Explorer Explorer;
++    for (Explorer.Init(aFaceExplorer.Current(), TopAbs_EDGE); Explorer.More(); Explorer.Next())
++    {
++      NbEdges++;
++    }
++    aNbE = NbEdges;
++
++    gp_Pnt Ancienpnt3d(0, 0, 0);
++    bool   Ancienpnt3dinitialise = false;
++
++    for (WireExplorer.Init(TopoDS::Wire(aFaceExplorer.Current()), Face); WireExplorer.More();
++         WireExplorer.Next())
++    {
++      NbEdges--;
++      edge = WireExplorer.Current();
++      Or   = edge.Orientation();
++      if (Or == TopAbs_FORWARD || Or == TopAbs_REVERSED)
++      {
++        double pfbid, plbid;
++        if (BRep_Tool::CurveOnSurface(edge, Face, pfbid, plbid).IsNull())
++        {
++          return;
++        }
++
++        if (std::abs(plbid - pfbid) < 1.e-9)
++        {
++          continue;
++        }
++
++        bool degenerated = false;
++        if (BRep_Tool::Degenerated(edge))
++        {
++          degenerated = true;
++        }
++        if (BRep_Tool::IsClosed(edge, Face))
++        {
++          degenerated = true;
++        }
++        TopoDS_Vertex Va, Vb;
++        TopExp::Vertices(edge, Va, Vb);
++        if (Va.IsNull() || Vb.IsNull())
++        {
++          degenerated = true;
++        }
++
++        const BRepAdaptor_Curve2d aCurveAdaptor2D(edge, Face);
++        const BRepAdaptor_Curve   aCurveAdaptor3D(edge, Face);
++
++        //-- Check cases when it was forgotten to code degenerated :  PRO17410 (janv 99)
++        if (!degenerated)
++        {
++          degenerated = isDegenerated(aCurveAdaptor3D, pfbid, plbid);
++        }
++
++        //-- ----------------------------------------
++
++        // int nbs = 1 + Geom2dInt_Geom2dCurveTool::NbSamples(C);
++        int nbs = Geom2dInt_Geom2dCurveTool::NbSamples(aCurveAdaptor2D);
++        //-- Attention to rational bsplines of degree 3. (ends of circles among others)
++        if (nbs > 2)
++        {
++          nbs *= 4;
++        }
++        double du = (plbid - pfbid) / (double)(nbs - 1);
++        double u  = 0.0;
++        if (Or == TopAbs_FORWARD)
++        {
++          u = pfbid;
++        }
++        else
++        {
++          u  = plbid;
++          du = -du;
++        }
++
++        //-- ------------------------------------------------------------
++        //-- Check distance uv between the start point of the edge
++        //-- and the last point registered in SeqPnt2d
++        //-- Try to remote the first point of the current edge
++        //-- from the last saved point
++        if (firstpoint == 2)
++        {
++          u += du;
++        }
++        int Avant = nbpnts;
++        for (int e = firstpoint; e <= nbs; e++)
++        {
++          gp_Pnt2d P2d = aCurveAdaptor2D.Value(u);
++          if (P2d.X() < Umin)
++          {
++            Umin = P2d.X();
++          }
++          if (P2d.X() > Umax)
++          {
++            Umax = P2d.X();
++          }
++          if (P2d.Y() < Vmin)
++          {
++            Vmin = P2d.Y();
++          }
++          if (P2d.Y() > Vmax)
++          {
++            Vmax = P2d.Y();
++          }
++
++          double dist3dptcourant_ancienpnt = 1e+20; // RealLast();
++          gp_Pnt P3d;
++          if (!degenerated)
++          {
++            P3d = aCurveAdaptor3D.Value(u);
++            if (nbpnts > 1 && Ancienpnt3dinitialise)
++            {
++              dist3dptcourant_ancienpnt = P3d.Distance(Ancienpnt3d);
++            }
++          }
++          bool IsRealCurve3d = true; // patch
++          if (dist3dptcourant_ancienpnt < Precision::Confusion())
++          {
++            gp_Pnt MidP3d = aCurveAdaptor3D.Value(u - du / 2.);
++            if (P3d.Distance(MidP3d) < Precision::Confusion())
++            {
++              IsRealCurve3d = false;
++            }
++          }
++          if (IsRealCurve3d)
++          {
++            if (!degenerated)
++            {
++              Ancienpnt3d           = P3d;
++              Ancienpnt3dinitialise = true;
++            }
++            nbpnts++;
++            SeqPnt2d.Append(P2d);
++          }
++
++          u += du;
++          int ii = nbpnts;
++          //-- printf("\n nbpnts:%4d  u=%7.5g   FlecheU=%7.5g  FlecheV=%7.5g  ii=%3d  Avant=%3d
++          //",nbpnts,u,FlecheU,FlecheV,ii,Avant);
++          // 		  if(ii>(Avant+4))
++          //  Modified by Sergey KHROMOV - Fri Apr 19 09:46:12 2002 Begin
++          if (ii > (Avant + 4) && SeqPnt2d(ii - 2).SquareDistance(SeqPnt2d(ii)))
++          //  Modified by Sergey KHROMOV - Fri Apr 19 09:46:13 2002 End
++          {
++            gp_Lin2d Lin(SeqPnt2d(ii - 2), gp_Dir2d(gp_Vec2d(SeqPnt2d(ii - 2), SeqPnt2d(ii))));
++            double   ul = ElCLib::Parameter(Lin, SeqPnt2d(ii - 1));
++            gp_Pnt2d Pp = ElCLib::Value(ul, Lin);
++            double   dU = std::abs(Pp.X() - SeqPnt2d(ii - 1).X());
++            double   dV = std::abs(Pp.Y() - SeqPnt2d(ii - 1).Y());
++            //-- printf(" (du=%7.5g   dv=%7.5g)",dU,dV);
++            if (dU > FlecheU)
++            {
++              FlecheU = dU;
++            }
++            if (dV > FlecheV)
++            {
++              FlecheV = dV;
++            }
++          }
++        } // for(e=firstpoint
++        if (firstpoint == 1)
++        {
++          firstpoint = 2;
++        }
++        WireIsNotEmpty = true;
++      } // if(Or==FORWARD,REVERSED
++    } //-- Edges -> for(Ware.Explorer
++
++    if (NbEdges)
++    { //-- on compte ++ with a normal explorer and with the Wire Explorer
++      NCollection_Array1<gp_Pnt2d> PClass(1, 2);
++      //// modified by jgv, 28.04.2009 ////
++      PClass.Init(gp_Pnt2d(0., 0.));
++      /////////////////////////////////////
++      TabClass.Append(CSLib_Class2d(PClass, FlecheU, FlecheV, Umin, Vmin, Umax, Vmax));
++      recordPolygon(PClass, FlecheU, FlecheV, Umin, Vmin, Umax, Vmax); // defect 018
++      anIsBadWire = true;
++      TabOrien.Append(-1);
++    }
++    else if (WireIsNotEmpty)
++    {
++      // double anglep=0,anglem=0;
++      NCollection_Array1<gp_Pnt2d> PClass(1, nbpnts);
++      double                       square = 0.0;
++
++      //-------------------------------------------------------------------
++      //-- ** The mode of calculation was somewhat changed
++      //-- Before Oct 31 97 , the total angle of
++      //-- rotation of the wire was evaluated on all angles except for the last
++      //-- ** Now, exactly the angle of rotation is evaluated
++      //-- If a value remote from 2PI or -2PI is found, it means that there is
++      //-- an uneven number of loops
++
++      if (nbpnts > 3)
++      {
++        //	      int im2=nbpnts-2;
++        int im1 = nbpnts - 1;
++        int im0 = 1;
++        //	      PClass(im2)=SeqPnt2d.Value(im2);
++        PClass(im1)    = SeqPnt2d.Value(im1);
++        PClass(nbpnts) = SeqPnt2d.Value(nbpnts);
++
++        double aPer = 0.;
++        //	      for(int ii=1; ii<nbpnts; ii++,im0++,im1++,im2++)
++        for (int ii = 1; ii < nbpnts; ii++, im0++, im1++)
++        {
++          //		  if(im2>=nbpnts) im2=1;
++          if (im1 >= nbpnts)
++          {
++            im1 = 1;
++          }
++          PClass(ii) = SeqPnt2d.Value(ii);
++          //		  gp_Vec2d A(PClass(im2),PClass(im1));
++          //		  gp_Vec2d B(PClass(im1),PClass(im0));
++          //		  double N = A.Magnitude() * B.Magnitude();
++
++          square += (PClass(im0).X() - PClass(im1).X()) * (PClass(im0).Y() + PClass(im1).Y()) * .5;
++          aPer += (PClass(im0).XY() - PClass(im1).XY()).Modulus();
++
++          //		  if(N>1e-16){ double a=A.Angle(B); angle+=a; }
++        }
++
++        double anExpThick = std::max(2. * std::abs(square) / aPer, 1e-7);
++        double aDefl      = std::max(FlecheU, FlecheV);
++        double aDiscrDefl = std::min(aDefl * 0.1, anExpThick * 10.);
++        while (aDefl > anExpThick && aDiscrDefl > 1e-7)
++        {
++          // Deflection of the polygon is too much for this ratio of area and perimeter,
++          // and this might lead to self-intersections.
++          // Discretize the wire more tightly to eliminate the error.
++          firstpoint = 1;
++          SeqPnt2d.Clear();
++          FlecheU = 0.0;
++          FlecheV = 0.0;
++          for (WireExplorer.Init(TopoDS::Wire(aFaceExplorer.Current()), Face); WireExplorer.More();
++               WireExplorer.Next())
++          {
++            edge = WireExplorer.Current();
++            Or   = edge.Orientation();
++            if (Or == TopAbs_FORWARD || Or == TopAbs_REVERSED)
++            {
++              double pfbid, plbid;
++              BRep_Tool::Range(edge, Face, pfbid, plbid);
++              if (std::abs(plbid - pfbid) < 1.e-9)
++              {
++                continue;
++              }
++              BRepAdaptor_Curve2d           C(edge, Face);
++              GCPnts_QuasiUniformDeflection aDiscr(C, aDiscrDefl);
++              if (!aDiscr.IsDone())
++              {
++                break;
++              }
++              int nbp   = aDiscr.NbPoints();
++              int iStep = 1, i = 1, iEnd = nbp + 1;
++              if (Or == TopAbs_REVERSED)
++              {
++                iStep = -1;
++                i     = nbp;
++                iEnd  = 0;
++              }
++              if (firstpoint == 2)
++              {
++                i += iStep;
++              }
++              for (; i != iEnd; i += iStep)
++              {
++                gp_Pnt2d aP2d = C.Value(aDiscr.Parameter(i));
++                SeqPnt2d.Append(aP2d);
++              }
++              if (nbp > 2)
++              {
++                int      ii = SeqPnt2d.Length();
++                gp_Lin2d Lin(SeqPnt2d(ii - 2), gp_Dir2d(gp_Vec2d(SeqPnt2d(ii - 2), SeqPnt2d(ii))));
++                double   ul = ElCLib::Parameter(Lin, SeqPnt2d(ii - 1));
++                gp_Pnt2d Pp = ElCLib::Value(ul, Lin);
++                double   dU = std::abs(Pp.X() - SeqPnt2d(ii - 1).X());
++                double   dV = std::abs(Pp.Y() - SeqPnt2d(ii - 1).Y());
++                if (dU > FlecheU)
++                {
++                  FlecheU = dU;
++                }
++                if (dV > FlecheV)
++                {
++                  FlecheV = dV;
++                }
++              }
++              firstpoint = 2;
++            }
++          }
++          nbpnts = SeqPnt2d.Length();
++          PClass.Resize(1, nbpnts, false);
++          im1            = nbpnts - 1;
++          im0            = 1;
++          PClass(im1)    = SeqPnt2d.Value(im1);
++          PClass(nbpnts) = SeqPnt2d.Value(nbpnts);
++          square         = 0.;
++          aPer           = 0.;
++          for (int ii = 1; ii < nbpnts; ii++, im0++, im1++)
++          {
++            if (im1 >= nbpnts)
++            {
++              im1 = 1;
++            }
++            PClass(ii) = SeqPnt2d.Value(ii);
++            square +=
++              (PClass(im0).X() - PClass(im1).X()) * (PClass(im0).Y() + PClass(im1).Y()) * .5;
++            aPer += (PClass(im0).XY() - PClass(im1).XY()).Modulus();
++          }
++
++          anExpThick = std::max(2. * std::abs(square) / aPer, 1e-7);
++          aDefl      = std::max(FlecheU, FlecheV);
++          aDiscrDefl = std::min(aDiscrDefl * 0.1, anExpThick * 10.);
++        }
++
++        //-- FlecheU*=10.0;
++        //-- FlecheV*=10.0;
++        if (aNbE == 1 && FlecheU < eps && FlecheV < eps && std::abs(square) < eps)
++        {
++          TabOrien.Append(1);
++        }
++        else
++        {
++          TabOrien.Append(((square < 0.0) ? 1 : 0));
++        }
++
++        if (FlecheU < Toluv)
++        {
++          FlecheU = Toluv;
++        }
++        if (FlecheV < Toluv)
++        {
++          FlecheV = Toluv;
++        }
++        TabClass.Append(CSLib_Class2d(PClass, FlecheU, FlecheV, Umin, Vmin, Umax, Vmax));
++        recordPolygon(PClass, FlecheU, FlecheV, Umin, Vmin, Umax, Vmax); // defect 018
++      } // if(nbpoints>3
++      else
++      {
++        anIsBadWire = true;
++        TabOrien.Append(-1);
++        NCollection_Array1<gp_Pnt2d> xPClass(1, 2);
++        xPClass(1) = SeqPnt2d(1);
++        xPClass(2) = SeqPnt2d(2);
++        TabClass.Append(CSLib_Class2d(xPClass, FlecheU, FlecheV, Umin, Vmin, Umax, Vmax));
++        recordPolygon(xPClass, FlecheU, FlecheV, Umin, Vmin, Umax, Vmax); // defect 018
++      }
++    } // else if(WareIsNotEmpty
++  } // for(FaceExplorer
++
++  int nbtabclass = TabClass.Length();
++
++  if (nbtabclass > 0)
++  {
++    //-- If an error was detected on a wire: set all TabOrien to -1
++    if (anIsBadWire)
++    {
++      TabOrien(1) = -1;
++    }
++
++    if (surf->GetType() == GeomAbs_Cone || surf->GetType() == GeomAbs_Cylinder
++        || surf->GetType() == GeomAbs_Torus || surf->GetType() == GeomAbs_Sphere
++        || surf->GetType() == GeomAbs_SurfaceOfRevolution)
++
++    {
++      double uuu = M_PI + M_PI - (Umax - Umin);
++      if (uuu < 0)
++      {
++        uuu = 0;
++      }
++      U1 = 0.0;      // modified by NIZHNY-OFV  Thu May 31 14:24:10 2001 ---> //Umin-uuu*0.5;
++      U2 = 2 * M_PI; // modified by NIZHNY-OFV  Thu May 31 14:24:35 2001 ---> //U1+M_PI+M_PI;
++    }
++    else
++    {
++      U1 = U2 = 0.0;
++    }
++
++    if (surf->GetType() == GeomAbs_Torus)
++    {
++      double uuu = M_PI + M_PI - (Vmax - Vmin);
++      if (uuu < 0)
++      {
++        uuu = 0;
++      }
++      V1 = 0.0;      // modified by NIZHNY-OFV  Thu May 31 14:24:55 2001 ---> //Vmin-uuu*0.5;
++      V2 = 2 * M_PI; // modified by NIZHNY-OFV  Thu May 31 14:24:59 2001 ---> //V1+M_PI+M_PI;
++    }
++    else
++    {
++      V1 = V2 = 0.0;
++    }
++  }
++}
++
++TopAbs_State BRepCheck_WireClass2d::PerformInfinitePoint() const
++{
++  if (Umax == -RealLast() || Vmax == -RealLast() || Umin == RealLast() || Vmin == RealLast())
++  {
++    return (TopAbs_IN);
++  }
++  gp_Pnt2d P(Umin - (Umax - Umin), Vmin - (Vmax - Vmin));
++  return (Perform(P, false));
++}
++
++TopAbs_State BRepCheck_WireClass2d::Perform(const gp_Pnt2d& _Puv,
++                                              const bool      RecadreOnPeriodic) const
++{
++  int dedans;
++  int nbtabclass = TabClass.Length();
++
++  if (nbtabclass == 0)
++  {
++    return (TopAbs_IN);
++  }
++
++  //-- U1 is the First Param and U2 in this case is U1+Period
++  double u  = _Puv.X();
++  double v  = _Puv.Y();
++  double uu = u, vv = v;
++
++  occ::handle<BRepAdaptor_Surface> surf = new BRepAdaptor_Surface();
++  surf->Initialize(Face, false);
++  const bool   IsUPer   = surf->IsUPeriodic();
++  const bool   IsVPer   = surf->IsVPeriodic();
++  const double uperiod  = IsUPer ? surf->UPeriod() : 0.0;
++  const double vperiod  = IsVPer ? surf->VPeriod() : 0.0;
++  TopAbs_State aStatus  = TopAbs_UNKNOWN;
++  bool         urecadre = false, vrecadre = false;
++
++  if (RecadreOnPeriodic)
++  {
++    if (IsUPer)
++    {
++      if (uu < Umin)
++      {
++        while (uu < Umin)
++        {
++          uu += uperiod;
++        }
++      }
++      else
++      {
++        while (uu >= Umin)
++        {
++          uu -= uperiod;
++        }
++        uu += uperiod;
++      }
++    }
++    if (IsVPer)
++    {
++      if (vv < Vmin)
++      {
++        while (vv < Vmin)
++        {
++          vv += vperiod;
++        }
++      }
++      else
++      {
++        while (vv >= Vmin)
++        {
++          vv -= vperiod;
++        }
++        vv += vperiod;
++      }
++    }
++  }
++
++  for (;;)
++  {
++    dedans = 1;
++    gp_Pnt2d Puv(u, v);
++
++    if (TabOrien(1) != -1)
++    {
++      for (int n = 1; n <= nbtabclass; n++)
++      {
++        int cur = TabClass(n).SiDans(Puv);
++        if (cur == 1)
++        {
++          if (TabOrien(n) == 0)
++          {
++            dedans = -1;
++            break;
++          }
++        }
++        else if (cur == -1)
++        {
++          if (TabOrien(n) == 1)
++          {
++            dedans = -1;
++            break;
++          }
++        }
++        else
++        {
++          dedans = 0;
++          break;
++        }
++      }
++      if (dedans == 0)
++      {
++        BRepClass_FaceClassifier aClassifier;
++        double                   m_Toluv = (Toluv > 4.0) ? 4.0 : Toluv;
++        // aClassifier.Perform(Face,Puv,Toluv);
++        aClassifier.Perform(Face, Puv, m_Toluv);
++        aStatus = aClassifier.State();
++      }
++      if (dedans == 1)
++      {
++        aStatus = TopAbs_IN;
++      }
++      if (dedans == -1)
++      {
++        aStatus = TopAbs_OUT;
++      }
++    }
++    else
++    { //-- TabOrien(1)=-1    False Wire
++      BRepClass_FaceClassifier aClassifier;
++      aClassifier.Perform(Face, Puv, Toluv);
++      aStatus = aClassifier.State();
++    }
++
++    if (!RecadreOnPeriodic || (!IsUPer && !IsVPer))
++    {
++      return aStatus;
++    }
++    if (aStatus == TopAbs_IN || aStatus == TopAbs_ON)
++    {
++      return aStatus;
++    }
++
++    if (!urecadre)
++    {
++      u        = uu;
++      urecadre = true;
++    }
++    else if (IsUPer)
++    {
++      u += uperiod;
++    }
++    if (u > Umax || !IsUPer)
++    {
++      if (!vrecadre)
++      {
++        v        = vv;
++        vrecadre = true;
++      }
++      else if (IsVPer)
++      {
++        v += vperiod;
++      }
++
++      u = uu;
++
++      if (v > Vmax || !IsVPer)
++      {
++        return aStatus;
++      }
++    }
++  } // for (;;)
++}
++
++TopAbs_State BRepCheck_WireClass2d::TestOnRestriction(const gp_Pnt2d& _Puv,
++                                                        const double    Tol,
++                                                        const bool      RecadreOnPeriodic) const
++{
++  int dedans;
++  int nbtabclass = TabClass.Length();
++
++  if (nbtabclass == 0)
++  {
++    return (TopAbs_IN);
++  }
++
++  //-- U1 is the First Param and U2 in this case is U1+Period
++  double u  = _Puv.X();
++  double v  = _Puv.Y();
++  double uu = u, vv = v;
++
++  occ::handle<BRepAdaptor_Surface> surf = new BRepAdaptor_Surface();
++  surf->Initialize(Face, false);
++  const bool   IsUPer   = surf->IsUPeriodic();
++  const bool   IsVPer   = surf->IsVPeriodic();
++  const double uperiod  = IsUPer ? surf->UPeriod() : 0.0;
++  const double vperiod  = IsVPer ? surf->VPeriod() : 0.0;
++  TopAbs_State aStatus  = TopAbs_UNKNOWN;
++  bool         urecadre = false, vrecadre = false;
++
++  if (RecadreOnPeriodic)
++  {
++    if (IsUPer)
++    {
++      if (uu < Umin)
++      {
++        while (uu < Umin)
++        {
++          uu += uperiod;
++        }
++      }
++      else
++      {
++        while (uu >= Umin)
++        {
++          uu -= uperiod;
++        }
++        uu += uperiod;
++      }
++    }
++    if (IsVPer)
++    {
++      if (vv < Vmin)
++      {
++        while (vv < Vmin)
++        {
++          vv += vperiod;
++        }
++      }
++      else
++      {
++        while (vv >= Vmin)
++        {
++          vv -= vperiod;
++        }
++        vv += vperiod;
++      }
++    }
++  }
++
++  for (;;)
++  {
++    dedans = 1;
++    gp_Pnt2d Puv(u, v);
++
++    if (TabOrien(1) != -1)
++    {
++      for (int n = 1; n <= nbtabclass; n++)
++      {
++        int cur = TabClass(n).SiDans_OnMode(Puv, Tol);
++        if (cur == 1)
++        {
++          if (TabOrien(n) == 0)
++          {
++            dedans = -1;
++            break;
++          }
++        }
++        else if (cur == -1)
++        {
++          if (TabOrien(n) == 1)
++          {
++            dedans = -1;
++            break;
++          }
++        }
++        else
++        {
++          dedans = 0;
++          break;
++        }
++      }
++      if (dedans == 0)
++      {
++        aStatus = TopAbs_ON;
++      }
++      if (dedans == 1)
++      {
++        aStatus = TopAbs_IN;
++      }
++      if (dedans == -1)
++      {
++        aStatus = TopAbs_OUT;
++      }
++    }
++    else
++    { //-- TabOrien(1)=-1    False Wire
++      BRepClass_FaceClassifier aClassifier;
++      aClassifier.Perform(Face, Puv, Tol);
++      aStatus = aClassifier.State();
++    }
++
++    if (!RecadreOnPeriodic || (!IsUPer && !IsVPer))
++    {
++      return aStatus;
++    }
++    if (aStatus == TopAbs_IN || aStatus == TopAbs_ON)
++    {
++      return aStatus;
++    }
++
++    if (!urecadre)
++    {
++      u        = uu;
++      urecadre = true;
++    }
++    else if (IsUPer)
++    {
++      u += uperiod;
++    }
++    if (u > Umax || !IsUPer)
++    {
++      if (!vrecadre)
++      {
++        v        = vv;
++        vrecadre = true;
++      }
++      else if (IsVPer)
++      {
++        v += vperiod;
++      }
++
++      u = uu;
++
++      if (v > Vmax || !IsVPer)
++      {
++        return aStatus;
++      }
++    }
++  } // for (;;)
++}
++
++void BRepCheck_WireClass2d::Destroy()
++{
++  TabClass.Clear();
++}
++
++#include <Standard_ConstructionError.hxx>
++
++// const BRepCheck_WireClass2d &  BRepCheck_WireClass2d::Copy(const BRepCheck_WireClass2d&
++// Other) const {
++const BRepCheck_WireClass2d& BRepCheck_WireClass2d::Copy(const BRepCheck_WireClass2d&) const
++{
++#ifdef OCCT_DEBUG
++  std::cerr << "Copy not allowed in BRepCheck_WireClass2d" << std::endl;
++#endif
++  throw Standard_ConstructionError();
++}
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_WireClass2d.hxx b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_WireClass2d.hxx
+new file mode 100644
+index 00000000..ad81e146
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/BRepCheck_WireClass2d.hxx
+@@ -0,0 +1,236 @@
++// Copyright (c) 1995-1999 Matra Datavision
++// Copyright (c) 1999-2014 OPEN CASCADE SAS
++// Copyright (c) 2026 - modification for FreeCAD (defect 018, https://github.com/fozzfut/freecad-kernel-fixes)
++//
++// This file is part of Open CASCADE Technology software library.
++//
++// This library is free software; you can redistribute it and/or modify it under
++// the terms of the GNU Lesser General Public License version 2.1 as published
++// by the Free Software Foundation, with special exception defined in the file
++// OCCT_LGPL_EXCEPTION.txt. Consult the file LICENSE_LGPL_21.txt included in OCCT
++// distribution for complete text of the license and disclaimer of any warranty.
++//
++// Alternatively, this file may be used under the terms of Open CASCADE
++// commercial license or contractual agreement.
++
++#ifndef _BRepCheck_WireClass2d_HeaderFile
++#define _BRepCheck_WireClass2d_HeaderFile
++
++#include <Standard.hxx>
++#include <Standard_DefineAlloc.hxx>
++
++#include <CSLib_Class2d.hxx>
++#include <NCollection_Array1.hxx>
++#include <NCollection_Sequence.hxx>
++#include <TopAbs_State.hxx>
++#include <TopoDS_Face.hxx>
++#include <gp_Pnt2d.hxx>
++
++#include <cmath>
++
++//! Private copy of BRepTopAdaptor_FClass2d (OCCT 8.0.1) for BRepCheck_Face::ClassifyWires - not
++//! exported. BRepCheck_WireClass2d.cxx is GENERATED from BRepTopAdaptor_FClass2d.cxx
++//! (build-scripts-801/gen_wireclass2d.py of defect 018): same code, so the same answers; it only
++//! also records what it hands to CSLib_Class2d. The additions (IsFarOutside, OutsideState, NearBox) let
++//! ClassifyWires skip exactly those Perform() calls whose answer is certain without the call
++//! (NearBox: which points can need one).
++//! The private members are those of BRepTopAdaptor_FClass2d.hxx @V8_0_1, in the same order.
++class BRepCheck_WireClass2d
++{
++public:
++  DEFINE_STANDARD_ALLOC
++
++  BRepCheck_WireClass2d(const TopoDS_Face& F, const double Tol);
++
++  TopAbs_State PerformInfinitePoint() const;
++
++  TopAbs_State Perform(const gp_Pnt2d& Puv, const bool RecadreOnPeriodic = true) const;
++
++  void Destroy();
++
++  ~BRepCheck_WireClass2d() { Destroy(); }
++
++  const BRepCheck_WireClass2d& Copy(const BRepCheck_WireClass2d& Other) const;
++
++  const BRepCheck_WireClass2d& operator=(const BRepCheck_WireClass2d& Other) const
++  {
++    return Copy(Other);
++  }
++
++  TopAbs_State TestOnRestriction(const gp_Pnt2d& Puv,
++                                 const double    Tol,
++                                 const bool      RecadreOnPeriodic = true) const;
++
++  //! Defect 018. true only if Perform(theP, false) certainly returns OutsideState(). Apart from its
++  //! point-independent start (a new BRepAdaptor_Surface of the face, Initialize(), IsUPeriodic() /
++  //! UPeriod() - BRepTopAdaptor_FClass2d.cxx:541-547 @V8_0_1; the constructor already initialised
++  //! the same face at :99-100, so for a face that got a polygon these cannot throw) Perform() with
++  //! RecadreOnPeriodic = false evaluates nothing but TabClass(1).SiDans(P) (:595-636) and returns
++  //! after one pass (:646-649); SiDans() == -1 gives TopAbs_OUT when TabOrien(1) == 1, else IN.
++  //! Conditions (all needed):
++  //!  - one classifier (one wire) whose orientation is known: TabClass.Length() == 1,
++  //!    TabOrien(1) != -1 (otherwise Perform() goes to BRepClass_FaceClassifier, :639-644);
++  //!  - that CSLib_Class2d has points (CSLib_Class2d.cxx:58-62 @V8_0_1: umax > umin, vmax > vmin,
++  //!    >= 3 points), all finite;
++  //!  - theP, in the normalized coordinates SiDans() computes (transformToNormalized of the box
++  //!    handed to CSLib_Class2d, which includes (0,0): BRepTopAdaptor_FClass2d.cxx:106-107), lies
++  //!    outside the box of the stored polygon enlarged by the normalized tolerances myTolU/myTolV
++  //!    SiDans() uses, by a margin of 1e-9 relative.
++  //! Then SiDans() (CSLib_Class2d.cxx:141-187) either returns -1 at its quick rejection test, or
++  //! internalSiDansOuOn() (:279-340) finds no vertex within (myTolU, myTolV), no edge with theP's x
++  //! strictly inside its x range and |dy| <= myTolV (the interpolated y stays within the edge's y
++  //! range up to a few ulps, far below the margin; the PConfusion guard of 8.0.1 only removes such
++  //! tests), and an even ray parity (no sign change of y - Py when Py is below or above the
++  //! polygon; every sign change counts, and a closed polygon has an even number of them, when Px is
++  //! left of it; none counts when Px is right of it) - so Result_Outside. The four corner points
++  //! (Px +- myTolU, Py +- myTolV) stay on the same side, so internalSiDans() (:234-275) gives the
++  //! same parity 0 and SiDans() returns -1.
++  bool IsFarOutside(const gp_Pnt2d& theP) const
++  {
++    if (TabClass.Length() != 1 || TabOrien(1) == -1 || !myPolyOk)
++    {
++      return false;
++    }
++    double x = theP.X(), y = theP.Y();
++    if (std::isnan(x) || std::isnan(y))
++    {
++      return false;
++    }
++    x = transform2d(x, myCslUmin, myCslUmax - myCslUmin); // as SiDans, CSLib_Class2d.cxx:163-164
++    y = transform2d(y, myCslVmin, myCslVmax - myCslVmin);
++    const double aMx =
++      1.e-9 * (1. + std::fabs(x) + std::fabs(myPolyXmin) + std::fabs(myPolyXmax) + myCslTolu);
++    const double aMy =
++      1.e-9 * (1. + std::fabs(y) + std::fabs(myPolyYmin) + std::fabs(myPolyYmax) + myCslTolv);
++    return x < myPolyXmin - myCslTolu - aMx || x > myPolyXmax + myCslTolu + aMx
++           || y < myPolyYmin - myCslTolv - aMy || y > myPolyYmax + myCslTolv + aMy;
++  }
++
++  //! Defect 018. What Perform(P, false) returns when SiDans(P) == -1 on the only classifier:
++  //! TopAbs_OUT if its wire is an outer one (TabOrien 1), else TopAbs_IN
++  //! (BRepTopAdaptor_FClass2d.cxx:595-636 @V8_0_1). Meaningful only where IsFarOutside() is true.
++  TopAbs_State OutsideState() const
++  {
++    return (TabOrien.Length() >= 1 && TabOrien(1) == 1) ? TopAbs_OUT : TopAbs_IN;
++  }
++
++  //! Defect 018. A box in the face's (u, v) that contains every finite point for which
++  //! IsFarOutside() is false (a superset: it only chooses which points are looked at). false if
++  //! there is no such finite box - then every point has to be looked at. IsFarOutside() is false
++  //! only for a normalized x within [myPolyXmin - myCslTolu - aMx, myPolyXmax + myCslTolu + aMx]
++  //! (same on y); the box maps that range back to u by the inverse of transform2d() and widens it
++  //! by 1e-6 relative, far above both the 1e-9 margin and the rounding of the inverse.
++  bool NearBox(double& theU0, double& theV0, double& theU1, double& theV1) const
++  {
++    if (TabClass.Length() != 1 || TabOrien(1) == -1 || !myPolyOk)
++    {
++      return false;
++    }
++    const double du = myCslUmax - myCslUmin, dv = myCslVmax - myCslVmin;
++    const double aX0 = myPolyXmin - myCslTolu, aX1 = myPolyXmax + myCslTolu;
++    const double aY0 = myPolyYmin - myCslTolv, aY1 = myPolyYmax + myCslTolv;
++    theU0            = du > 1e-10 ? myCslUmin + aX0 * du : aX0;
++    theU1            = du > 1e-10 ? myCslUmin + aX1 * du : aX1;
++    theV0            = dv > 1e-10 ? myCslVmin + aY0 * dv : aY0;
++    theV1            = dv > 1e-10 ? myCslVmin + aY1 * dv : aY1;
++    const double aPu = 1.e-6 * (1. + std::fabs(theU0) + std::fabs(theU1) + std::fabs(du));
++    const double aPv = 1.e-6 * (1. + std::fabs(theV0) + std::fabs(theV1) + std::fabs(dv));
++    theU0 -= aPu;
++    theU1 += aPu;
++    theV0 -= aPv;
++    theV1 += aPv;
++    return std::isfinite(theU0) && std::isfinite(theU1) && std::isfinite(theV0)
++           && std::isfinite(theV1);
++  }
++
++private:
++  //! == transformToNormalized of CSLib_Class2d.cxx:30-38 @V8_0_1
++  static double transform2d(const double u, const double umin, const double umaxmumin)
++  {
++    if (umaxmumin > 1e-10)
++    {
++      return (u - umin) / umaxmumin;
++    }
++    return u;
++  }
++
++  //! Defect 018: called right after each "TabClass.Append(CSLib_Class2d(thePnts, theTolU, theTolV,
++  //! theUMin, theVMin, theUMax, theVMax))" of the constructor; stores what CSLib_Class2d::init
++  //! (CSLib_Class2d.cxx:43-99 @V8_0_1) derives from them. Only scalars: it allocates nothing.
++  void recordPolygon(const NCollection_Array1<gp_Pnt2d>& thePnts,
++                     const double                        theTolU,
++                     const double                        theTolV,
++                     const double                        theUMin,
++                     const double                        theVMin,
++                     const double                        theUMax,
++                     const double                        theVMax)
++  {
++    myPolyOk  = false;
++    myCslUmin = theUMin;
++    myCslVmin = theVMin;
++    myCslUmax = theUMax;
++    myCslVmax = theVMax;
++    if (theUMax <= theUMin || theVMax <= theVMin || thePnts.Length() < 3)
++    {
++      return; // CSLib_Class2d keeps myPointsCount = 0: SiDans() returns 0
++    }
++    const double aPrc = 1.e-10;
++    const double du = theUMax - theUMin, dv = theVMax - theVMin;
++    myCslTolu       = theTolU;
++    myCslTolv       = theTolV;
++    if (du > aPrc)
++    {
++      myCslTolu /= du;
++    }
++    if (dv > aPrc)
++    {
++      myCslTolv /= dv;
++    }
++    double aX0 = 0., aX1 = 0., aY0 = 0., aY1 = 0.;
++    for (int i = thePnts.Lower(); i <= thePnts.Upper(); ++i)
++    {
++      const double x = transform2d(thePnts(i).X(), theUMin, du);
++      const double y = transform2d(thePnts(i).Y(), theVMin, dv);
++      if (!std::isfinite(x) || !std::isfinite(y))
++      {
++        return;
++      }
++      if (i == thePnts.Lower())
++      {
++        aX0 = aX1 = x;
++        aY0 = aY1 = y;
++      }
++      aX0 = x < aX0 ? x : aX0;
++      aX1 = x > aX1 ? x : aX1;
++      aY0 = y < aY0 ? y : aY0;
++      aY1 = y > aY1 ? y : aY1;
++    }
++    myPolyXmin = aX0;
++    myPolyXmax = aX1;
++    myPolyYmin = aY0;
++    myPolyYmax = aY1;
++    myPolyOk   = std::isfinite(myCslTolu) && std::isfinite(myCslTolv) && std::isfinite(du)
++               && std::isfinite(dv) && std::isfinite(theUMin) && std::isfinite(theVMin);
++  }
++
++  NCollection_Sequence<CSLib_Class2d> TabClass;
++  NCollection_Sequence<int>           TabOrien;
++  double                              Toluv;
++  TopoDS_Face                         Face;
++  double                              U1;
++  double                              V1;
++  double                              U2;
++  double                              V2;
++  double                              Umin;
++  double                              Umax;
++  double                              Vmin;
++  double                              Vmax;
++
++  // defect 018: copies of what the (only) CSLib_Class2d was built from, see recordPolygon()
++  bool   myPolyOk  = false;
++  double myCslUmin = 0., myCslVmin = 0., myCslUmax = 0., myCslVmax = 0.;
++  double myCslTolu = 0., myCslTolv = 0.;
++  double myPolyXmin = 0., myPolyXmax = 0., myPolyYmin = 0., myPolyYmax = 0.;
++};
++
++#endif // _BRepCheck_WireClass2d_HeaderFile
+diff --git a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/FILES.cmake b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/FILES.cmake
+index d2046f63..17bae194 100644
+--- a/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/FILES.cmake
++++ b/src/ModelingAlgorithms/TKTopAlgo/BRepCheck/FILES.cmake
+@@ -6,11 +6,14 @@ set(OCCT_BRepCheck_FILES
+   BRepCheck.hxx
+   BRepCheck_Analyzer.cxx
+   BRepCheck_Analyzer.hxx
++  BRepCheck_BoxPairs.hxx
+ 
+   BRepCheck_Edge.cxx
+   BRepCheck_Edge.hxx
+   BRepCheck_Face.cxx
+   BRepCheck_Face.hxx
++  BRepCheck_FaceCache.cxx
++  BRepCheck_FaceCache.hxx
+ 
+   BRepCheck_Result.cxx
+   BRepCheck_Result.hxx
+@@ -19,8 +22,12 @@ set(OCCT_BRepCheck_FILES
+   BRepCheck_Solid.cxx
+   BRepCheck_Solid.hxx
+   BRepCheck_Status.hxx
++  BRepCheck_SubShapeIndex.cxx
++  BRepCheck_SubShapeIndex.hxx
+   BRepCheck_Vertex.cxx
+   BRepCheck_Vertex.hxx
+   BRepCheck_Wire.cxx
+   BRepCheck_Wire.hxx
++  BRepCheck_WireClass2d.cxx
++  BRepCheck_WireClass2d.hxx
+ )
+-- 
+2.52.0.windows.1
+
