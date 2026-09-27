@@ -44,7 +44,8 @@ TestGuiBase 37 и TestPartDesignGui 21 offscreen: вердикты сток = и
 HD smoke_gui 30 тестов без FAIL/ERROR на стоке и на исправлении (консольный фильтр ругается одинаково на обоих: шум
 offscreen-платформы и старый ghome-w).
 
-НЕ ПОКРЫТО: правка Visibility в редакторе свойств (вкладка View) - как все свойства вида, по AutoTransactionView;
+НЕ ПОКРЫТО: правка Visibility в редакторе свойств (вкладка View) - как все свойства вида, по AutoTransactionView
+(ЗАКРЫТО патчем 0002, см. раздел 035-PE ниже);
 FreeCAD 1.1.1 / «FreeCAD perf» (C:/dev/FreeCAD-perf) - та же ошибка, дерева сборки FreeCADGui 1.1.1 нет.
 
 REVIEW (independent, 27.09.2026): ACCEPTED.
@@ -63,3 +64,39 @@ REVIEW (independent, 27.09.2026): ACCEPTED.
 - Known gap (INFO R7b): a body of ANOTHER document hidden through a link's child item gets its 'Hide' step in its own
   document; Ctrl+Z in the link's document does not restore it (FreeCAD undo is per document). Stock: not undoable at all.
 - Undo names are translated through the "Command" context (MDIView::undoActions); the owner's delivery runs English.
+
+035-PE (lane undo-visibility-pe, 27.09.2026): property editor + "Toggle Visibility in Tree View" - patches-263/0002
+CLASS: every USER show/hide path is one undo step. Paths left by 0001: the property editor's Visibility and Show In Tree
+checkboxes (View tab; also the object's Visibility in the Data tab when hidden properties are shown) and the tree's
+context action "Toggle Visibility in Tree View" (ShowInTree). Without AutoTransactionView they changed the object with
+no transaction -> Ctrl+Z skipped them (stock: steps=0; after "hide, then a modeling step" Ctrl+Z undid only the
+modeling step and the object stayed hidden).
+FIX (fcD/src mig/undo-vis-pe 3eccec5 on 2af3f99): PropertyItem::setPropertyValue books a VisibilityTransaction when the
+assigned property is Visibility (object or view provider) or ShowInTree, over the documents of the objects the
+assignment really changes; name = the editor's own transaction name ("Edit property Visibility", "..." for several
+objects) = what stock shows with AutoTransactionView. Same rules: pref UndoVisibility, joins an open/booked transaction
+(task dialog; the editor's own AutoTransactionView/AutoTransactionData "Edit ..." transaction), none during undo/redo or
+a global transaction, none without a real change. Other properties untouched. Tree action: one step over the selection.
+BUILD: repro/pe/mkgui.py (035 pipeline + PropertyItem.cpp; sources from a git-archive mirror). D0 control (2af3f99)
+b0f29fbb vs delivered 1a135f33: 42 bytes = PE timestamps, same-length __FILE__ paths, anonymous-namespace RTTI hash.
+Fix 7af65a21; ABI vs delivered: exports 12230 +0 -0, imports +0 -0. Build log 0 warnings.
+TESTS (repro/pe/pvprobe.py, 11 cases, offscreen, the value cell clicked with Qt mouse events posted to the editor's
+viewport = the user's single click on a checkbox cell; evidence C:/dev/occt8-mig/undovis-pe/runs):
+- fix: 11/11 fresh cfg (fix-fresh), owner cfg copy + HD (pv-fix-owner): hide, show, 3-body multi-selection (ONE step
+  'Edit property Visibility...'), mixed multi-selection (undo leaves the already hidden one hidden), link + App::Part,
+  Show In Tree, tree "Toggle Visibility in Tree View" on 2 objects (one step), other view property Selectable (steps=0 =
+  stock), inside an open transaction (joins 'Tool'), inside a real PartDesign_Pad task dialog (no own step, only
+  'Make Pad' after OK), chronological order with a modeling step.
+- NEGATIVE CONTROL delivered 1a135f33: 3/11 (only the identity cases P8/P9/P10 pass; pv-dlv-fresh).
+- UndoVisibility=false: probe lines identical to the delivered DLL (pv-fix-prefoff == pv-dlv-fresh).
+- AutoTransactionView=true: fix lines == delivered lines (same names 'Edit property Visibility') except the tree action
+  (new step) (pv-dlv-atv vs pv-fix-atv).
+- 035 probe uvprobe.py 19/19 on the fix, fresh and owner cfg + HD (uv-fix-fresh, uv-fix-owner).
+- TestGuiBase 37 offscreen: per-test verdicts delivered == fix (stock's own 1 FAIL + 1 ERROR); comparator negative
+  control (one doctored verdict) caught. RAM <= 0.41 GB per process.
+- Exit noise: some offscreen runs end with "Abnormal program termination" after the probe finished (the known offscreen
+  "resource deadlock would occur" at close, V3); seen on the delivered DLL and in the 035 lane's stock runs too.
+NOT TESTED through the UI: Data-tab Visibility (needs "Show hidden" from the editor's modal context menu).
+Observed, unchanged by this patch: after a Show In Tree edit in the property editor the offscreen probe saw the tree row
+still shown 0.7 s later (delivered DLL alike); the tree's own action hides it at once. Not investigated.
+NOT INSTALLED (lane order). mig/vr6-save (036) and mig/vr6-asm (on 2af3f99) merge cleanly with mig/undo-vis-pe.

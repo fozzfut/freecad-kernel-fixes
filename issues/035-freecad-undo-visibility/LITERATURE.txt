@@ -17,3 +17,6 @@ actions become undo steps and how one action maps to one step. Sources read at a
    hide and undid a modeling step) is exactly this failure; no-op actions leave no step. (abstract)
 Not applicable: nothing in the literature changes FreeCAD's transaction engine choice; the fix only adds explicit
 transactions at the user-action layer. No proprietary product documentation used (IP rule 27.09).
+035-PE (27.09.2026): no new sources needed; Abowd & Dix (3) applied again: a checkbox click in the property editor and
+the tree's "Toggle Visibility in Tree View" are perceived show/hide actions, so each is one undo step; Berlage (1):
+a multi-selection edit is one composite command (one transaction id over all documents).

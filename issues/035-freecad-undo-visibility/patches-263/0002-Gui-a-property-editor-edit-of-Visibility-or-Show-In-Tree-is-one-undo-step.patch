@@ -1,0 +1,229 @@
+From 3eccec5baa2ce98efb3c5c163872a9ac349527e2 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 19:14:44 +0700
+Subject: [PATCH] Gui: a property editor edit of Visibility or Show In Tree is
+ one undo step (issue 035)
+
+Issue 035 made every show/hide command and the tree's eye icon and Space key
+one undo step (VisibilityTransaction). Two user paths of the same class were
+left out: the property editor's Visibility and Show In Tree checkboxes (View
+tab, and Visibility in the Data tab when hidden properties are shown), and the
+tree's "Toggle Visibility in Tree View". They changed the object without any
+transaction unless PropertyView/AutoTransactionView was set, so Ctrl+Z skipped
+the change and undid the step before it.
+
+PropertyItem::setPropertyValue now books a VisibilityTransaction when the
+assigned property is a Visibility (object or view provider) or ShowInTree,
+over the documents of the objects the assignment really changes, named like
+the editor's own transaction ("Edit property Visibility", "..." for several
+objects). The helper's rules apply unchanged: preference
+BaseApp/Preferences/View/UndoVisibility (false = previous behaviour), no step
+inside an open or booked transaction (a task dialog, or the editor's own
+AutoTransactionView/AutoTransactionData transaction, which it then joins),
+during undo/redo or a global transaction, and none when nothing changes. A
+multi-selection edit is one step. Other properties keep the editor's handling.
+"Toggle Visibility in Tree View" books one step over the selected objects.
+
+No new imports or exports in FreeCADGui.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/Tree.cpp                        | 15 +++++
+ src/Gui/VisibilityTransaction.h         |  3 +-
+ src/Gui/propertyeditor/PropertyItem.cpp | 89 ++++++++++++++++++++++++-
+ 3 files changed, 103 insertions(+), 4 deletions(-)
+
+diff --git a/src/Gui/Tree.cpp b/src/Gui/Tree.cpp
+index 2698bbc..e49a961 100644
+--- a/src/Gui/Tree.cpp
++++ b/src/Gui/Tree.cpp
+@@ -4009,6 +4009,21 @@ void TreeWidget::onShowHidden()
+ void TreeWidget::onToggleVisibilityInTree()
+ {
+     const auto items = selectedItems();
++    // Hiding objects from the tree view (ShowInTree) or showing them again is one undo step
++    std::vector<App::Document*> docs;
++    for (auto item : items) {
++        if (item->type() == ObjectType) {
++            auto object = static_cast<DocumentObjectItem*>(item)->object();
++            if (object && object->getObject()) {
++                docs.push_back(object->getObject()->getDocument());
++            }
++        }
++    }
++    VisibilityTransaction transaction(
++        QT_TRANSLATE_NOOP("Command", "Toggle Visibility in Tree View"),
++        docs,
++        !docs.empty()
++    );
+     for (auto item : items) {
+         if (item->type() == ObjectType) {
+             auto objectItem = static_cast<DocumentObjectItem*>(item);
+diff --git a/src/Gui/VisibilityTransaction.h b/src/Gui/VisibilityTransaction.h
+index 009c861..5e1ba2f 100644
+--- a/src/Gui/VisibilityTransaction.h
++++ b/src/Gui/VisibilityTransaction.h
+@@ -13,7 +13,8 @@ namespace Gui
+ /** One undo step for one user action that shows or hides objects.
+  *
+  * Used by Std_ToggleVisibility, Std_ShowSelection, Std_HideSelection, Std_ShowObjects,
+- * Std_HideObjects, Std_ToggleObjects and the tree view's eye icon and Space key.
++ * Std_HideObjects, Std_ToggleObjects, the tree view's eye icon, Space key and Toggle Visibility in
++ * Tree View, and the property editor's Visibility and Show In Tree edits.
+  *
+  * App::DocumentObject::Visibility carries Property::NoModify, and App::Document::_checkTransaction
+  * never opens a transaction for a NoModify property, so a visibility change made outside an open
+diff --git a/src/Gui/propertyeditor/PropertyItem.cpp b/src/Gui/propertyeditor/PropertyItem.cpp
+index ff9085d..6e07183 100644
+--- a/src/Gui/propertyeditor/PropertyItem.cpp
++++ b/src/Gui/propertyeditor/PropertyItem.cpp
+@@ -26,6 +26,8 @@
+ #include <format>
+ #include <iomanip>
+ #include <limits>
++#include <optional>
++#include <sstream>
+ #include <QApplication>
+ #include <QComboBox>
+ #include <QCheckBox>
+@@ -63,6 +65,7 @@
+ #include <Gui/SpinBox.h>
+ #include <Gui/VectorListEditor.h>
+ #include <Gui/ViewProviderDocumentObject.h>
++#include <Gui/VisibilityTransaction.h>
+ #include <Gui/Document.h>
+ 
+ // NOLINTBEGIN(cppcoreguidelines-pro-*,cppcoreguidelines-prefer-member-initializer)
+@@ -73,6 +76,64 @@ namespace
+ {
+ constexpr const int lowPrec = 2;
+ constexpr const int highPrec = 16;
++
++/// Visibility of an object or of its view provider (3D view) and ShowInTree (tree view): the
++/// properties whose edit shows or hides an object, as Std_ToggleVisibility, Std_HideSelection or
++/// the tree's eye icon do.
++bool isShowHideProperty(const App::Property* prop)
++{
++    App::PropertyContainer* container = prop->getContainer();
++    if (auto vp = freecad_cast<Gui::ViewProviderDocumentObject*>(container)) {
++        return prop == &vp->Visibility || prop == &vp->ShowInTree;
++    }
++    if (auto obj = freecad_cast<App::DocumentObject*>(container)) {
++        return prop == &obj->Visibility;
++    }
++    return false;
++}
++
++/// False only when assigning the Python literal @a value leaves the boolean @a prop as it is;
++/// a value this cannot read counts as a change.
++bool assignmentChanges(const App::Property* prop, const std::string& value)
++{
++    auto boolProp = dynamic_cast<const App::PropertyBool*>(prop);
++    if (!boolProp || (value != "True" && value != "False")) {
++        return true;
++    }
++    return boolProp->getValue() != (value == "True");
++}
++
++/// The name PropertyEditor::openEditor() gives the transaction of an edit of @a items.
++std::string editStepName(const std::vector<App::Property*>& items)
++{
++    const char* context = "Gui::PropertyEditor::PropertyEditor";
++    std::ostringstream str;
++    str << QCoreApplication::translate(context, "Edit").toUtf8().constData() << ' ';
++    App::PropertyContainer* parent = items.front()->getContainer();
++    auto obj = freecad_cast<App::DocumentObject*>(parent);
++    if (!obj) {
++        if (auto view = freecad_cast<Gui::ViewProviderDocumentObject*>(parent)) {
++            obj = view->getObject();
++        }
++    }
++    for (auto prop : items) {
++        if (prop->getContainer() != obj) {
++            obj = nullptr;
++            break;
++        }
++    }
++    if (obj && obj->isAttachedToDocument()) {
++        str << obj->getNameInDocument() << '.';
++    }
++    else {
++        str << QCoreApplication::translate(context, "property").toUtf8().constData() << ' ';
++    }
++    str << items.front()->getName();
++    if (items.size() > 1) {
++        str << "...";
++    }
++    return str.str();
++}
+ }  // namespace
+ 
+ 
+@@ -600,25 +661,29 @@ void PropertyItem::setPropertyValue(const std::string& value)
+     // intermediate changes caused by property change that may potentially
+     // invalidate the current property array.
+     std::ostringstream ss;
++    // Documents of the objects this assignment really shows or hides (issue 035)
++    bool showHide = false;
++    std::vector<App::Document*> showHideDocs;
+     for (auto prop : propertyItems) {
+         App::PropertyContainer* parent = prop->getContainer();
+         if (!parent || parent->isReadOnly(prop) || prop->testStatus(App::Property::ReadOnly)) {
+             continue;
+         }
+ 
++        App::Document* doc = nullptr;
+         if (parent->isDerivedFrom<App::Document>()) {
+-            auto doc = static_cast<App::Document*>(parent);
++            doc = static_cast<App::Document*>(parent);
+             ss << "FreeCAD.getDocument('" << doc->getName() << "').";
+         }
+         else if (parent->isDerivedFrom<App::DocumentObject>()) {
+             auto obj = static_cast<App::DocumentObject*>(parent);
+-            App::Document* doc = obj->getDocument();
++            doc = obj->getDocument();
+             ss << "FreeCAD.getDocument('" << doc->getName() << "').getObject('"
+                << obj->getNameInDocument() << "').";
+         }
+         else if (parent->isDerivedFrom<ViewProviderDocumentObject>()) {
+             App::DocumentObject* obj = static_cast<ViewProviderDocumentObject*>(parent)->getObject();
+-            App::Document* doc = obj->getDocument();
++            doc = obj->getDocument();
+             ss << "FreeCADGui.getDocument('" << doc->getName() << "').getObject('"
+                << obj->getNameInDocument() << "').";
+         }
+@@ -627,6 +692,13 @@ void PropertyItem::setPropertyValue(const std::string& value)
+         }
+ 
+         ss << parent->getPropertyPrefix() << prop->getName() << " = " << value << '\n';
++
++        if (isShowHideProperty(prop)) {
++            showHide = true;
++            if (assignmentChanges(prop, value)) {
++                showHideDocs.push_back(doc);
++            }
++        }
+     }
+ 
+     std::string cmd = ss.str();
+@@ -634,6 +706,17 @@ void PropertyItem::setPropertyValue(const std::string& value)
+         return;
+     }
+ 
++    // Showing or hiding objects here is one undo step, as with the show/hide commands and the
++    // tree (VisibilityTransaction: its preference; no step inside an open transaction, during
++    // undo/redo, or for an assignment that changes nothing). With PropertyView/AutoTransactionView
++    // the editor has already booked its own "Edit ..." transaction, and this books nothing.
++    // Other properties keep the editor's own handling.
++    std::optional<VisibilityTransaction> showHideStep;
++    if (showHide) {
++        std::string name = editStepName(propertyItems);
++        showHideStep.emplace(name.c_str(), showHideDocs, !showHideDocs.empty());
++    }
++
+     try {
+         Gui::Command::runCommand(Gui::Command::App, cmd.c_str());
+     }
+-- 
+2.52.0.windows.1
+
