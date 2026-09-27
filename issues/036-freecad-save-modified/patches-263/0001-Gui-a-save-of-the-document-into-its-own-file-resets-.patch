@@ -1,0 +1,113 @@
+From 1a72a61e79dd7abbb59d1ca83cd64a2b2fe66e54 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 18:14:56 +0700
+Subject: [PATCH] Gui: a save of the document into its own file resets the
+ modified flag (issue 036)
+
+Gui::Document keeps the "modified" flag itself (App::Document has none), and
+only the Gui save paths (Std_Save, Std_SaveAs, Std_SaveAll, Gui.Document.save)
+reset it, after the App save returns. App.Document.save()/saveAs() called from
+a macro or script never did, so the document stayed modified and closing it
+asked "Save all changes?" for data that was already on disk.
+
+Gui::Document now listens to App::Document::signalFinishSave, which
+saveToFile() emits only after the file is written, and resets the flag when
+the file written is the document's own FileName. saveCopy() writes another
+file (it refuses the own name), so the flag stays; recovery snapshots do not
+emit the signal; a failed save throws before it. The Gui save paths behave as
+before (their own reset is now a no-op). The connection lives in the private
+DocumentP, so FreeCADGui exports do not change.
+
+Tests: GuiDocument.testAppSaveResetsGuiModified,
+GuiDocument.testSaveCopyAndRecoveryKeepGuiModified.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/Document.cpp        | 17 +++++++++++++++++
+ src/Mod/Test/GuiDocument.py | 31 +++++++++++++++++++++++++++++++
+ 2 files changed, 48 insertions(+)
+
+diff --git a/src/Gui/Document.cpp b/src/Gui/Document.cpp
+index 946fd33..f971205 100644
+--- a/src/Gui/Document.cpp
++++ b/src/Gui/Document.cpp
+@@ -127,6 +127,7 @@ struct DocumentP
+     Connection connectRenObject;
+     AdvancedConnection connectActObject;
+     Connection connectSaveDocument;
++    Connection connectFinishSaveDocument;
+     Connection connectRestDocument;
+     Connection connectStartLoadDocument;
+     Connection connectFinishLoadDocument;
+@@ -500,6 +501,21 @@ Document::Document(App::Document* pcDocument, Application* app)
+     d->connectSaveDocument = pcDocument->signalSaveDocument.connect(
+         std::bind(&Gui::Document::Save, this, sp::_1)
+     );
++    // The modified flag lives here, not in App::Document, so every successful save of the
++    // document into its own file must reset it, whoever started the save: Std_Save/Std_SaveAs,
++    // App.Document.save()/saveAs() from a macro or script, FreeCAD.saveDocument(). The Gui save
++    // commands reset it themselves after the save; the App paths never did, so the document
++    // stayed "modified" and closing it asked to save unchanged data. App::Document::saveToFile()
++    // emits signalFinishSave only after the file is written. saveCopy() writes another file
++    // (its name differs from FileName by construction), so the document keeps its flag;
++    // recovery snapshots do not emit this signal at all.
++    d->connectFinishSaveDocument = pcDocument->signalFinishSave.connect(
++        [this](const App::Document& doc, const std::string& filename) {
++            if (&doc == d->_pcDocument && filename == doc.FileName.getStrValue()) {
++                setModified(false);
++            }
++        }
++    );
+     d->connectRestDocument = pcDocument->signalRestoreDocument.connect(
+         std::bind(&Gui::Document::Restore, this, sp::_1)
+     );
+@@ -583,6 +599,7 @@ Document::~Document()
+     d->connectRenObject.disconnect();
+     d->connectActObject.disconnect();
+     d->connectSaveDocument.disconnect();
++    d->connectFinishSaveDocument.disconnect();
+     d->connectRestDocument.disconnect();
+     d->connectStartLoadDocument.disconnect();
+     d->connectFinishLoadDocument.disconnect();
+diff --git a/src/Mod/Test/GuiDocument.py b/src/Mod/Test/GuiDocument.py
+index 6e2f63d..4bc9f81 100644
+--- a/src/Mod/Test/GuiDocument.py
++++ b/src/Mod/Test/GuiDocument.py
+@@ -415,3 +415,34 @@ class TestGuiDocument(unittest.TestCase):
+             # Std_Save must reach the focused macro editor, not the active document,
+             # the macro is written and the document is left untouched
+             self.assertEqual(doc_mtime_after, doc_mtime_before)
++
++    def testAppSaveResetsGuiModified(self):
++        # A save into the document's own file leaves the Gui document unmodified, whoever calls it
++        # (Std_Save, a macro or a script through App.Document.save()/saveAs()).
++        gui_doc = FreeCADGui.getDocument(self.doc.Name)
++        with tempfile.TemporaryDirectory() as temp_dir:
++            self.doc.addObject("App::FeaturePython", "ModifiedObject")
++            self.assertTrue(gui_doc.Modified)
++            self.doc.saveAs(os.path.join(temp_dir, "TestDoc.FCStd"))
++            self.assertFalse(gui_doc.Modified)
++
++            self.doc.addObject("App::FeaturePython", "ModifiedObject2")
++            self.assertTrue(gui_doc.Modified)
++            self.doc.save()
++            self.assertFalse(gui_doc.Modified)
++
++    def testSaveCopyAndRecoveryKeepGuiModified(self):
++        # A copy into another file and a recovery snapshot do not save the document itself.
++        gui_doc = FreeCADGui.getDocument(self.doc.Name)
++        with tempfile.TemporaryDirectory() as temp_dir:
++            self.doc.saveAs(os.path.join(temp_dir, "TestDoc.FCStd"))
++            self.doc.addObject("App::FeaturePython", "ModifiedObject")
++            self.assertTrue(gui_doc.Modified)
++
++            copy_path = os.path.join(temp_dir, "Copy.FCStd")
++            self.doc.saveCopy(copy_path)
++            self.assertTrue(os.path.isfile(copy_path))
++            self.assertTrue(gui_doc.Modified)
++
++            self.assertTrue(FreeCAD.writeRecoverySnapshotToTransientDir(self.doc))
++            self.assertTrue(gui_doc.Modified)
+-- 
+2.52.0.windows.1
+
