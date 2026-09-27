@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# patches are byte-exact: FreeCAD sources are CRLF, a normalised patch no longer applies (review vr6-body r2, m-r2-1)
+*.patch -text

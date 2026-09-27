@@ -1,7 +1,7 @@
 From af4d3f4800bed9c6533d7d362aa5afef761150fb Mon Sep 17 00:00:00 2001
 From: fozzfut <vanolia13@gmail.com>
 Date: Sun, 27 Sep 2026 20:14:48 +0700
-Subject: [PATCH 2/2] Gui: an absolute camera placement stops a running view
+Subject: [PATCH] Gui: an absolute camera placement stops a running view
  animation (issue 038)
 
 FixedTimeAnimation turns and moves the camera relatively to its previous
