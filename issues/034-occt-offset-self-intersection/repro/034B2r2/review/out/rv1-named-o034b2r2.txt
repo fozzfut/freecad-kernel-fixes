@@ -1,0 +1,13 @@
+# 5829 local faces=30 vol=367718.7085 valid=True
+5829_local_off-0.5                           ERR     ms=3084 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+5829_local_off-1                             ERR     ms=6241 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+5829_local_thk-0.5                           ERR     ms=3611 exc=BRep_API:_command_not_done
+5829_local_thk-1                             ERR     ms=5753 exc=BRep_API:_command_not_done
+# 5829 fcworld faces=30 vol=367718.7085 valid=True
+5829_fcworld_off-0.5                         ERR     ms=3 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+5829_fcworld_off-1                           ERR     ms=2 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+# owner cube Assembly faces=29 vol=75276.1492
+owner031_off-0.3                             ERR     ms=966 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+owner031_off-1                               ERR     ms=14474 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+owner031_off0.3                              ERR     ms=13 exc=BRep_API:_command_not_done
+RV-DONE

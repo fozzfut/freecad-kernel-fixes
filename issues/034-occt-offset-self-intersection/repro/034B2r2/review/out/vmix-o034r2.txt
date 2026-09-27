@@ -1,0 +1,6 @@
+# vmix faces=10
+vbox_r1_t1.5_a_thkBOTTOM                     ERR     ms=130 exc=BRep_API:_command_not_done
+vbox_r1_t1.5_n_thkBOTTOM                     ERR     ms=196 exc=BRep_API:_command_not_done
+vbox_r1_t1.5_w_thkBOTTOM                     ERR     ms=44 exc=BRep_API:_command_not_done
+vbox_r1_d1.5_n_off_JOIN_INT                  ERR     ms=1630 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+RV-DONE

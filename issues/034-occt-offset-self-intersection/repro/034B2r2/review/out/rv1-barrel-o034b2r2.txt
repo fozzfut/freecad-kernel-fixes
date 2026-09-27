@@ -1,0 +1,16 @@
+# barrel faces=6 vertical edges=4
+# barrel r=1 surfaces: ['BSplineSurface', 'Cylinder', 'Plane']
+barrel_r1_d1.5_a_off                         EXACT   valid=True bop=clean nsol=1 nf=6 vol=1194.41925 ms=47 ref=1194.41925 sd=0 rel=0 exc=-
+barrel_r1_d1.5_w_off                         EXACT   valid=True bop=clean nsol=1 nf=6 vol=1194.41925 ms=125 ref=1194.41925 sd=0 rel=0 exc=-
+barrel_r1_t1.5_a_thktop                      EXACT   valid=True bop=clean nsol=1 nf=15 vol=1086.50836 ms=119 ref=1086.50836 sd=0 rel=0 exc=-
+barrel_r1_t1.5_w_thktop                      EXACT   valid=True bop=clean nsol=1 nf=15 vol=1086.50836 ms=90 ref=1086.50836 sd=0 rel=0 exc=-
+barrel_r1_d3_a_off                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=410.82311 ms=136 ref=410.82311 sd=0 rel=0 exc=-
+barrel_r1_d3_w_off                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=410.82311 ms=137 ref=410.82311 sd=0 rel=0 exc=-
+barrel_r1_t3_a_thktop                        EXACT   valid=True bop=clean nsol=1 nf=15 vol=1817.93415 ms=100 ref=1817.93415 sd=0 rel=0 exc=-
+barrel_r1_t3_w_thktop                        EXACT   valid=True bop=clean nsol=1 nf=15 vol=1817.93415 ms=79 ref=1817.93415 sd=0 rel=0 exc=-
+# barrel r=2 surfaces: ['BSplineSurface', 'Cylinder', 'Plane']
+barrel_r2_d3_a_off                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=410.82311 ms=80 ref=410.82311 sd=0 rel=0 exc=-
+barrel_r2_d3_w_off                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=410.82311 ms=179 ref=410.82311 sd=0 rel=0 exc=-
+barrel_r2_t3_a_thktop                        EXACT   valid=True bop=clean nsol=1 nf=15 vol=1809.63347 ms=82 ref=1809.63347 sd=0 rel=0 exc=-
+barrel_r2_t3_w_thktop                        EXACT   valid=True bop=clean nsol=1 nf=15 vol=1809.63347 ms=134 ref=1809.63347 sd=0 rel=0 exc=-
+RV-DONE

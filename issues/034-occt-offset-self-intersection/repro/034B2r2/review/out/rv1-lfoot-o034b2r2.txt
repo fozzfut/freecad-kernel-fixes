@@ -1,0 +1,14 @@
+# lfoot faces=8 convex vertical edges=5
+lfoot_r1_d1.5_a_off                          EXACT   valid=True bop=clean nsol=1 nf=9 vol=570.37998 ms=31 ref=570.37998 sd=0 rel=0 exc=-
+lfoot_r1_d1.5_n_off                          EXACT   valid=True bop=clean nsol=1 nf=9 vol=570.37998 ms=138 ref=570.37998 sd=0 rel=0 exc=-
+lfoot_r1_d1.5_w_off                          EXACT   valid=True bop=clean nsol=1 nf=9 vol=570.37998 ms=91 ref=570.37998 sd=0 rel=0 exc=-
+lfoot_r1_t1.5_a_thktop                       EXACT   valid=True bop=clean nsol=1 nf=21 vol=1096.66565 ms=39 ref=1096.66565 sd=0 rel=0 exc=-
+lfoot_r1_t1.5_n_thktop                       EXACT   valid=True bop=clean nsol=1 nf=21 vol=1096.66565 ms=239 ref=1096.66565 sd=0 rel=0 exc=-
+lfoot_r1_t1.5_w_thktop                       EXACT   valid=True bop=clean nsol=1 nf=21 vol=1096.66565 ms=79 ref=1096.66565 sd=0 rel=0 exc=-
+lfoot_r1_d2.5_a_off                          EXACT   valid=True bop=clean nsol=1 nf=9 vol=131.70631 ms=189 ref=131.70631 sd=0 rel=0 exc=-
+lfoot_r1_d2.5_n_off                          EXACT   valid=True bop=clean nsol=1 nf=9 vol=131.70631 ms=1301 ref=131.70631 sd=0 rel=0 exc=-
+lfoot_r1_d2.5_w_off                          EXACT   valid=True bop=clean nsol=1 nf=9 vol=131.70631 ms=345 ref=131.70631 sd=0 rel=0 exc=-
+lfoot_r1_t2.5_a_thktop                       EXACT   valid=True bop=clean nsol=1 nf=21 vol=1591.71045 ms=36 ref=1591.71045 sd=0 rel=0 exc=-
+lfoot_r1_t2.5_n_thktop                       EXACT   valid=True bop=clean nsol=1 nf=21 vol=1591.71045 ms=226 ref=1591.71045 sd=0 rel=0 exc=-
+lfoot_r1_t2.5_w_thktop                       EXACT   valid=True bop=clean nsol=1 nf=21 vol=1591.71045 ms=40 ref=1591.71045 sd=0 rel=0 exc=-
+RV-DONE

@@ -1,0 +1,19 @@
+a 0.5 clean 1753.06858
+   faces: [('Plane', 99.0), ('Cylinder', 7.0686), ('Cylinder', 7.0686), ('Plane', 81.0), ('Plane', 36.0), ('Plane', 194.7854), ('Cylinder', 7.0686), ('Plane', 252.0), ('Cylinder', 7.0686), ('Plane', 36.0), ('Cylinder', 7.0686), ('Plane', 36.0), ('Plane', 194.7854), ('Cylinder', 7.0686), ('Cylinder', 7.0686), ('Plane', 99.0), ('Cylinder', 7.0686), ('Plane', 81.0)]
+   tol max: 2.0000000177635683e-07 1.0000000000000002e-07
+n 0.5 clean 1753.06858
+   faces: [('Plane', 81.0), ('Plane', 194.7854), ('OffsetSurface', 7.0686), ('OffsetSurface', 7.0686), ('OffsetSurface', 7.0686), ('Plane', 36.0), ('OffsetSurface', 7.0686), ('Plane', 81.0), ('Plane', 36.0), ('BSplineSurface', 7.0686), ('Plane', 252.0), ('Plane', 99.0), ('OffsetSurface', 7.0686), ('OffsetSurface', 7.0686), ('BSplineSurface', 7.0686), ('Plane', 194.7854), ('Plane', 36.0), ('Plane', 99.0)]
+   tol max: 5.000001003552714e-06 1.0000000254509081e-07
+a 1.5 clean 783.75996
+   faces: [('Plane', 73.5), ('Cylinder', 16.4934), ('Plane', 59.5), ('Plane', 21.0), ('Plane', 111.9657), ('Plane', 189.0), ('Plane', 21.0), ('Plane', 21.0), ('Plane', 111.9657), ('Cylinder', 16.4934), ('Plane', 73.5), ('Plane', 59.5)]
+   tol max: 2.0000000177635683e-07 1.0000000000000002e-07
+n 1.5 FAULTS 783.75996 BOP check found the following errors: | Error in Edge: BOPAlgo_InvalidCurveOnSurface | Error in Face: BOPAlgo_InvalidCurveOnSurface | Error in Edge: BOPAlgo_InvalidCurveOnSurface | Error in Face: BOPAlgo_InvalidCurveOnSurface | Error in Edge: BOPAlgo_InvalidCurveOnSurface | Error in Face: BOPAlgo_InvalidCurveOnSurface | Error in Edge: BOPAlgo_InvalidCurveOnSurface | Error in Face: BOPAlgo_InvalidCurveOnSurface | 
+   faces: [('Plane', 59.5), ('Plane', 111.9657), ('Plane', 189.0), ('Plane', 73.5), ('BSplineSurface', 16.4934), ('Plane', 59.5), ('Plane', 73.5), ('Plane', 21.0), ('Plane', 21.0), ('Plane', 111.9657), ('Plane', 21.0), ('BSplineSurface', 16.4934)]
+   tol max: 5.000001000222045e-06 1.0000000254509081e-07
+a 2.5 clean 188.41261
+   faces: [('Plane', 47.5), ('Cylinder', 19.635), ('Plane', 37.5), ('Plane', 5.0), ('Plane', 37.6825), ('Plane', 125.0), ('Plane', 5.0), ('Plane', 5.0), ('Plane', 37.6825), ('Cylinder', 19.635), ('Plane', 47.5), ('Plane', 37.5)]
+   tol max: 2.0000000177635683e-07 1.0000000000000002e-07
+n 2.5 clean 188.41261
+   faces: [('Plane', 5.0), ('Plane', 37.5), ('Plane', 37.5), ('BSplineSurface', 19.635), ('BSplineSurface', 19.635), ('Plane', 47.5), ('Plane', 125.0), ('Plane', 5.0), ('Plane', 47.5), ('Plane', 37.6825), ('Plane', 5.0), ('Plane', 37.6825)]
+   tol max: 5.000001000000001e-06 1.0000000254509081e-07
+DONE

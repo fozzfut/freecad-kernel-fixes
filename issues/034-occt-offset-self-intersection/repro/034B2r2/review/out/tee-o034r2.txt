@@ -1,0 +1,15 @@
+# tee faces=16 vol=2387.12389
+tee_r1_d1.5_a_off                            ERR     ms=27 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+tee_r1_d1.5_n_off                            ERR     ms=357 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+tee_r1_d1.5_w_off                            ERR     ms=84 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+tee_r1_t1.5_a_thktop                         ERR     ms=72 exc=BRep_API:_command_not_done
+tee_r1_t1.5_n_thktop                         ERR     ms=959 exc=BRep_API:_command_not_done
+tee_r1_t1.5_w_thktop                         ERR     ms=24 exc=BRep_API:_command_not_done
+tee_r1_d2.5_a_off                            ERR     ms=49 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+tee_r1_d2.5_n_off                            ERR     ms=456 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+tee_r1_d2.5_w_off                            ERR     ms=34 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+tee_r1_t2.5_a_thktop                         ERR     ms=34 exc=BRep_API:_command_not_done
+tee_r1_t2.5_n_thktop                         ERR     ms=710 exc=BRep_API:_command_not_done
+tee_r1_t2.5_w_thktop                         ERR     ms=23 exc=BRep_API:_command_not_done
+CTL_tee_r1_t0.5_a_thktop_NOVANISH            OKNOREF valid=True bop=clean nsol=1 nf=33 vol=536.66261 ms=30 exc=-
+RV-DONE

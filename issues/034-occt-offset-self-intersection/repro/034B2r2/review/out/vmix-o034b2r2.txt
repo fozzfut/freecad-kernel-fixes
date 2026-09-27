@@ -1,0 +1,6 @@
+# vmix faces=10
+vbox_r1_t1.5_a_thkBOTTOM                     EXACT   valid=True bop=clean nsol=1 nf=15 vol=1201.91593 ms=23 ref=1201.91593 sd=0 rel=0 exc=-
+vbox_r1_t1.5_n_thkBOTTOM                     EXACT   valid=True bop=clean nsol=1 nf=15 vol=1201.91593 ms=149 ref=1201.91593 sd=0 rel=0 exc=-
+vbox_r1_t1.5_w_thkBOTTOM                     EXACT   valid=True bop=clean nsol=1 nf=15 vol=1201.91593 ms=26 ref=1201.91593 sd=0 rel=0 exc=-
+vbox_r1_d1.5_n_off_JOIN_INT                  ERR     ms=1002 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+RV-DONE

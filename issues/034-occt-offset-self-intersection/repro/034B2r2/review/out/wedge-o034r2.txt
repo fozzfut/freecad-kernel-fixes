@@ -1,0 +1,37 @@
+# wedge alpha=45 h=19.314 H=10 faces=8 vol=1522.43836
+wedge45_r1_d1.5_a_off                        ERR     ms=11 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge45_r1_d1.5_n_off                        ERR     ms=190 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge45_r1_d1.5_w_off                        ERR     ms=11 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge45_r1_t1.5_a_thktop_need1.21            ERR     ms=58 exc=BRep_API:_command_not_done
+wedge45_r1_t1.5_n_thktop_need1.21            ERR     ms=231 exc=BRep_API:_command_not_done
+wedge45_r1_t1.5_w_thktop_need1.21            ERR     ms=8 exc=BRep_API:_command_not_done
+wedge45_r1_d3_a_off                          ERR     ms=6 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge45_r1_d3_n_off                          ERR     ms=191 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge45_r1_d3_w_off                          ERR     ms=11 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge45_r1_t3_a_thktop_need4.83              ERR     ms=26 exc=BRep_API:_command_not_done
+wedge45_r1_t3_n_thktop_need4.83              ERR     ms=634 exc=BRep_API:_command_not_done
+wedge45_r1_t3_w_thktop_need4.83              ERR     ms=16 exc=BRep_API:_command_not_done
+# wedge alpha=30 h=29.856 H=10 faces=8 vol=2356.54343
+wedge30_r1_d1.5_a_off                        ERR     ms=11 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge30_r1_d1.5_n_off                        ERR     ms=4 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge30_r1_d1.5_w_off                        ERR     ms=13 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge30_r1_t1.5_a_thktop_need1.87            ERR     ms=11 exc=BRep_API:_command_not_done
+wedge30_r1_t1.5_n_thktop_need1.87            ERR     ms=2 exc=BRep_API:_command_not_done
+wedge30_r1_t1.5_w_thktop_need1.87            ERR     ms=25 exc=BRep_API:_command_not_done
+wedge30_r1_d3_a_off                          ERR     ms=15 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge30_r1_d3_n_off                          ERR     ms=1 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge30_r1_d3_w_off                          ERR     ms=11 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge30_r1_t3_a_thktop_need7.46              ERR     ms=10 exc=BRep_API:_command_not_done
+wedge30_r1_t3_n_thktop_need7.46              ERR     ms=2 exc=BRep_API:_command_not_done
+wedge30_r1_t3_w_thktop_need7.46              ERR     ms=11 exc=BRep_API:_command_not_done
+# wedge alpha=20 h=45.370 H=6 faces=8 vol=2148.29304
+wedge20_r1_d1.5_a_off                        ERR     ms=9 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge20_r1_d1.5_n_off                        ERR     ms=1 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge20_r1_d1.5_w_off                        ERR     ms=7 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge20_r1_t1.5_a_thktop_need2.84            ERR     ms=8 exc=BRep_API:_command_not_done
+wedge20_r1_t1.5_n_thktop_need2.84            ERR     ms=2 exc=BRep_API:_command_not_done
+wedge20_r1_t1.5_w_thktop_need2.84            ERR     ms=11 exc=BRep_API:_command_not_done
+wedge20_r1_t3_a_thktop_need11.34             ERR     ms=11 exc=BRep_API:_command_not_done
+wedge20_r1_t3_n_thktop_need11.34             ERR     ms=3 exc=BRep_API:_command_not_done
+wedge20_r1_t3_w_thktop_need11.34             ERR     ms=8 exc=BRep_API:_command_not_done
+RV-DONE

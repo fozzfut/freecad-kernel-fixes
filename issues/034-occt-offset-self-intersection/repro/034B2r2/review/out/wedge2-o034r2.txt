@@ -1,0 +1,9 @@
+# wedge2 alpha=10 h=45.720 H=4 faces=8 vol=689.63904
+wedge10_r1_t2.5_a_thktop_need17.1_reach7.0   ERR     ms=12 exc=BRep_API:_command_not_done
+wedge10_r1_t2.5_w_thktop_need17.1_reach7.0   ERR     ms=9 exc=BRep_API:_command_not_done
+wedge10_r1_t3_a_thktop_need22.9_reach7.5     ERR     ms=7 exc=BRep_API:_command_not_done
+wedge10_r1_t3_w_thktop_need22.9_reach7.5     ERR     ms=11 exc=BRep_API:_command_not_done
+# wedge2 alpha=14 h=32.577 H=5 faces=8 vol=615.23100
+wedge14_r1_t3_a_thktop_need16.3_reach8.4     ERR     ms=8 exc=BRep_API:_command_not_done
+wedge14_r1_t3_w_thktop_need16.3_reach8.4     ERR     ms=8 exc=BRep_API:_command_not_done
+RV-DONE

@@ -1,0 +1,37 @@
+# wedge alpha=45 h=19.314 H=10 faces=8 vol=1522.43836
+wedge45_r1_d1.5_a_off                        EXACT   valid=True bop=clean nsol=1 nf=5 vol=559.72946 ms=26 ref=559.72946 sd=0 rel=0 exc=-
+wedge45_r1_d1.5_n_off                        EXACT   valid=True bop=clean nsol=1 nf=5 vol=559.72946 ms=96 ref=559.72946 sd=0 rel=0 exc=-
+wedge45_r1_d1.5_w_off                        EXACT   valid=True bop=clean nsol=1 nf=5 vol=559.72946 ms=169 ref=559.72946 sd=0 rel=0 exc=-
+wedge45_r1_t1.5_a_thktop_need1.21            EXACT   valid=True bop=clean nsol=1 nf=12 vol=842.76686 ms=21 ref=842.76686 sd=0 rel=0 exc=-
+wedge45_r1_t1.5_n_thktop_need1.21            EXACT   valid=True bop=clean nsol=1 nf=12 vol=842.76686 ms=194 ref=842.76686 sd=0 rel=0 exc=-
+wedge45_r1_t1.5_w_thktop_need1.21            EXACT   valid=True bop=clean nsol=1 nf=12 vol=842.76686 ms=32 ref=842.76686 sd=0 rel=0 exc=-
+wedge45_r1_d3_a_off                          EXACT   valid=True bop=clean nsol=1 nf=5 vol=118.98580 ms=38 ref=118.98580 sd=0 rel=0 exc=-
+wedge45_r1_d3_n_off                          EXACT   valid=True bop=clean nsol=1 nf=5 vol=118.98580 ms=129 ref=118.98580 sd=0 rel=0 exc=-
+wedge45_r1_d3_w_off                          EXACT   valid=True bop=clean nsol=1 nf=5 vol=118.98580 ms=193 ref=118.98580 sd=0 rel=0 exc=-
+wedge45_r1_t3_a_thktop_need4.83              EXACT   valid=True bop=clean nsol=1 nf=12 vol=1314.21321 ms=24 ref=1314.21321 sd=0 rel=0 exc=-
+wedge45_r1_t3_n_thktop_need4.83              EXACT   valid=True bop=clean nsol=1 nf=12 vol=1314.21321 ms=398 ref=1314.21321 sd=0 rel=0 exc=-
+wedge45_r1_t3_w_thktop_need4.83              EXACT   valid=True bop=clean nsol=1 nf=12 vol=1314.21321 ms=111 ref=1314.21321 sd=0 rel=0 exc=-
+# wedge alpha=30 h=29.856 H=10 faces=8 vol=2356.54343
+wedge30_r1_d1.5_a_off                        EXACT   valid=True bop=clean nsol=1 nf=5 vol=954.68801 ms=42 ref=954.68801 sd=0 rel=0 exc=-
+wedge30_r1_d1.5_n_off                        ERR     ms=2 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge30_r1_d1.5_w_off                        EXACT   valid=True bop=clean nsol=1 nf=5 vol=954.68801 ms=83 ref=954.68801 sd=0 rel=0 exc=-
+wedge30_r1_t1.5_a_thktop_need1.87            EXACT   valid=True bop=clean nsol=1 nf=12 vol=1197.27942 ms=96 ref=1197.27942 sd=0 rel=0 exc=-
+wedge30_r1_t1.5_n_thktop_need1.87            ERR     ms=3 exc=BRep_API:_command_not_done
+wedge30_r1_t1.5_w_thktop_need1.87            EXACT   valid=True bop=clean nsol=1 nf=12 vol=1197.27942 ms=311 ref=1197.27942 sd=0 rel=0 exc=-
+wedge30_r1_d3_a_off                          EXACT   valid=True bop=clean nsol=1 nf=5 vol=249.76003 ms=25 ref=249.76003 sd=0 rel=0 exc=-
+wedge30_r1_d3_n_off                          ERR     ms=1 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge30_r1_d3_w_off                          EXACT   valid=True bop=clean nsol=1 nf=5 vol=249.76003 ms=127 ref=249.76003 sd=0 rel=0 exc=-
+wedge30_r1_t3_a_thktop_need7.46              EXACT   valid=True bop=clean nsol=1 nf=12 vol=1919.46338 ms=25 ref=1919.46338 sd=0 rel=0 exc=-
+wedge30_r1_t3_n_thktop_need7.46              ERR     ms=3 exc=BRep_API:_command_not_done
+wedge30_r1_t3_w_thktop_need7.46              EXACT   valid=True bop=clean nsol=1 nf=12 vol=1919.46338 ms=55 ref=1919.46338 sd=0 rel=0 exc=-
+# wedge alpha=20 h=45.370 H=6 faces=8 vol=2148.29304
+wedge20_r1_d1.5_a_off                        EXACT   valid=True bop=clean nsol=1 nf=5 vol=656.62446 ms=336 ref=656.62446 sd=0 rel=0 exc=-
+wedge20_r1_d1.5_n_off                        ERR     ms=32 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+wedge20_r1_d1.5_w_off                        EXACT   valid=True bop=clean nsol=1 nf=5 vol=656.62446 ms=45 ref=656.62446 sd=0 rel=0 exc=-
+wedge20_r1_t1.5_a_thktop_need2.84            EXACT   valid=True bop=clean nsol=1 nf=12 vol=1163.35635 ms=18 ref=1163.35635 sd=0 rel=0 exc=-
+wedge20_r1_t1.5_n_thktop_need2.84            ERR     ms=3 exc=BRep_API:_command_not_done
+wedge20_r1_t1.5_w_thktop_need2.84            EXACT   valid=True bop=clean nsol=1 nf=12 vol=1163.35635 ms=33 ref=1163.35635 sd=0 rel=0 exc=-
+wedge20_r1_t3_a_thktop_need11.34             EXACT   valid=True bop=clean nsol=1 nf=12 vol=1815.19058 ms=24 ref=1815.19058 sd=0 rel=0 exc=-
+wedge20_r1_t3_n_thktop_need11.34             ERR     ms=5 exc=BRep_API:_command_not_done
+wedge20_r1_t3_w_thktop_need11.34             EXACT   valid=True bop=clean nsol=1 nf=12 vol=1815.19058 ms=29 ref=1815.19058 sd=0 rel=0 exc=-
+RV-DONE

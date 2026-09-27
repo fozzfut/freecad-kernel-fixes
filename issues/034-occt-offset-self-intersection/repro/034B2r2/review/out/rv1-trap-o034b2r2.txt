@@ -1,0 +1,6 @@
+# trap surfaces: ['Cylinder', 'Plane', 'Sphere'] vol 1402.07562
+trap_r1_d1.5_a_off                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=515.80157 ms=19 ref=515.80157 sd=0 rel=0 exc=-
+trap_r1_d1.5_w_off                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=515.80157 ms=41 ref=515.80157 sd=0 rel=0 exc=-
+trap_r1_d2.5_a_off                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=191.17900 ms=20 ref=191.17900 sd=0 rel=0 exc=-
+trap_r1_d2.5_w_off                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=191.17900 ms=46 ref=191.17900 sd=0 rel=0 exc=-
+RV-DONE

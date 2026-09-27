@@ -1,0 +1,2 @@
+NEG_hex_t1.5_ref_eroded_by_1.501             WRONG   valid=True bop=clean nsol=1 nf=21 vol=1085.23540 ms=52 ref=1085.65703 sd=0.422 rel=0.000388 exc=-
+RV-DONE

@@ -1,0 +1,20 @@
+# hex faces=14 vol=2594.85112
+hex_r1_d1.5_a_off                            EXACT   valid=True bop=clean nsol=1 nf=8 vol=1243.21295 ms=56 ref=1243.21295 sd=0 rel=0 exc=-
+hex_r1_d1.5_n_off                            EXACT   valid=True bop=clean nsol=1 nf=8 vol=1243.21295 ms=334 ref=1243.21295 sd=0 rel=0 exc=-
+hex_r1_d1.5_w_off                            EXACT   valid=True bop=clean nsol=1 nf=8 vol=1243.21295 ms=210 ref=1243.21295 sd=0 rel=0 exc=-
+hex_r1_t1.5_a_thktop                         EXACT   valid=True bop=clean nsol=1 nf=21 vol=1085.23540 ms=68 ref=1085.23540 sd=0 rel=0 exc=-
+hex_r1_t1.5_a_thk_TOP+SIDE                   EXACT   valid=True bop=clean nsol=1 nf=20 vol=990.86087 ms=421 ref=990.86087 sd=0 rel=0 exc=-
+hex_r1_t1.5_n_thktop                         EXACT   valid=True bop=clean nsol=1 nf=21 vol=1085.23540 ms=441 ref=1085.23540 sd=0 rel=0 exc=-
+hex_r1_t1.5_n_thk_TOP+SIDE                   ERR     ms=39 exc=BRep_API:_command_not_done
+hex_r1_t1.5_w_thktop                         EXACT   valid=True bop=clean nsol=1 nf=21 vol=1085.23540 ms=63 ref=1085.23540 sd=0 rel=0 exc=-
+hex_r1_t1.5_w_thk_TOP+SIDE                   EXACT   valid=True bop=clean nsol=1 nf=20 vol=990.86087 ms=59 ref=990.86087 sd=0 rel=0 exc=-
+hex_r1_d3_a_off                              EXACT   valid=True bop=clean nsol=1 nf=8 vol=443.93814 ms=41 ref=443.93814 sd=0 rel=0 exc=-
+hex_r1_d3_n_off                              EXACT   valid=True bop=clean nsol=1 nf=8 vol=443.93814 ms=142 ref=443.93814 sd=0 rel=0 exc=-
+hex_r1_d3_w_off                              EXACT   valid=True bop=clean nsol=1 nf=8 vol=443.93814 ms=174 ref=443.93814 sd=0 rel=0 exc=-
+hex_r1_t3_a_thktop                           EXACT   valid=True bop=clean nsol=1 nf=21 vol=1817.95937 ms=38 ref=1817.95937 sd=0 rel=0 exc=-
+hex_r1_t3_a_thk_TOP+SIDE                     EXACT   valid=True bop=clean nsol=1 nf=20 vol=1717.07857 ms=36 ref=1717.07857 sd=0 rel=0 exc=-
+hex_r1_t3_n_thktop                           EXACT   valid=True bop=clean nsol=1 nf=21 vol=1817.95937 ms=218 ref=1817.95937 sd=0 rel=0 exc=-
+hex_r1_t3_n_thk_TOP+SIDE                     ERR     ms=33 exc=BRep_API:_command_not_done
+hex_r1_t3_w_thktop                           EXACT   valid=True bop=clean nsol=1 nf=21 vol=1817.95937 ms=421 ref=1817.95937 sd=0 rel=0 exc=-
+hex_r1_t3_w_thk_TOP+SIDE                     EXACT   valid=True bop=clean nsol=1 nf=20 vol=1717.07857 ms=51 ref=1717.07857 sd=0 rel=0 exc=-
+RV-DONE

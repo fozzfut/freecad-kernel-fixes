@@ -1,0 +1,10 @@
+vbox_r1_d1.5_a_off_JOIN_INT                  ERR     ms=30 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+vbox_r1_t1.5_a_thk_JOIN_INT                  ERR     ms=24 exc=BRep_API:_command_not_done
+vbox_r1_t1.5_a_thk_TOP+FRONT                 EXACT   valid=True bop=clean nsol=1 nf=14 vol=985.16593 ms=19 ref=985.16593 sd=0 rel=0 exc=-
+vbox_r1_t1.5_a_thk_SIDE_TANGENTCAP           EXACT   valid=True bop=clean nsol=1 nf=15 vol=1366.91593 ms=19 ref=1366.91593 sd=0 rel=0 exc=-
+vbox_r1_d1.5_LOCATED_off                     EXACT   valid=True bop=clean nsol=1 nf=6 vol=1309.00000 ms=30 ref=1309.00000 sd=0 rel=0 exc=-
+lwall_r1_t1.5_thk_OUT                        ERR     ms=9 exc=BRep_API:_command_not_done
+    -
+lwall_r1_d1.5_off_OUT                        ERR     ms=9 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+    -
+RV-DONE

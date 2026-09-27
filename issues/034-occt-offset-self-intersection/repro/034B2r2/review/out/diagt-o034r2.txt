@@ -1,0 +1,11 @@
+a 0.5 clean 1753.06858
+   faces: [('Cylinder', 7.0686), ('Plane', 36.0), ('Plane', 194.7854), ('Cylinder', 7.0686), ('Plane', 99.0), ('Cylinder', 7.0686), ('Plane', 36.0), ('Cylinder', 7.0686), ('Plane', 99.0), ('Cylinder', 7.0686), ('Plane', 81.0), ('Cylinder', 7.0686), ('Cylinder', 7.0686), ('Plane', 252.0), ('Cylinder', 7.0686), ('Plane', 194.7854), ('Plane', 81.0), ('Plane', 36.0)]
+   tol max: 2.0000000177635683e-07 1.0000000000000002e-07
+n 0.5 clean 1753.06858
+   faces: [('BSplineSurface', 7.0686), ('Plane', 81.0), ('OffsetSurface', 7.0686), ('Plane', 194.7854), ('OffsetSurface', 7.0686), ('OffsetSurface', 7.0686), ('Plane', 36.0), ('Plane', 81.0), ('Plane', 194.7854), ('OffsetSurface', 7.0686), ('Plane', 252.0), ('BSplineSurface', 7.0686), ('Plane', 36.0), ('OffsetSurface', 7.0686), ('Plane', 36.0), ('OffsetSurface', 7.0686), ('Plane', 99.0), ('Plane', 99.0)]
+   tol max: 5.000001003552714e-06 1.0000000254509081e-07
+a 1.5 ERR BRepOffsetAPI_MakeOffsetShape not done
+n 1.5 ERR BRepOffsetAPI_MakeOffsetShape not done
+a 2.5 ERR BRepOffsetAPI_MakeOffsetShape not done
+n 2.5 ERR BRepOffsetAPI_MakeOffsetShape not done
+DONE

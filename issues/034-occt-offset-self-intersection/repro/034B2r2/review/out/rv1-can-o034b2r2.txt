@@ -1,0 +1,16 @@
+# can surfaces: ['Cylinder', 'Plane', 'Toroid']
+can_r1_d1.5_a_off                            EXACT   valid=True bop=clean nsol=1 nf=3 vol=2042.82062 ms=9 ref=2042.82062 sd=0 rel=0 exc=-
+can_r1_d1.5_n_off                            ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+can_r1_d1.5_w_off                            EXACT   valid=True bop=clean nsol=1 nf=3 vol=2042.82062 ms=11 ref=2042.82062 sd=0 rel=0 exc=-
+can_r1_t1.5_a_thkbot                         EXACT   valid=True bop=clean nsol=1 nf=6 vol=1373.43781 ms=9 ref=1373.43781 sd=0 rel=0 exc=-
+can_r1_t1.5_n_thkbot                         ERR     ms=0 exc=BRep_API:_command_not_done
+can_r1_t1.5_w_thkbot                         EXACT   valid=True bop=clean nsol=1 nf=6 vol=1373.43781 ms=5 ref=1373.43781 sd=0 rel=0 exc=-
+can_r1_t1.5_a_thktop_TANGENTCAP              ERR     ms=2 exc=BRep_API:_command_not_done
+can_r1_d3_a_off                              EXACT   valid=True bop=clean nsol=1 nf=3 vol=923.62824 ms=5 ref=923.62824 sd=0 rel=0 exc=-
+can_r1_d3_n_off                              ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+can_r1_d3_w_off                              EXACT   valid=True bop=clean nsol=1 nf=3 vol=923.62824 ms=7 ref=923.62824 sd=0 rel=0 exc=-
+can_r1_t3_a_thkbot                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=2371.28618 ms=3 ref=2371.28618 sd=0 rel=0 exc=-
+can_r1_t3_n_thkbot                           ERR     ms=0 exc=BRep_API:_command_not_done
+can_r1_t3_w_thkbot                           EXACT   valid=True bop=clean nsol=1 nf=6 vol=2371.28618 ms=4 ref=2371.28618 sd=0 rel=0 exc=-
+can_r1_t3_a_thktop_TANGENTCAP                ERR     ms=5 exc=BRep_API:_command_not_done
+RV-DONE

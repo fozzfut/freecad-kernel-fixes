@@ -1,0 +1,12 @@
+# var fillet surfaces: ['BSplineSurface', 'Plane']
+var_r0.6-0.9_d1.2_a_off                      EXACT   valid=True bop=clean nsol=1 nf=6 vol=1551.61600 ms=59 ref=1551.61600 sd=0 rel=0 exc=-
+var_r0.6-0.9_d1.2_w_off                      EXACT   valid=True bop=clean nsol=1 nf=6 vol=1551.61600 ms=157 ref=1551.61600 sd=0 rel=0 exc=-
+var_r0.6-0.9_t1.2_a_thk                      EXACT   valid=True bop=clean nsol=1 nf=15 vol=998.48316 ms=293 ref=998.48316 sd=0 rel=0 exc=-
+var_r0.6-0.9_d2_a_off                        EXACT   valid=True bop=clean nsol=1 nf=6 vol=960.00000 ms=126 ref=960.00000 sd=0 rel=0 exc=-
+var_r0.6-0.9_d2_w_off                        EXACT   valid=True bop=clean nsol=1 nf=6 vol=960.00000 ms=263 ref=960.00000 sd=0 rel=0 exc=-
+var_r0.6-0.9_t2_a_thk                        EXACT   valid=True bop=clean nsol=1 nf=15 vol=1515.09116 ms=55 ref=1515.09116 sd=0 rel=0 exc=-
+var_r0.6-0.9_d0.75_PARTIAL_off               ERR     ms=416 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+    -
+var_r0.6-0.9_t0.75_PARTIAL_thk               ERR     ms=311 exc=BRep_API:_command_not_done
+    -
+RV-DONE

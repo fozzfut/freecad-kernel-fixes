@@ -1,0 +1,4 @@
+after fixTolerance(1e-4): clean
+fuse valid True 1221.89712
+cut valid True 661.89712 expected 661.89712
+DONE

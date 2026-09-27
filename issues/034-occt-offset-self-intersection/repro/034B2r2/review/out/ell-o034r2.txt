@@ -1,0 +1,26 @@
+# ellipse min radius 1.600 max 25.000 faces ['SurfaceOfExtrusion', 'Plane', 'Plane']
+ell_CTL_d1_a_off                             INV     valid=True bop=FAULTS nsol=1 nf=3 vol=499.76118 ms=73 exc=-
+    oracle n=27 bad=0 worst=2.22e-16
+ell_CTL_t1_a_thktop                          INV     valid=True bop=FAULTS nsol=1 nf=5 vol=422.12815 ms=60 exc=-
+    oracleT n=40 bad=0
+ell_PARTIAL_d2_a_off                         ERR     ms=603 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+    -
+ell_PARTIAL_t2_a_thktop                      ERR     ms=82 exc=BRep_API:_command_not_done
+    -
+ell_PARTIAL_d3_a_off                         ERR     ms=124 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+    -
+ell_PARTIAL_t3_a_thktop                      ERR     ms=98 exc=BRep_API:_command_not_done
+    -
+ell_CTL_d1_n_off                             ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+    -
+ell_CTL_t1_n_thktop                          ERR     ms=0 exc=BRep_API:_command_not_done
+    -
+ell_PARTIAL_d2_n_off                         ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+    -
+ell_PARTIAL_t2_n_thktop                      ERR     ms=0 exc=BRep_API:_command_not_done
+    -
+ell_PARTIAL_d3_n_off                         ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+    -
+ell_PARTIAL_t3_n_thktop                      ERR     ms=0 exc=BRep_API:_command_not_done
+    -
+RV-DONE

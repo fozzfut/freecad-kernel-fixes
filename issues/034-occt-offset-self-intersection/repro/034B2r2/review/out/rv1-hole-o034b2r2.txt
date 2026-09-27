@@ -1,0 +1,12 @@
+# hole surfaces: ['Cylinder', 'Plane', 'Toroid']
+hole_r1_d1.5_a_off                           EXACT   valid=True bop=clean nsol=1 nf=7 vol=1091.90047 ms=13 ref=1091.90047 sd=0 rel=0 exc=-
+hole_r1_d1.5_n_off                           ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+hole_r1_d1.5_w_off                           EXACT   valid=True bop=clean nsol=1 nf=7 vol=1091.90047 ms=48 ref=1091.90047 sd=0 rel=0 exc=-
+hole_r1_t1.5_a_thkbot                        EXACT   valid=True bop=clean nsol=1 nf=15 vol=1654.86169 ms=19 ref=1654.86169 sd=0 rel=0 exc=-
+hole_r1_t1.5_w_thkbot                        EXACT   valid=True bop=clean nsol=1 nf=15 vol=1654.86169 ms=25 ref=1654.86169 sd=0 rel=0 exc=-
+hole_r1_d2.5_a_off                           EXACT   valid=True bop=clean nsol=1 nf=7 vol=242.26771 ms=19 ref=242.26771 sd=0 rel=0 exc=-
+hole_r1_d2.5_n_off                           ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+hole_r1_d2.5_w_off                           EXACT   valid=True bop=clean nsol=1 nf=7 vol=242.26771 ms=90 ref=242.26771 sd=0 rel=0 exc=-
+hole_r1_t2.5_a_thkbot                        EXACT   valid=True bop=clean nsol=1 nf=15 vol=2444.77540 ms=66 ref=2444.77540 sd=0 rel=0 exc=-
+hole_r1_t2.5_w_thkbot                        EXACT   valid=True bop=clean nsol=1 nf=15 vol=2444.77540 ms=19 ref=2444.77540 sd=0 rel=0 exc=-
+RV-DONE

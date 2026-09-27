@@ -1,0 +1,11 @@
+pd_prism6_r1_t1.5_in_Arc nedges=6 ERR state=Touched,Invalid 0.04s
+pd_prism6_r1_t3_in_Arc nedges=6 ERR state=Touched,Invalid 0.04s
+pd_prism6_r1_t0.5_in_Arc nedges=6 OKNOREF valid=True bop=clean vol=404.21744 0.08s
+pd_prism6_r1_t1.5_in_Intersection nedges=6 ERR state=Touched,Invalid 0.06s
+pd_prism6_r1_t1.5_out_Arc nedges=6 OKNOREF valid=True bop=clean vol=1462.19573 0.13s
+pd_prism3_r1_t1.5_in_Arc nedges=3 ERR state=Touched,Invalid 0.02s
+pd_prism3_r1_t3_in_Arc nedges=3 ERR state=Touched,Invalid 0.02s
+pd_prism3_r1_t0.5_in_Arc nedges=3 OKNOREF valid=True bop=clean vol=361.70455 0.04s
+pd_prism3_r1_t1.5_in_Intersection nedges=3 ERR state=Touched,Invalid 0.03s
+pd_prism3_r1_t1.5_out_Arc nedges=3 OKNOREF valid=True bop=clean vol=1331.86235 0.09s
+PD-DONE

@@ -1,0 +1,4 @@
+fixTolerance(1e-06): clean
+fixTolerance(1e-05): clean
+fixTolerance(3e-05): clean
+DONE

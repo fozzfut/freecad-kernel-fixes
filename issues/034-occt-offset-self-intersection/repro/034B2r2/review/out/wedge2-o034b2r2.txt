@@ -1,0 +1,9 @@
+# wedge2 alpha=10 h=45.720 H=4 faces=8 vol=689.63904
+wedge10_r1_t2.5_a_thktop_need17.1_reach7.0   EXACT   valid=True bop=clean nsol=1 nf=12 vol=661.91041 ms=14 ref=661.91041 sd=0 rel=0 exc=-
+wedge10_r1_t2.5_w_thktop_need17.1_reach7.0   EXACT   valid=True bop=clean nsol=1 nf=12 vol=661.91041 ms=17 ref=661.91041 sd=0 rel=0 exc=-
+wedge10_r1_t3_a_thktop_need22.9_reach7.5     EXACT   valid=True bop=clean nsol=1 nf=12 vol=683.61330 ms=16 ref=683.61330 sd=0 rel=0 exc=-
+wedge10_r1_t3_w_thktop_need22.9_reach7.5     EXACT   valid=True bop=clean nsol=1 nf=12 vol=683.61330 ms=19 ref=683.61330 sd=0 rel=0 exc=-
+# wedge2 alpha=14 h=32.577 H=5 faces=8 vol=615.23100
+wedge14_r1_t3_a_thktop_need16.3_reach8.4     EXACT   valid=True bop=clean nsol=1 nf=12 vol=609.18752 ms=15 ref=609.18752 sd=0 rel=0 exc=-
+wedge14_r1_t3_w_thktop_need16.3_reach8.4     EXACT   valid=True bop=clean nsol=1 nf=12 vol=609.18752 ms=19 ref=609.18752 sd=0 rel=0 exc=-
+RV-DONE

@@ -1,0 +1,24 @@
+== class d0 vs a2 (fresh, mine)
+compared 144 same 144 diff 0 missing 0
+== corp d0 vs a2 (fresh, mine)
+compared 53 same 49 diff 4 missing 0
+   bfil_off-2.5 | done=1 err=0 grade=OK vol=1125.0000 nf=6 | done=0 err=6 grade=ERR vol=0.0000 nf=0
+   bfil_thk-2.5 | done=1 err=0 grade=OK vol=2151.5324 nf=31 | done=0 err=1 grade=ERR vol=0.0000 nf=0
+   bfiln_off-2.5 | done=1 err=0 grade=OK vol=1125.0000 nf=6 | done=0 err=6 grade=ERR vol=0.0000 nf=0
+   bfiln_thk-2.5 | done=1 err=0 grade=OK vol=1125.0000 nf=6 | done=0 err=6 grade=ERR vol=0.0000 nf=0
+== rv116 d0 vs a2 (fresh, mine)
+compared 116 same 116 diff 0 missing 0
+== b33 d0 vs a2 (fresh, mine)
+compared 33 same 28 diff 5 missing 0
+   bfil_off-2.5 |  IN:nf=26 STOCK:done=1 err=0 grade=OK vol=1125.00000 nf=6 |  IN:nf=26 STOCK:done=0 err=6 grade=ERR vol=0.00000 nf=0
+   bfil_thk-2.5 |  IN:nf=26 STOCK:done=1 err=0 grade=OK vol=2151.53240 nf=31 |  IN:nf=26 STOCK:done=0 err=1 grade=ERR vol=0.00000 nf=0
+   bfiln_off-2.5 |  IN:nf=26 STOCK:done=1 err=0 grade=OK vol=1125.00000 nf=6 |  IN:nf=26 STOCK:done=0 err=6 grade=ERR vol=0.00000 nf=0
+   bfiln_thk-2.5 |  IN:nf=26 STOCK:done=1 err=0 grade=OK vol=2151.53240 nf=31 |  IN:nf=26 STOCK:done=0 err=6 grade=ERR vol=0.00000 nf=0
+   c031obl_thk+0.3 |  IN:nf=18 STOCK:done=0 err=1 grade=ERR vol=0.00000 nf=0 |  IN:nf=18 STOCK:done=0 err=6 grade=ERR vol=0.00000 nf=0
+== rvx d0 vs a2 (fresh, mine)
+compared 204 same 201 diff 3 missing 0
+   hexfil_r2_a_t-2_arc | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0 faces=0 | done=0 err=1 valid=-1 vol=0.0000 shells=0 solids=0 faces=0
+   hexfil_r2_rot_t-2_arc | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0 faces=0 | done=0 err=1 valid=-1 vol=0.0000 shells=0 solids=0 faces=0
+   hexfil_r2_nurbs_t-2_arc | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0 faces=0 | done=0 err=1 valid=-1 vol=0.0000 shells=0 solids=0 faces=0
+compared 144 same 143 diff 1 missing 0
+   fbox100_60_40_r5_e12_nurbs_t-2_int | done=0 err=1 valid=0 vol=0.0000 shells=- | done=0 err=1 valid=0 vol=0.9999 shells=-

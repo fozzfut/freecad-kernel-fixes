@@ -1,0 +1,5 @@
+# can nurbs faces: [('BSplineSurface', False, True, 'C0'), ('BSplineSurface', True, True, 'C0'), ('BSplineSurface', False, False, 'CN'), ('BSplineSurface', False, False, 'CN')]
+CTL_can_r1_d0.5_n_off_NOVANISH               ERR     ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+CTL_can_r1_d0.5_a_off_NOVANISH               OKNOREF valid=True bop=clean nsol=1 nf=4 vol=3115.65135 ms=3 exc=-
+CTL_cyl_d0.5_n_off                           ERR     ms=4 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+RV-DONE
