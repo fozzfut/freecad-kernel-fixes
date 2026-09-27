@@ -1,4 +1,4 @@
-From 17b81bebaf051dd011f4dffe2bdca09bd5d78f5f Mon Sep 17 00:00:00 2001
+From 01c0dbd5ee5dcf504f3a7745244469f4ee8e82ff Mon Sep 17 00:00:00 2001
 From: fozzfut <vanolia13@gmail.com>
 Date: Sun, 27 Sep 2026 19:07:17 +0700
 Subject: [PATCH] Gui: Python document observers do not see a view provider
@@ -16,7 +16,17 @@ lost their own Python API, and ViewProviderFemMesh could not be created
 slotChangedObject/slotBeforeChangeObject was registered.
 
 slotBeforeChangeObject/slotChangedObject now skip a document view provider that is
-not attached yet.
+not attached yet (getObject() == nullptr).
+
+Declared change: Python Gui observers no longer receive the property changes a
+view provider makes before ViewProviderDocumentObject::attach() sets its object:
+(1) the default values set by constructors, and (2) the part of a derived attach()
+that runs before it calls the base attach(). Of the 52 attach() overrides only
+ViewProviderSubShapeBinder::attach has such a part (ViewProviderShapeBinder.cpp:
+UseBinderStyle.setValue and its onChanged cascade ShapeAppearance, LineColor,
+LineColorArray, PointColor, PointColorArray, PointMaterial, Transparency,
+LineWidth). Stock handed those events to Python with Object == None. Every event
+after the object is set is unchanged; C++ subscribers are untouched.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ---

@@ -29,10 +29,18 @@ Mesh, Fem::ConstraintFixed) + FemMesh не создаётся; без наблю
 вызывают Python для вьюпровайдера документа, ещё не прикреплённого к объекту (getObject() == nullptr). Прикрепление
 (Gui::Document::slotNewObject: createInstance() -> attach()) - наблюдаемый конец конструирования. Изменения свойств
 по умолчанию внутри конструктора Python-наблюдатели больше не видят (заявленное изменение); все события после
-attach - как в стоке. C++-подписчики сигналов не тронуты. Почему не иначе: переделка каждого из 11 getPyObject
+attach - как в стоке. C++-подписчики сигналов не тронуты.
+ЗАЯВЛЕННОЕ ИЗМЕНЕНИЕ точно (ревью r1, m1): Python-наблюдатели не получают изменения свойств, сделанные ДО того, как
+ViewProviderDocumentObject::attach установил объект: (1) значения по умолчанию из конструкторов; (2) часть
+производного attach(), которая выполняется до вызова базового attach(). Из 52 переопределений attach() у
+вьюпровайдеров такая часть есть только у ViewProviderSubShapeBinder::attach (src/Mod/PartDesign/Gui/
+ViewProviderShapeBinder.cpp:249-256: UseBinderStyle.setValue и его каскад onChanged - ShapeAppearance, LineColor,
+LineColorArray, PointColor, PointColorArray, PointMaterial, Transparency, LineWidth; 12 событий UseBinderStyle в
+review-r1/runs/rv-dlv-obs). Сток отдавал их Python с Object == None; вреда нет, но это часть изменения. Почему не иначе: переделка каждого из 11 getPyObject
 лечит известные классы, не класс ошибок; пересоздание обёртки после attach ломает ссылки, уже отданные в Python, и
 требует нового члена ViewProvider (ABI всех модулей).
-Ветка fcD/src mig/vr6-asm 17b81be на mig/undo-vis 2af3f99; patches-263/0001 применяется и к 019f5c5 (файл не менялся).
+Ветка fcD/src mig/vr6-asm 01c0dbd на mig/undo-vis 2af3f99 (= 17b81be с уточнённым сообщением, дерево то же, DLL та же;
+17b81be сохранён как backup/vr6-asm-r1); patches-263/0001 применяется и к 019f5c5 (файл не менялся).
 
 СБОРКА: portable MSVC 14.44, строки bld144 (repro/mkgui.py, 5 исходников: 4 из 033/035 + DocumentObserverPython.cpp).
 D0 контроль (исходники 2af3f99 по пути той же длины): 32e01a59 против поставленного 1a135f33 - 37 байт: метки времени
