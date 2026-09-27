@@ -1,0 +1,17 @@
+PROBE-START pref_off=False AutoTransactionView=False AutoTransactionData=True UndoVisibility=True
+HD C:\dev\occt8-mig\undovis-pe\review\runs\pv-inst-owner\data\Mod\HybridDesign\hybriddesign\__init__.py
+CASE P1-hide PASS steps=1 names=['Edit property Visibility'] undo->[True] redo->[False] note=cell-click
+CASE P2-show PASS steps=1 names=['Edit property Visibility'] undo->[False] redo->[True] note=cell-click
+CASE P3-multi PASS steps=1 names=['Edit property Visibility...'] undo->[True, True, True] redo->[False, False, False] note=cell-click
+CASE P4-mixed PASS steps=1 names=['Edit property Visibility...'] undo->[True, False] redo->[False, False] note=cell-click
+CASE P5-link-part PASS steps=1 names=['Edit property Visibility...'] undo->[True, True] redo->[False, False] note=cell-click
+TREE True
+CASE P6-showintree PASS steps=1 names=['Edit property ShowInTree'] undo->[True] redo->[False] note=cell-click
+  P6 tree row hidden after act/undo/redo: [False, False, False]
+CASE P7-tree-toggle-intree PASS steps=1 names=['Toggle Visibility in Tree View'] undo->[(True, False), (True, False)] redo->[(False, True), (False, True)] note=trigger
+CASE P8-other-viewprop PASS Selectable True->False steps=0 names=[] atv=False
+CASE P9-in-transaction PASS hidden=False pending_after=True names=['Tool'] after_undo=(True, 0.0) note=cell-click
+CASE P10-in-task PASS pending before/after hide=True/True new_steps_in_task=0 hidden=False names=['Make Pad'] note=cell-click
+CASE P11-order PASS names=['Move', 'Edit property Visibility'] undo1=(False, 0.0) undo2=(True, 0.0)
+PROBE-END pass=11 fail=0 invalid=0 info=0
+PROBE-EXIT

@@ -1,0 +1,9 @@
+PROBE-START pref_off=False AutoTransactionView=False AutoTransactionData=False UndoVisibility=True
+HD not importable: No module named 'hybriddesign'
+CASE R2-two-edits PASS states=(False, True) names=['Edit property Visibility', 'Edit property Visibility'] undo1=False undo2=True
+CASE R7-data-bool-identity INFO AllowCompound True->False names=[] undo->False note=cell-click
+CASE R11-data-visibility PASS steps=1 names=['Edit Body.Visibility'] undo->[True] redo->[False] note=cell-click
+  R11 menu={'was': False}
+  R11 menu restore={'was': True}
+PROBE-END pass=2 fail=0 invalid=0 info=1
+PROBE-EXIT

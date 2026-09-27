@@ -100,3 +100,26 @@ NOT TESTED through the UI: Data-tab Visibility (needs "Show hidden" from the edi
 Observed, unchanged by this patch: after a Show In Tree edit in the property editor the offscreen probe saw the tree row
 still shown 0.7 s later (delivered DLL alike); the tree's own action hides it at once. Not investigated.
 NOT INSTALLED (lane order). mig/vr6-save (036) and mig/vr6-asm (on 2af3f99) merge cleanly with mig/undo-vis-pe.
+
+REVIEW 035-PE (27.09.2026 ~19:40, independent): ACCEPTED, INSTALLED (FreeCADGui.dll 1a135f33 -> 7af65a21).
+- Code read: diff 3eccec5 = PropertyItem.cpp (setPropertyValue + 3 helpers), Tree.cpp (onToggleVisibilityInTree), helper
+  comment. The step name is copied into std::string by Document::openTransaction (no dangling pointer); the editor's
+  closeTransaction() with transactionID 0 still commits nothing (stock).
+- Rebuild from my own git-archive mirror of 3eccec5: same size as 7af65a21, 17 differing bytes (PE timestamp, checksum,
+  1 path character x3, anonymous-namespace RTTI hash) -> the variant is the commit. D0: control b0f29fbb vs delivered
+  1a135f33 = 42 bytes (re-counted). ABI (abi2.py) fix vs delivered exports 12230 +0/-0, imports 8426 +0/-0; negative
+  control 1.1.1 FreeCADGui differs. 0 compiler warnings.
+- repro/pe-review/rvprobe.py (11 new cases): PartDesign exclusive visibility (showing a hidden feature hides the tip:
+  one step restores both), two edits = two steps, real Pad + View-tab hide + 2x Ctrl+Z, App::Part with children, Show
+  In Tree on 2 bodies, tree toggle inside an open transaction (joins), Data-tab bool identity, sketch edit mode
+  (PE behaves like Std_ToggleVisibility there), touched document, save/reopen, Data-tab Visibility via the editor's
+  context menu "Show Hidden" (driven with key events posted to the menu).
+  fix 9/9 + 2 INFO fresh; delivered 3/9 (NEGATIVE CONTROL: 6 members FAIL); pref off == delivered except R8 (035's own
+  Std_ToggleVisibility is under the same pref); owner cfg + HD 8/9 + R11 INVALID in the full run (probe sequence),
+  R11 alone PASS on fix and delivered, and 9/9 on the installed delivery; AutoTransactionData=false: Data-tab
+  Visibility one step on fix, none on delivered, non-visibility Data bool no step on both (stock).
+- Data-tab Visibility with AutoTransactionData=true (default) is already one step on stock (the editor's own
+  "Edit Body.Visibility"); the fix joins it.
+- After install (run copy of the installed delivery, owner cfg + HD): pvprobe 11/11, rvprobe 9/9 + 2 INFO, uvprobe 19/19.
+- Integration: any later FreeCADGui lane (vr6-save 036, vr6-asm, vr6-view, r028) must stack on mig/undo-vis-pe; the
+  install-all line now expects ours 7af65a21, earlier ours 1a135f33 d5b15879 680c370e.
