@@ -1,0 +1,4 @@
+1203d1202
+< ?getExtensionClassTypeId@LinkBaseExtension@App@@SA?AVType@Base@@XZ
+1420d1418
+< ?getTrueLinkedObject@LinkBaseExtension@App@@QEBAPEAVDocumentObject@2@_NPEAVMatrix4D@Base@@H0@Z

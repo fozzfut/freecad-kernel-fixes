@@ -1,0 +1,6 @@
+selection after CreateSheet: ['Spreadsheet']
+MODAL 'Bad base feature': Base feature (Spreadsheet) has an empty shape.
+bodies=1 BaseFeature=None
+after App saveAs Modified=True
+after App save Modified=True
+after Std_Save Modified=False
