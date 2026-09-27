@@ -1,0 +1,157 @@
+From 16ec8b82a66188b7af55d4a90cb6241b2909fdcd Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 18:52:08 +0700
+Subject: [PATCH] Gui: a fit issued during a view animation first finishes that
+ animation (issue 038)
+
+Std_ViewFitAll / Std_ViewFitSelection / Python fitAll pressed while a finite navigation
+animation (e.g. the animated Right view) still ran: the fit was applied, then the running
+FixedTimeAnimation kept rotating the camera about its old rotation centre, so the fitted
+view drifted off the selection. viewAll, viewBoundBox and viewObjects now bring such an
+animation to its end pose first (NavigationAnimator::finish = setCurrentTime(total),
+onStop(true) as at a normal end); spinning is left running. A fit-selection box without
+extent (one vertex) centres it at the current zoom instead of a zero-height camera.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/Navigation/NavigationAnimator.cpp | 19 +++++++++++++++++++
+ src/Gui/Navigation/NavigationAnimator.h   |  1 +
+ src/Gui/Navigation/NavigationStyle.cpp    | 12 ++++++++++++
+ src/Gui/Navigation/NavigationStyle.h      |  1 +
+ src/Gui/View3DInventorViewer.cpp          | 22 ++++++++++++++++++++++
+ 5 files changed, 55 insertions(+)
+
+diff --git a/src/Gui/Navigation/NavigationAnimator.cpp b/src/Gui/Navigation/NavigationAnimator.cpp
+index 23508f3..99c7e72 100644
+--- a/src/Gui/Navigation/NavigationAnimator.cpp
++++ b/src/Gui/Navigation/NavigationAnimator.cpp
+@@ -91,6 +91,25 @@ void NavigationAnimator::stop()
+     }
+ }
+ 
++/**
++ * @brief Brings a running finite animation to its end state at once, as if its time had run out
++ *
++ * The last update and onStop(true) run as at a normal end (exact target pose, finished and
++ * completed signals). An infinite animation (spinning) has no end state and keeps running.
++ */
++void NavigationAnimator::finish()
++{
++    if (!activeAnimation || activeAnimation->state() != QAbstractAnimation::State::Running) {
++        return;
++    }
++    if (activeAnimation->loopCount() < 0 || activeAnimation->totalDuration() < 0) {
++        return;
++    }
++    // Reaching the end emits finished(), whose handler resets activeAnimation: keep the object alive
++    const std::shared_ptr<NavigationAnimation> animation = activeAnimation;
++    animation->setCurrentTime(animation->totalDuration());
++}
++
+ /**
+  * @return Whether or not an animation is active
+  */
+diff --git a/src/Gui/Navigation/NavigationAnimator.h b/src/Gui/Navigation/NavigationAnimator.h
+index f208561..d74696b 100644
+--- a/src/Gui/Navigation/NavigationAnimator.h
++++ b/src/Gui/Navigation/NavigationAnimator.h
+@@ -41,6 +41,7 @@ public:
+     void start(const std::shared_ptr<NavigationAnimation>& animation);
+     bool startAndWait(const std::shared_ptr<NavigationAnimation>& animation);
+     void stop();
++    void finish();
+     bool isAnimating() const;
+ 
+ private:
+diff --git a/src/Gui/Navigation/NavigationStyle.cpp b/src/Gui/Navigation/NavigationStyle.cpp
+index e3af092..29a790b 100644
+--- a/src/Gui/Navigation/NavigationStyle.cpp
++++ b/src/Gui/Navigation/NavigationStyle.cpp
+@@ -1813,6 +1813,18 @@ void NavigationStyle::stopAnimating() const
+     animator->stop();
+ }
+ 
++/**
++ * @brief Brings a running camera animation (view orientation, translation) to its end pose at once
++ *
++ * For callers that place the camera absolutely from its current pose (fit all, fit selection):
++ * a FixedTimeAnimation left running rotates the camera about its own rotation centre after the new
++ * placement and moves the fitted view away. Spinning is left running.
++ */
++void NavigationStyle::finishAnimating() const
++{
++    animator->finish();
++}
++
+ void NavigationStyle::setSensitivity(float val)
+ {
+     this->sensitivity = val;
+diff --git a/src/Gui/Navigation/NavigationStyle.h b/src/Gui/Navigation/NavigationStyle.h
+index 896ae90..aeb3a25 100644
+--- a/src/Gui/Navigation/NavigationStyle.h
++++ b/src/Gui/Navigation/NavigationStyle.h
+@@ -208,6 +208,7 @@ public:
+ 
+     void startAnimating(const std::shared_ptr<NavigationAnimation>& animation, bool wait = false) const;
+     void stopAnimating() const;
++    void finishAnimating() const;
+ 
+     void setSensitivity(float);
+     float getSensitivity() const;
+diff --git a/src/Gui/View3DInventorViewer.cpp b/src/Gui/View3DInventorViewer.cpp
+index 3a4a59b..c8d272d 100644
+--- a/src/Gui/View3DInventorViewer.cpp
++++ b/src/Gui/View3DInventorViewer.cpp
+@@ -4766,6 +4766,10 @@ void View3DInventorViewer::viewHome()
+ 
+ void View3DInventorViewer::viewAll()
+ {
++    // A view animation still running (e.g. Right view pressed just before) would keep turning the
++    // camera about its old rotation centre after this fit: bring it to its end pose first.
++    navigation->finishAnimating();
++
+     SbBox3f box;
+     if (!getSceneBoundBox(box)) {
+         return;
+@@ -4855,6 +4859,10 @@ void View3DInventorViewer::viewObjects(const std::vector<App::SubObjectT>& objs,
+         return;
+     }
+ 
++    // A view animation still running (e.g. Right view pressed just before) would keep turning the
++    // camera about its old rotation centre after this fit: bring it to its end pose first.
++    navigation->finishAnimating();
++
+     SoCamera* cam = this->getSoRenderManager()->getCamera();
+     if (!cam) {
+         return;
+@@ -4940,6 +4948,16 @@ void View3DInventorViewer::viewObjects(const std::vector<App::SubObjectT>& objs,
+             }
+             box.setBounds(minx, miny, minz, maxx, maxy, maxz);
+         }
++        else {
++            // A selection without extent (one vertex, points that coincide) gives no size to fit:
++            // centre it at the current zoom instead of setting a camera of zero height.
++            SbSphere sphere;
++            sphere.circumscribe(box);
++            if (sphere.getRadius() == 0.0F) {
++                navigation->translateCamera(box.getCenter() - getFocalPoint());
++                return;
++            }
++        }
+         viewBoundBox(box);
+     }
+ }
+@@ -5150,6 +5168,10 @@ void View3DInventorViewer::alignToSelection()
+ 
+ void View3DInventorViewer::viewBoundBox(const SbBox3f& box)
+ {
++    // A view animation still running (e.g. Right view pressed just before) would keep turning the
++    // camera about its old rotation centre after this fit: bring it to its end pose first.
++    navigation->finishAnimating();
++
+     if (isAnimationEnabled()) {
+         animatedViewAll(box, 10, 20);
+     }
+-- 
+2.52.0.windows.1
+

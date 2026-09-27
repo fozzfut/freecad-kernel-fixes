@@ -1,0 +1,116 @@
+From c67db3fcc386fa31b0da7a7980d29e0d8bd65207 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 18:52:09 +0700
+Subject: [PATCH] PartGui: face set bounding box counts only the faces of a
+ secondary selection (issue 039)
+
+Fit selection of a face (and of an edge/vertex, whose empty face context was ignored)
+fitted the whole object: upstream ebf13e20e (remove legacy OpenGL) replaced
+SoBrepFaceSet::getBoundingBox by the inherited box. Restored for the secondary context
+that ViewProvider::getBoundingBox sets, as SoBrepEdgeSet/SoBrepPointSet still do; the
+face walk is delimiter-based like buildOverlayCoordIndex and reads SoVertexProperty or
+the coordinate element. Without a secondary context the box is the stock one.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/Part/Gui/SoBrepFaceSet.cpp | 82 +++++++++++++++++++++++++++++-
+ 1 file changed, 81 insertions(+), 1 deletion(-)
+
+diff --git a/src/Mod/Part/Gui/SoBrepFaceSet.cpp b/src/Mod/Part/Gui/SoBrepFaceSet.cpp
+index 82b7c48..6033a57 100644
+--- a/src/Mod/Part/Gui/SoBrepFaceSet.cpp
++++ b/src/Mod/Part/Gui/SoBrepFaceSet.cpp
+@@ -957,9 +957,89 @@ void SoBrepFaceSet::generatePrimitives(SoAction* action)
+     inherited::generatePrimitives(action);
+ }
+ 
++// Extends `box` by the vertices of the topological faces in `parts`. partIndex holds the triangle
++// count of each face; each triangle's indices in coordIndex end with -1 (walked like
++// buildOverlayCoordIndex, so stray delimiters are tolerated). Indices outside the points are skipped.
++static void extendByParts(
++    SbBox3f& box,
++    const SbVec3f* points,
++    const SoCoordinateElement* coords,
++    int pointCount,
++    const int32_t* coordIndex,
++    int coordIndexCount,
++    const int32_t* partTriCounts,
++    int partCount,
++    const std::set<int>& parts
++)
++{
++    if (!coordIndex || coordIndexCount <= 0 || !partTriCounts || partCount <= 0 || parts.empty()) {
++        return;
++    }
++    const int lastPart = *parts.rbegin();
++    int pos = 0;
++    for (int part = 0; part < partCount && part <= lastPart && pos < coordIndexCount; ++part) {
++        const bool include = (parts.find(part) != parts.end());
++        const int tris = partTriCounts[part];
++        for (int t = 0; t < tris && pos < coordIndexCount; ++t) {
++            while (pos < coordIndexCount && coordIndex[pos] < 0) {
++                pos++;
++            }
++            while (pos < coordIndexCount && coordIndex[pos] >= 0) {
++                const int idx = coordIndex[pos++];
++                if (include && idx < pointCount) {
++                    box.extendBy(points ? points[idx] : coords->get3(idx));
++                }
++            }
++            if (pos < coordIndexCount && coordIndex[pos] < 0) {
++                pos++;
++            }
++        }
++    }
++}
++
+ void SoBrepFaceSet::getBoundingBox(SoGetBoundingBoxAction* action)
+ {
+-    inherited::getBoundingBox(action);
++    // A secondary selection context names the faces that count, e.g. the picked face that
++    // ViewProvider::getBoundingBox marks for Std_ViewFitSelection, or the shown faces of a partly
++    // rendered link. Without one, or with all faces, the box is the whole face set (as before).
++    // SoBrepEdgeSet and SoBrepPointSet do the same for their elements.
++    SelContextPtr ctx2 = Gui::SoFCSelectionRoot::getSecondaryActionContext<SelContext>(action, this);
++    if (!ctx2 || ctx2->isSelectAll()) {
++        inherited::getBoundingBox(action);
++        return;
++    }
++    if (ctx2->selectionIndex.empty()) {
++        return;
++    }
++
++    const SbVec3f* points = nullptr;
++    const SoCoordinateElement* coords = nullptr;
++    int pointCount = 0;
++    auto* vertexProp = static_cast<SoVertexProperty*>(this->vertexProperty.getValue());
++    if (vertexProp && vertexProp->vertex.getNum() > 0) {
++        points = vertexProp->vertex.getValues(0);
++        pointCount = vertexProp->vertex.getNum();
++    }
++    else {
++        coords = SoCoordinateElement::getInstance(action->getState());
++        pointCount = coords->getNum();
++    }
++
++    SbBox3f bbox;
++    extendByParts(
++        bbox,
++        points,
++        coords,
++        pointCount,
++        this->coordIndex.getValues(0),
++        this->coordIndex.getNum(),
++        this->partIndex.getValues(0),
++        this->partIndex.getNum(),
++        ctx2->selectionIndex
++    );
++    if (!bbox.isEmpty()) {
++        action->extendBy(bbox);
++    }
+ }
+ 
+ SoDetail* SoBrepFaceSet::createTriangleDetail(
+-- 
+2.52.0.windows.1
+
