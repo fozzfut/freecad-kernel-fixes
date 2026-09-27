@@ -1,0 +1,35 @@
+== FreeCADGui delivered 1a135f33 -> fix
+ exports(named) 12230 12232 +2 -0
+   +exp ?finish@NavigationAnimator@Gui@@QEAAXXZ
+   +exp ?finishAnimating@NavigationStyle@Gui@@QEBAXXZ
+ imports 8426 8429 +3 -0
+   +imp ('qt6core.dll', '?loopCount@QAbstractAnimation@@QEBAHXZ')
+   +imp ('qt6core.dll', '?setCurrentTime@QAbstractAnimation@@QEAAXH@Z')
+   +imp ('qt6core.dll', '?totalDuration@QAbstractAnimation@@QEBAHXZ')
+== FreeCADGui weekly -> fix
+ exports(named) 12230 12232 +2 -0
+   +exp ?finish@NavigationAnimator@Gui@@QEAAXXZ
+   +exp ?finishAnimating@NavigationStyle@Gui@@QEBAXXZ
+ imports 8423 8429 +6 -0
+   +imp ('freecadapp.dll', '?getGlobalTransaction@Application@App@@QEBAHXZ')
+   +imp ('freecadapp.dll', '?isTransactionLocked@Document@App@@QEBA_NXZ')
+   +imp ('freecadapp.dll', '?transacting@Document@App@@QEBA_NXZ')
+   +imp ('qt6core.dll', '?loopCount@QAbstractAnimation@@QEBAHXZ')
+   +imp ('qt6core.dll', '?setCurrentTime@QAbstractAnimation@@QEAAXH@Z')
+   +imp ('qt6core.dll', '?totalDuration@QAbstractAnimation@@QEBAHXZ')
+== PartGui delivered e5b8412a -> fix
+ exports(named) 1490 1490 +0 -0
+ imports 3889 3889 +0 -0
+== NEG CONTROL PartGui weekly -> FreeCADGui fix (unrelated files must differ)
+ exports(named) 1490 12232 +12232 -1490
+   +exp ??0?$Observer@AEBVSelectionChanges@Gui@@@Base@@IEAA@$$QEAV01@@Z
+   +exp ??0?$Observer@AEBVSelectionChanges@Gui@@@Base@@IEAA@AEBV01@@Z
+   +exp ??0?$Observer@AEBVSelectionChanges@Gui@@@Base@@QEAA@XZ
+   +exp ??0?$PythonExtension@VMDIViewPy@Gui@@@Py@@IEAA@XZ
+   +exp ??0?$PythonExtension@VMainWindowPy@Gui@@@Py@@IEAA@XZ
+   +exp ??0?$Subject@AEBVSelectionChanges@Gui@@@Base@@IEAA@$$QEAV01@@Z
+ imports 3889 8429 +6165 -1625
+Qt6Core export ?loopCount@QAbstractAnimation@@QEBAHXZ True
+Qt6Core export ?setCurrentTime@QAbstractAnimation@@QEAAXH@Z True
+Qt6Core export ?totalDuration@QAbstractAnimation@@QEBAHXZ True
+Qt6Core export ?noSuchSymbol@QAbstractAnimation@@QEBAHXZ False

@@ -1,0 +1,347 @@
+From 10f9f7bfab3509702d220bf7bd9291912c1ed231 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 22:04:41 +0700
+Subject: [PATCH] Gui: every absolute camera placement and every seek stops the
+ running camera motion (issue 038)
+
+Round 3 of the class "absolute camera placement while a camera motion runs".
+
+- View3DInventorViewer overrides resetToHomePosition (Std_ViewRestoreCamera,
+  "RecallWorkingView" = End key): the Quarter restore copies the saved camera
+  absolutely and left a FixedTimeAnimation running, which then turned the
+  restored pose about its old rotation centre. It now stops the running motion
+  first when there is a saved camera.
+- A Coin seek (timed absolute flight to a point) is a camera motion too:
+  SoQTQuarterAdaptor::endSeek(finish) ends it (stop where it is, or at its end
+  pose). A navigation animation started while a seek runs ends the seek first
+  (NavigationStyle::startAnimating, like NavigationAnimator::start stops a
+  running animation), so the seek's end no longer stops the new turn;
+  View3DInventorViewer::seekToPoint stops a running view animation before the
+  seek starts; setCameraOrientation/translateCamera end a seek next to their
+  stock animator stop; the fits finish a running seek like a running animation;
+  View3DInventorViewer::stopAnimating (Python view.stopAnimating) stops both.
+- Uniform order check, stop, place in setViewDirection and
+  viewDefaultOrientation (orientation lock checked before anything stops).
+- setSeekMode keeps its stock effect (navigation animation only).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/Navigation/NavigationStyle.cpp |  9 +++
+ src/Gui/Quarter/SoQTQuarterAdaptor.cpp | 29 +++++++++
+ src/Gui/Quarter/SoQTQuarterAdaptor.h   |  1 +
+ src/Gui/View3DInventorViewer.cpp       | 86 +++++++++++++++++++++-----
+ src/Gui/View3DInventorViewer.h         |  4 ++
+ src/Gui/View3DPy.cpp                   | 19 +++---
+ 6 files changed, 125 insertions(+), 23 deletions(-)
+
+diff --git a/src/Gui/Navigation/NavigationStyle.cpp b/src/Gui/Navigation/NavigationStyle.cpp
+index 29a790b..bcdba80 100644
+--- a/src/Gui/Navigation/NavigationStyle.cpp
++++ b/src/Gui/Navigation/NavigationStyle.cpp
+@@ -646,6 +646,7 @@ std::shared_ptr<NavigationAnimation> NavigationStyle::setCameraOrientation(
+     }
+ 
+     animator->stop();
++    viewer->endSeek(false);
+ 
+     const SbVec3f focalPoint = viewer->getFocalPoint();
+     SbVec3f translation(0, 0, 0);
+@@ -691,6 +692,7 @@ std::shared_ptr<NavigationAnimation> NavigationStyle::translateCamera(const SbVe
+     }
+ 
+     animator->stop();
++    viewer->endSeek(false);
+ 
+     // Start an animation and return it
+     if (isAnimationEnabled()) {
+@@ -1800,6 +1802,13 @@ void NavigationStyle::setOrientationLocked(const SbBool enable)
+ 
+ void NavigationStyle::startAnimating(const std::shared_ptr<NavigationAnimation>& animation, bool wait) const
+ {
++    // A seek still under way writes the camera pose absolutely on every step: it would undo this
++    // animation and, at its end (setSeekMode(false)), stop it. The new motion replaces it, as it
++    // replaces a running animation (NavigationAnimator::start stops that where it is).
++    if (viewer) {
++        viewer->endSeek(false);
++    }
++
+     if (wait) {
+         animator->startAndWait(animation);
+     }
+diff --git a/src/Gui/Quarter/SoQTQuarterAdaptor.cpp b/src/Gui/Quarter/SoQTQuarterAdaptor.cpp
+index eed8b7d..278f777 100644
+--- a/src/Gui/Quarter/SoQTQuarterAdaptor.cpp
++++ b/src/Gui/Quarter/SoQTQuarterAdaptor.cpp
+@@ -471,6 +471,35 @@ void SIM::Coin3D::Quarter::SoQTQuarterAdaptor::seekToPoint(const SbVec3f& scenep
+     interactiveCountInc();
+ }
+ 
++/*!
++  Ends a seek that is still under way (the timed flight of seekToPoint). The seek writes the
++  camera pose absolutely on every step, so another camera motion started or placed while it runs
++  would be overwritten by it. With \a finish the camera takes the seek's end pose first, as at its
++  last step; otherwise it stays where the seek has brought it. A seek started from seek mode ends
++  as at its own end (setSeekMode(false)); a seek started directly by seekToPoint leaves the modes
++  as they are. Nothing happens when no seek runs.
++*/
++void SIM::Coin3D::Quarter::SoQTQuarterAdaptor::endSeek(bool finish)
++{
++    if (!m_seeksensor->isScheduled()) {
++        return;
++    }
++
++    SoCamera* cam = getSoRenderManager()->getCamera();
++    if (finish && cam) {
++        cam->position = m_cameraendposition;
++        cam->orientation = m_cameraendorient;
++    }
++
++    if (m_inseekmode) {
++        this->setSeekMode(false);
++    }
++    else {
++        m_seeksensor->unschedule();
++        interactiveCountDec();
++    }
++}
++
+ void SIM::Coin3D::Quarter::SoQTQuarterAdaptor::setSeekDistance(const float distance)
+ {
+     m_seekdistance = distance;
+diff --git a/src/Gui/Quarter/SoQTQuarterAdaptor.h b/src/Gui/Quarter/SoQTQuarterAdaptor.h
+index a003d3a..8546f47 100644
+--- a/src/Gui/Quarter/SoQTQuarterAdaptor.h
++++ b/src/Gui/Quarter/SoQTQuarterAdaptor.h
+@@ -114,6 +114,7 @@ public:
+     bool isSeekMode() const;
+     bool seekToPoint(const SbVec2s& screenpos);
+     void seekToPoint(const SbVec3f& scenepos);
++    void endSeek(bool finish);
+     void setSeekTime(float seconds);
+     float getSeekTime() const;
+     void setSeekDistance(float distance);
+diff --git a/src/Gui/View3DInventorViewer.cpp b/src/Gui/View3DInventorViewer.cpp
+index 4aa7b59..4fca2bb 100644
+--- a/src/Gui/View3DInventorViewer.cpp
++++ b/src/Gui/View3DInventorViewer.cpp
+@@ -3513,7 +3513,7 @@ void View3DInventorViewer::setSeekMode(bool on)
+     // SoQtFlyViewer and SoQtPlaneViewer, so migrate any changes.
+ 
+     if (this->isAnimating()) {
+-        this->stopAnimating();
++        navigation->stopAnimating();
+     }
+ 
+     inherited::setSeekMode(on);
+@@ -3654,17 +3654,25 @@ SbVec3f View3DInventorViewer::getViewDirection() const
+ 
+ void View3DInventorViewer::setViewDirection(SbVec3f dir)
+ {
+-    if (!navigation) {
++    SoCamera* cam = getCamera();
++    const SbRotation orientation(SbVec3f(0, 0, -1), dir);
++    if (!navigation || !cam
++        || !navigation->canChangeCameraOrientation(
++            cam->orientation.getValue(),
++            orientation,
++            NavigationStyle::OrientationChangeSource::Programmatic
++        )) {
+         return;
+     }
+     // An absolute placement replaces a view animation that still runs (as setCameraOrientation and
+     // translateCamera stop it before their own): FixedTimeAnimation turns and moves the camera
+     // relatively to its previous step, so left running it would turn this new pose about its own
+-    // old rotation centre (e.g. a saved view restored during the animated turn to a sketch).
+-    navigation->stopAnimating();
++    // old rotation centre (e.g. a saved view restored during the animated turn to a sketch), and a
++    // running seek would overwrite it (see stopAnimating).
++    stopAnimating();
+     navigation->setCameraOrientationValue(
+-        getCamera(),
+-        SbRotation(SbVec3f(0, 0, -1), dir),
++        cam,
++        orientation,
+         NavigationStyle::OrientationChangeSource::Programmatic
+     );
+ }
+@@ -4188,6 +4196,25 @@ void View3DInventorViewer::pubSeekToPoint(const SbVec3f& pos)
+     this->seekToPoint(pos);
+ }
+ 
++/**
++ * @brief Starts a seek (Quarter's timed flight to the picked point)
++ *
++ * The seek writes the camera pose absolutely on every step: a view animation still running would
++ * go on turning the pose about its own rotation centre at the same time, so it is stopped first
++ * (as setSeekMode(true) stops it before the seek mode's point is picked).
++ */
++bool View3DInventorViewer::seekToPoint(const SbVec2s& screenpos)
++{
++    navigation->stopAnimating();
++    return inherited::seekToPoint(screenpos);
++}
++
++void View3DInventorViewer::seekToPoint(const SbVec3f& scenepos)
++{
++    navigation->stopAnimating();
++    inherited::seekToPoint(scenepos);
++}
++
+ std::shared_ptr<NavigationAnimation> View3DInventorViewer::setCameraOrientation(
+     const SbRotation& orientation,
+     const bool moveToCenter
+@@ -4268,10 +4295,9 @@ bool View3DInventorViewer::applyCameraState(const SoCamera& sourceCamera)
+     // An absolute placement replaces a view animation that still runs (as setCameraOrientation and
+     // translateCamera stop it before their own): FixedTimeAnimation turns and moves the camera
+     // relatively to its previous step, so left running it would turn this new pose about its own
+-    // old rotation centre (e.g. a saved view restored during the animated turn to a sketch).
+-    if (navigation) {
+-        navigation->stopAnimating();
+-    }
++    // old rotation centre (e.g. a saved view restored during the animated turn to a sketch), and a
++    // running seek would overwrite it (see stopAnimating).
++    stopAnimating();
+ 
+     if (sourceCamera.getTypeId() != targetCamera->getTypeId()) {
+         setCameraType(sourceCamera.getTypeId());
+@@ -4334,8 +4360,9 @@ void View3DInventorViewer::moveCameraTo(const SbRotation& orientation, const SbV
+     // An absolute placement replaces a view animation that still runs (as setCameraOrientation and
+     // translateCamera stop it before their own): FixedTimeAnimation turns and moves the camera
+     // relatively to its previous step, so left running it would turn this new pose about its own
+-    // old rotation centre (e.g. a saved view restored during the animated turn to a sketch).
+-    navigation->stopAnimating();
++    // old rotation centre (e.g. a saved view restored during the animated turn to a sketch), and a
++    // running seek would overwrite it (see stopAnimating).
++    stopAnimating();
+ 
+     if (isAnimationEnabled()) {
+         startAnimation(
+@@ -4786,8 +4813,10 @@ void View3DInventorViewer::viewHome()
+ void View3DInventorViewer::viewAll()
+ {
+     // A view animation still running (e.g. Right view pressed just before) would keep turning the
+-    // camera about its old rotation centre after this fit: bring it to its end pose first.
++    // camera about its old rotation centre after this fit, a running seek would overwrite it: bring
++    // both to their end pose first.
+     navigation->finishAnimating();
++    endSeek(true);
+ 
+     SbBox3f box;
+     if (!getSceneBoundBox(box)) {
+@@ -4879,8 +4908,10 @@ void View3DInventorViewer::viewObjects(const std::vector<App::SubObjectT>& objs,
+     }
+ 
+     // A view animation still running (e.g. Right view pressed just before) would keep turning the
+-    // camera about its old rotation centre after this fit: bring it to its end pose first.
++    // camera about its old rotation centre after this fit, a running seek would overwrite it: bring
++    // both to their end pose first.
+     navigation->finishAnimating();
++    endSeek(true);
+ 
+     SoCamera* cam = this->getSoRenderManager()->getCamera();
+     if (!cam) {
+@@ -5188,8 +5219,10 @@ void View3DInventorViewer::alignToSelection()
+ void View3DInventorViewer::viewBoundBox(const SbBox3f& box)
+ {
+     // A view animation still running (e.g. Right view pressed just before) would keep turning the
+-    // camera about its old rotation centre after this fit: bring it to its end pose first.
++    // camera about its old rotation centre after this fit, a running seek would overwrite it: bring
++    // both to their end pose first.
+     navigation->finishAnimating();
++    endSeek(true);
+ 
+     if (isAnimationEnabled()) {
+         animatedViewAll(box, 10, 20);
+@@ -5329,9 +5362,30 @@ void View3DInventorViewer::startSpinningAnimation(const SbVec3f& axis, float vel
+     navigation->startAnimating(animation);
+ }
+ 
++/**
++ * @brief Stops every camera motion of the viewer where it is: the navigation animation (view
++ * turns, translations, spinning) and a seek still under way
++ */
+ void View3DInventorViewer::stopAnimating()
+ {
+-    navigation->stopAnimating();
++    if (navigation) {
++        navigation->stopAnimating();
++    }
++    endSeek(false);
++}
++
++/**
++ * @brief Restores the saved camera (Std_ViewRestoreCamera, "RecallWorkingView")
++ *
++ * An absolute placement: a view animation or a seek still running would go on moving the restored
++ * camera (see applyCameraState), so they are stopped first when there is a saved camera to restore.
++ */
++void View3DInventorViewer::resetToHomePosition()
++{
++    if (getCamera() && hasHomePosition()) {
++        stopAnimating();
++    }
++    inherited::resetToHomePosition();
+ }
+ 
+ void View3DInventorViewer::setPopupMenuEnabled(bool on)
+diff --git a/src/Gui/View3DInventorViewer.h b/src/Gui/View3DInventorViewer.h
+index c4a8f4f..e7a6dfc 100644
+--- a/src/Gui/View3DInventorViewer.h
++++ b/src/Gui/View3DInventorViewer.h
+@@ -229,6 +229,7 @@ public:
+     ) const;
+     void startSpinningAnimation(const SbVec3f& axis, float velocity);
+     void stopAnimating();
++    void resetToHomePosition() override;
+ 
+     void setPopupMenuEnabled(bool on);
+     bool isPopupMenuEnabled() const;
+@@ -400,6 +401,9 @@ public:
+     const SoPickedPoint* getPickedPoint(SoEventCallback* n) const;
+     bool pubSeekToPoint(const SbVec2s& pos);
+     void pubSeekToPoint(const SbVec3f& pos);
++    // Hide Quarter's seekToPoint: a seek starting while a view animation runs stops it first
++    bool seekToPoint(const SbVec2s& screenpos);
++    void seekToPoint(const SbVec3f& scenepos);
+     //@}
+ 
+     /**
+diff --git a/src/Gui/View3DPy.cpp b/src/Gui/View3DPy.cpp
+index 877d9f8..2f9468f 100644
+--- a/src/Gui/View3DPy.cpp
++++ b/src/Gui/View3DPy.cpp
+@@ -713,19 +713,24 @@ Py::Object View3DInventorPy::viewDefaultOrientation(const Py::Tuple& args)
+ 
+         auto* viewer = getView3DInventorPtr()->getViewer();
+         auto* navigation = viewer->navigationStyle();
+-        if (!navigation
+-            || !navigation->setCameraOrientationValue(
+-                viewer->getCamera(),
++        SoCamera* cam = viewer->getCamera();
++        if (!navigation || !cam
++            || !navigation->canChangeCameraOrientation(
++                cam->orientation.getValue(),
+                 rot,
+                 NavigationStyle::OrientationChangeSource::Programmatic
+             )) {
+             return Py::None();
+         }
+ 
+-        // An absolute placement (orientation above, height and position below): a view animation
+-        // still running would go on turning this pose about its old rotation centre, see
+-        // View3DInventorViewer::applyCameraState
+-        navigation->stopAnimating();
++        // An absolute placement (orientation, height and position below): a view animation or a
++        // seek still running would go on moving this pose, see View3DInventorViewer::applyCameraState
++        viewer->stopAnimating();
++        navigation->setCameraOrientationValue(
++            cam,
++            rot,
++            NavigationStyle::OrientationChangeSource::Programmatic
++        );
+ 
+         if (scale < 0.0) {
+             ParameterGrp::handle hGrp = App::GetApplication().GetParameterGroupByPath(
+-- 
+2.52.0.windows.1
+

@@ -1,0 +1,89 @@
+From af4d3f4800bed9c6533d7d362aa5afef761150fb Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 20:14:48 +0700
+Subject: [PATCH 2/2] Gui: an absolute camera placement stops a running view
+ animation (issue 038)
+
+FixedTimeAnimation turns and moves the camera relatively to its previous
+step. A camera placed absolutely while it still ran (View3DInventorViewer::
+applyCameraState = Python setCamera, Std_FreezeViews, the TempoVis camera
+restore after a sketch, BIM section views; setViewDirection; Python
+viewDefaultOrientation) was then turned further about the animation's old
+rotation centre: e.g. opening a sketch and closing it at once left the view
+about 55 degrees turned and 50 mm off the restored camera.
+
+These placements now stop the running animation first, as
+NavigationStyle::setCameraOrientation and translateCamera already do before
+their own placement; moveCameraTo (Python viewPosition) states it too.
+Relative changes (zoom, pan, rotate left/right, orbit) still combine with a
+running animation as before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/View3DInventorViewer.cpp | 19 +++++++++++++++++++
+ src/Gui/View3DPy.cpp             |  5 +++++
+ 2 files changed, 24 insertions(+)
+
+diff --git a/src/Gui/View3DInventorViewer.cpp b/src/Gui/View3DInventorViewer.cpp
+index c8d272d..4aa7b59 100644
+--- a/src/Gui/View3DInventorViewer.cpp
++++ b/src/Gui/View3DInventorViewer.cpp
+@@ -3657,6 +3657,11 @@ void View3DInventorViewer::setViewDirection(SbVec3f dir)
+     if (!navigation) {
+         return;
+     }
++    // An absolute placement replaces a view animation that still runs (as setCameraOrientation and
++    // translateCamera stop it before their own): FixedTimeAnimation turns and moves the camera
++    // relatively to its previous step, so left running it would turn this new pose about its own
++    // old rotation centre (e.g. a saved view restored during the animated turn to a sketch).
++    navigation->stopAnimating();
+     navigation->setCameraOrientationValue(
+         getCamera(),
+         SbRotation(SbVec3f(0, 0, -1), dir),
+@@ -4260,6 +4265,14 @@ bool View3DInventorViewer::applyCameraState(const SoCamera& sourceCamera)
+         return false;
+     }
+ 
++    // An absolute placement replaces a view animation that still runs (as setCameraOrientation and
++    // translateCamera stop it before their own): FixedTimeAnimation turns and moves the camera
++    // relatively to its previous step, so left running it would turn this new pose about its own
++    // old rotation centre (e.g. a saved view restored during the animated turn to a sketch).
++    if (navigation) {
++        navigation->stopAnimating();
++    }
++
+     if (sourceCamera.getTypeId() != targetCamera->getTypeId()) {
+         setCameraType(sourceCamera.getTypeId());
+         targetCamera = getCamera();
+@@ -4318,6 +4331,12 @@ void View3DInventorViewer::moveCameraTo(const SbRotation& orientation, const SbV
+         return;
+     }
+ 
++    // An absolute placement replaces a view animation that still runs (as setCameraOrientation and
++    // translateCamera stop it before their own): FixedTimeAnimation turns and moves the camera
++    // relatively to its previous step, so left running it would turn this new pose about its own
++    // old rotation centre (e.g. a saved view restored during the animated turn to a sketch).
++    navigation->stopAnimating();
++
+     if (isAnimationEnabled()) {
+         startAnimation(
+             orientation,
+diff --git a/src/Gui/View3DPy.cpp b/src/Gui/View3DPy.cpp
+index 03bed77..877d9f8 100644
+--- a/src/Gui/View3DPy.cpp
++++ b/src/Gui/View3DPy.cpp
+@@ -722,6 +722,11 @@ Py::Object View3DInventorPy::viewDefaultOrientation(const Py::Tuple& args)
+             return Py::None();
+         }
+ 
++        // An absolute placement (orientation above, height and position below): a view animation
++        // still running would go on turning this pose about its old rotation centre, see
++        // View3DInventorViewer::applyCameraState
++        navigation->stopAnimating();
++
+         if (scale < 0.0) {
+             ParameterGrp::handle hGrp = App::GetApplication().GetParameterGroupByPath(
+                 "User parameter:BaseApp/Preferences/View"
+-- 
+2.52.0.windows.1
+

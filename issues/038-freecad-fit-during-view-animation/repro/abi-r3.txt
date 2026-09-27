@@ -1,0 +1,31 @@
+D0 gui3-ctl vs gui2-ctl (same 3eccec5 sources, same-length overlay path): (18627584, 18627584, 34, ['0x128', '0x129', '0x178', '0x179', '0xdde878', '0xe24338', '0xe467f8', '0xe54678', '0xeacf04', '0xeacf05', '0x1158f15', '0x1158f16'])
+D0 gui3-ctl vs delivered 7af65a21: (18627584, 18627584, 2868463)
+== delivered -> fix3: exports 8192 -> 8192 +3 -3 | imports 8426 -> 8429 +3 -0
+  +E ?endSeek@SoQTQuarterAdaptor@Quarter@Coin3D@SIM@@QEAAX_N@Z
+  +E ?finish@NavigationAnimator@Gui@@QEAAXXZ
+  +E ?finishAnimating@NavigationStyle@Gui@@QEBAXXZ
+  -E ?parentFieldData@SoLinearGeometryKit@Gui@@0PEAPEBVSoFieldData@@EA
+  -E ?parentFieldData@SoNaviCube@Gui@@0PEAPEBVSoFieldData@@EA
+  -E ?parentFieldData@SoRegPoint@Gui@@0PEAPEBVSoFieldData@@EA
+  +I ('qt6core.dll', b'?loopCount@QAbstractAnimation@@QEBAHXZ')
+  +I ('qt6core.dll', b'?setCurrentTime@QAbstractAnimation@@QEAAXH@Z')
+  +I ('qt6core.dll', b'?totalDuration@QAbstractAnimation@@QEBAHXZ')
+== r2 fix2 -> fix3: exports 8192 -> 8192 +1 -1 | imports 8429 -> 8429 +0 -0
+  +E ?endSeek@SoQTQuarterAdaptor@Quarter@Coin3D@SIM@@QEAAX_N@Z
+  -E ?parentFieldData@SoLinearGeometryKit@Gui@@0PEAPEBVSoFieldData@@EA
+== gui3-ctl -> delivered: exports 8192 -> 8192 +0 -0 | imports 8426 -> 8426 +0 -0
+== NEG 1.1.1 -> fix3: exports 8192 -> 8192 +702 -702 | imports 8200 -> 8429 +631 -402
+== delivered 7af65a21 -> fix3: export names 12230 -> 12236 +6 -0
+  + ?endSeek@SoQTQuarterAdaptor@Quarter@Coin3D@SIM@@QEAAX_N@Z
+  + ?finish@NavigationAnimator@Gui@@QEAAXXZ
+  + ?finishAnimating@NavigationStyle@Gui@@QEBAXXZ
+  + ?resetToHomePosition@View3DInventorViewer@Gui@@UEAAXXZ
+  + ?seekToPoint@View3DInventorViewer@Gui@@QEAAXAEBVSbVec3f@@@Z
+  + ?seekToPoint@View3DInventorViewer@Gui@@QEAA_NAEBVSbVec2s@@@Z
+== r2 fix2 39a66e0c -> fix3: export names 12232 -> 12236 +4 -0
+  + ?endSeek@SoQTQuarterAdaptor@Quarter@Coin3D@SIM@@QEAAX_N@Z
+  + ?resetToHomePosition@View3DInventorViewer@Gui@@UEAAXXZ
+  + ?seekToPoint@View3DInventorViewer@Gui@@QEAAXAEBVSbVec3f@@@Z
+  + ?seekToPoint@View3DInventorViewer@Gui@@QEAA_NAEBVSbVec2s@@@Z
+== gui3-ctl -> delivered: export names 12230 -> 12230 +0 -0
+== NEG 1.1.1 -> fix3: export names 11662 -> 12236 +1058 -484

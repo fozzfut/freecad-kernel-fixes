@@ -1,0 +1,33 @@
+From 1ddce7151f22535450f91c26756a5062318b96e5 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 22:24:51 +0700
+Subject: [PATCH] Sketcher: centering on selected constraints stops the running
+ camera motion (issue 038)
+
+ViewProviderSketch::centerSelection writes camera->position absolutely; a view
+animation still running (the turn to the sketch plane) or a seek would move the
+camera on after it. Stop them first through View3DInventorViewer::stopAnimating.
+Source only: SketcherGui is not rebuilt in this lane (stock weekly binary).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/Sketcher/Gui/ViewProviderSketch.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/Mod/Sketcher/Gui/ViewProviderSketch.cpp b/src/Mod/Sketcher/Gui/ViewProviderSketch.cpp
+index 894934f..cf664b6 100644
+--- a/src/Mod/Sketcher/Gui/ViewProviderSketch.cpp
++++ b/src/Mod/Sketcher/Gui/ViewProviderSketch.cpp
+@@ -3116,6 +3116,9 @@ void ViewProviderSketch::centerSelection()
+ 
+     SbBox3f box = action.getBoundingBox();
+     if (!box.isEmpty()) {
++        // An absolute placement: a view animation or a seek still running (e.g. the turn to the
++        // sketch plane) would go on moving the camera after it
++        viewer->stopAnimating();
+         SoCamera* camera = viewer->getSoRenderManager()->getCamera();
+         SbVec3f direction;
+         camera->orientation.getValue().multVec(SbVec3f(0, 0, 1), direction);
+-- 
+2.52.0.windows.1
+
