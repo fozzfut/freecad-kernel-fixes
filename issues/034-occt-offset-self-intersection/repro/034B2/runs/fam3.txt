@@ -1,0 +1,108 @@
+shaft0.5ap0_-0.25 shaft_r0.5_a_p0.brep offset -0.25 arc none 
+shaft0.5ap0_-0.5 shaft_r0.5_a_p0.brep offset -0.5 arc none 1208.727773
+shaft0.5ap0_-0.75 shaft_r0.5_a_p0.brep offset -0.75 arc none 1049.782820
+shaft0.5ap0_-1.5 shaft_r0.5_a_p0.brep offset -1.5 arc none 654.236670
+shaft0.5ap1_-0.25 shaft_r0.5_a_p1.brep offset -0.25 arc none 
+shaft0.5ap1_-0.5 shaft_r0.5_a_p1.brep offset -0.5 arc none 1208.727773
+shaft0.5ap1_-0.75 shaft_r0.5_a_p1.brep offset -0.75 arc none 1049.782820
+shaft0.5ap1_-1.5 shaft_r0.5_a_p1.brep offset -1.5 arc none 654.236670
+shaft0.5ap2_-0.25 shaft_r0.5_a_p2.brep offset -0.25 arc none 
+shaft0.5ap2_-0.5 shaft_r0.5_a_p2.brep offset -0.5 arc none 1208.727773
+shaft0.5ap2_-0.75 shaft_r0.5_a_p2.brep offset -0.75 arc none 1049.782820
+shaft0.5ap2_-1.5 shaft_r0.5_a_p2.brep offset -1.5 arc none 654.236670
+shaft0.5np0_-0.25 shaft_r0.5_n_p0.brep offset -0.25 arc none 
+shaft0.5np0_-0.5 shaft_r0.5_n_p0.brep offset -0.5 arc none 1208.727773
+shaft0.5np0_-0.75 shaft_r0.5_n_p0.brep offset -0.75 arc none 1049.782820
+shaft0.5np0_-1.5 shaft_r0.5_n_p0.brep offset -1.5 arc none 654.236670
+shaft0.5np1_-0.25 shaft_r0.5_n_p1.brep offset -0.25 arc none 
+shaft0.5np1_-0.5 shaft_r0.5_n_p1.brep offset -0.5 arc none 1208.727773
+shaft0.5np1_-0.75 shaft_r0.5_n_p1.brep offset -0.75 arc none 1049.782820
+shaft0.5np1_-1.5 shaft_r0.5_n_p1.brep offset -1.5 arc none 654.236670
+shaft0.5np2_-0.25 shaft_r0.5_n_p2.brep offset -0.25 arc none 
+shaft0.5np2_-0.5 shaft_r0.5_n_p2.brep offset -0.5 arc none 1208.727773
+shaft0.5np2_-0.75 shaft_r0.5_n_p2.brep offset -0.75 arc none 1049.782820
+shaft0.5np2_-1.5 shaft_r0.5_n_p2.brep offset -1.5 arc none 654.236670
+shaft0.5mp0_-0.25 shaft_r0.5_m_p0.brep offset -0.25 arc none 
+shaft0.5mp0_-0.5 shaft_r0.5_m_p0.brep offset -0.5 arc none 1208.727773
+shaft0.5mp0_-0.75 shaft_r0.5_m_p0.brep offset -0.75 arc none 1049.782820
+shaft0.5mp0_-1.5 shaft_r0.5_m_p0.brep offset -1.5 arc none 654.236670
+shaft0.5mp1_-0.25 shaft_r0.5_m_p1.brep offset -0.25 arc none 
+shaft0.5mp1_-0.5 shaft_r0.5_m_p1.brep offset -0.5 arc none 1208.727773
+shaft0.5mp1_-0.75 shaft_r0.5_m_p1.brep offset -0.75 arc none 1049.782820
+shaft0.5mp1_-1.5 shaft_r0.5_m_p1.brep offset -1.5 arc none 654.236670
+shaft0.5mp2_-0.25 shaft_r0.5_m_p2.brep offset -0.25 arc none 
+shaft0.5mp2_-0.5 shaft_r0.5_m_p2.brep offset -0.5 arc none 1208.727773
+shaft0.5mp2_-0.75 shaft_r0.5_m_p2.brep offset -0.75 arc none 1049.782820
+shaft0.5mp2_-1.5 shaft_r0.5_m_p2.brep offset -1.5 arc none 654.236670
+shaft1ap0_-0.5 shaft_r1_a_p0.brep offset -0.5 arc none 
+shaft1ap0_-1 shaft_r1_a_p0.brep offset -1.0 arc none 904.778684
+shaft1ap0_-1.5 shaft_r1_a_p0.brep offset -1.5 arc none 654.236670
+shaft1ap0_-3 shaft_r1_a_p0.brep offset -3.0 arc none 175.929189
+shaft1ap1_-0.5 shaft_r1_a_p1.brep offset -0.5 arc none 
+shaft1ap1_-1 shaft_r1_a_p1.brep offset -1.0 arc none 904.778684
+shaft1ap1_-1.5 shaft_r1_a_p1.brep offset -1.5 arc none 654.236670
+shaft1ap1_-3 shaft_r1_a_p1.brep offset -3.0 arc none 175.929189
+shaft1ap2_-0.5 shaft_r1_a_p2.brep offset -0.5 arc none 
+shaft1ap2_-1 shaft_r1_a_p2.brep offset -1.0 arc none 904.778684
+shaft1ap2_-1.5 shaft_r1_a_p2.brep offset -1.5 arc none 654.236670
+shaft1ap2_-3 shaft_r1_a_p2.brep offset -3.0 arc none 175.929189
+shaft1np0_-0.5 shaft_r1_n_p0.brep offset -0.5 arc none 
+shaft1np0_-1 shaft_r1_n_p0.brep offset -1.0 arc none 904.778684
+shaft1np0_-1.5 shaft_r1_n_p0.brep offset -1.5 arc none 654.236670
+shaft1np0_-3 shaft_r1_n_p0.brep offset -3.0 arc none 175.929189
+shaft1np1_-0.5 shaft_r1_n_p1.brep offset -0.5 arc none 
+shaft1np1_-1 shaft_r1_n_p1.brep offset -1.0 arc none 904.778684
+shaft1np1_-1.5 shaft_r1_n_p1.brep offset -1.5 arc none 654.236670
+shaft1np1_-3 shaft_r1_n_p1.brep offset -3.0 arc none 175.929189
+shaft1np2_-0.5 shaft_r1_n_p2.brep offset -0.5 arc none 
+shaft1np2_-1 shaft_r1_n_p2.brep offset -1.0 arc none 904.778684
+shaft1np2_-1.5 shaft_r1_n_p2.brep offset -1.5 arc none 654.236670
+shaft1np2_-3 shaft_r1_n_p2.brep offset -3.0 arc none 175.929189
+shaft1mp0_-0.5 shaft_r1_m_p0.brep offset -0.5 arc none 
+shaft1mp0_-1 shaft_r1_m_p0.brep offset -1.0 arc none 904.778684
+shaft1mp0_-1.5 shaft_r1_m_p0.brep offset -1.5 arc none 654.236670
+shaft1mp0_-3 shaft_r1_m_p0.brep offset -3.0 arc none 175.929189
+shaft1mp1_-0.5 shaft_r1_m_p1.brep offset -0.5 arc none 
+shaft1mp1_-1 shaft_r1_m_p1.brep offset -1.0 arc none 904.778684
+shaft1mp1_-1.5 shaft_r1_m_p1.brep offset -1.5 arc none 654.236670
+shaft1mp1_-3 shaft_r1_m_p1.brep offset -3.0 arc none 175.929189
+shaft1mp2_-0.5 shaft_r1_m_p2.brep offset -0.5 arc none 
+shaft1mp2_-1 shaft_r1_m_p2.brep offset -1.0 arc none 904.778684
+shaft1mp2_-1.5 shaft_r1_m_p2.brep offset -1.5 arc none 654.236670
+shaft1mp2_-3 shaft_r1_m_p2.brep offset -3.0 arc none 175.929189
+shaft2ap0_-1 shaft_r2_a_p0.brep offset -1.0 arc none 
+shaft2ap0_-2 shaft_r2_a_p0.brep offset -2.0 arc none 452.389342
+shaft2ap0_-3 shaft_r2_a_p0.brep offset -3.0 arc none 175.929189
+shaft2ap0_-6 shaft_r2_a_p0.brep offset -6.0 arc none 25.132741
+shaft2ap1_-1 shaft_r2_a_p1.brep offset -1.0 arc none 
+shaft2ap1_-2 shaft_r2_a_p1.brep offset -2.0 arc none 452.389342
+shaft2ap1_-3 shaft_r2_a_p1.brep offset -3.0 arc none 175.929189
+shaft2ap1_-6 shaft_r2_a_p1.brep offset -6.0 arc none 25.132741
+shaft2ap2_-1 shaft_r2_a_p2.brep offset -1.0 arc none 
+shaft2ap2_-2 shaft_r2_a_p2.brep offset -2.0 arc none 452.389342
+shaft2ap2_-3 shaft_r2_a_p2.brep offset -3.0 arc none 175.929189
+shaft2ap2_-6 shaft_r2_a_p2.brep offset -6.0 arc none 25.132741
+shaft2np0_-1 shaft_r2_n_p0.brep offset -1.0 arc none 
+shaft2np0_-2 shaft_r2_n_p0.brep offset -2.0 arc none 452.389342
+shaft2np0_-3 shaft_r2_n_p0.brep offset -3.0 arc none 175.929189
+shaft2np0_-6 shaft_r2_n_p0.brep offset -6.0 arc none 25.132741
+shaft2np1_-1 shaft_r2_n_p1.brep offset -1.0 arc none 
+shaft2np1_-2 shaft_r2_n_p1.brep offset -2.0 arc none 452.389342
+shaft2np1_-3 shaft_r2_n_p1.brep offset -3.0 arc none 175.929189
+shaft2np1_-6 shaft_r2_n_p1.brep offset -6.0 arc none 25.132741
+shaft2np2_-1 shaft_r2_n_p2.brep offset -1.0 arc none 
+shaft2np2_-2 shaft_r2_n_p2.brep offset -2.0 arc none 452.389342
+shaft2np2_-3 shaft_r2_n_p2.brep offset -3.0 arc none 175.929189
+shaft2np2_-6 shaft_r2_n_p2.brep offset -6.0 arc none 25.132741
+shaft2mp0_-1 shaft_r2_m_p0.brep offset -1.0 arc none 
+shaft2mp0_-2 shaft_r2_m_p0.brep offset -2.0 arc none 452.389342
+shaft2mp0_-3 shaft_r2_m_p0.brep offset -3.0 arc none 175.929189
+shaft2mp0_-6 shaft_r2_m_p0.brep offset -6.0 arc none 25.132741
+shaft2mp1_-1 shaft_r2_m_p1.brep offset -1.0 arc none 
+shaft2mp1_-2 shaft_r2_m_p1.brep offset -2.0 arc none 452.389342
+shaft2mp1_-3 shaft_r2_m_p1.brep offset -3.0 arc none 175.929189
+shaft2mp1_-6 shaft_r2_m_p1.brep offset -6.0 arc none 25.132741
+shaft2mp2_-1 shaft_r2_m_p2.brep offset -1.0 arc none 
+shaft2mp2_-2 shaft_r2_m_p2.brep offset -2.0 arc none 452.389342
+shaft2mp2_-3 shaft_r2_m_p2.brep offset -3.0 arc none 175.929189
+shaft2mp2_-6 shaft_r2_m_p2.brep offset -6.0 arc none 25.132741

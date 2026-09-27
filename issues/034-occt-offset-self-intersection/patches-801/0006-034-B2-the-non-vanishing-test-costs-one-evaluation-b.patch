@@ -1,0 +1,104 @@
+From 61755e87b396bed0ab02673658c113092700d103 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Mon, 28 Sep 2026 00:05:20 +0700
+Subject: [PATCH 6/7] 034 B2: the non-vanishing test costs one evaluation
+ (boundary sample, vertex chord)
+
+The early exit of the vanishing-face test computed the parametric box of
+the face (BRepTools::UVBounds) and its 3D bounding box before the first
+sample: 30-830 us per free-form face, up to ~10% of an ordinary offset of
+a NURBS body. Now the first sample is a point of the face boundary (middle
+of the first pcurve; a vanishing face is negative on its closure too) and
+the tolerance limit is bounded above by tolerance / (largest chord between
+vertices), so an ordinary face is rejected with one evaluation
+(3-12 us per face, measured). The decision is unchanged: the box is still
+used whenever the chord bound does not decide.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepOffset/BRepOffset_MakeOffset.cxx      | 55 +++++++++++++++++--
+ 1 file changed, 49 insertions(+), 6 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+index 4bf720cf8b..e88bcac488 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+@@ -1063,12 +1063,6 @@ static bool freeFormFaceVanishes034b(const TopoDS_Face& theF, const double theOf
+         break;
+     }
+     const double aD = (theF.Orientation() == TopAbs_REVERSED) ? -theOffset : theOffset;
+-    double       aU0, aU1, aV0, aV1;
+-    BRepTools::UVBounds(theF, aU0, aU1, aV0, aV1);
+-    if (!(aU1 > aU0) || !(aV1 > aV0))
+-    {
+-      return false;
+-    }
+     // largest factor that still counts as vanishing: 0, or tolerance / size
+     // once a positive factor has been seen (the box is computed only then)
+     double aLimit    = 0.;
+@@ -1081,6 +1075,28 @@ static bool freeFormFaceVanishes034b(const TopoDS_Face& theF, const double theOf
+       if (!isLimited)
+       {
+         isLimited = true;
++        // the chord between two vertices is at most the size of the face, so
++        // tolerance / chord bounds the limit from above: a factor over it is
++        // decided without the bounding box (the usual case, one evaluation)
++        const double aTolF   = faceTolerance034b(theF);
++        double       aChord2 = 0.;
++        gp_Pnt       aP0;
++        bool         isFirst = true;
++        for (TopExp_Explorer anExpV(theF, TopAbs_VERTEX); anExpV.More(); anExpV.Next())
++        {
++          const gp_Pnt aP = BRep_Tool::Pnt(TopoDS::Vertex(anExpV.Current()));
++          if (isFirst)
++          {
++            aP0     = aP;
++            isFirst = false;
++          }
++          aChord2 = std::max(aChord2, aP0.SquareDistance(aP));
++        }
++        if (aChord2 > 0. && theFct > aTolF / std::sqrt(aChord2))
++        {
++          aLimit = aTolF / std::sqrt(aChord2);
++          return true;
++        }
+         Bnd_Box aBox;
+         BRepBndLib::Add(theF, aBox, false);
+         if (!aBox.IsVoid() && aBox.SquareExtent() > 0.)
+@@ -1090,6 +1106,33 @@ static bool freeFormFaceVanishes034b(const TopoDS_Face& theF, const double theOf
+       }
+       return theFct > aLimit;
+     };
++    // a point of the face boundary first (the middle of the first edge's
++    // pcurve; the face vanishes only if the factor is negative on its
++    // closure too): a face that does not vanish is rejected with one
++    // evaluation, before the parametric box of the face is computed
++    for (TopExp_Explorer anExpE(theF, TopAbs_EDGE); anExpE.More(); anExpE.Next())
++    {
++      double                          aF, aL;
++      const occ::handle<Geom2d_Curve> aC2d =
++        BRep_Tool::CurveOnSurface(TopoDS::Edge(anExpE.Current()), theF, aF, aL);
++      if (aC2d.IsNull() || Precision::IsInfinite(aF) || Precision::IsInfinite(aL))
++      {
++        continue;
++      }
++      const gp_Pnt2d aUV = aC2d->Value(0.5 * (aF + aL));
++      double         aFct0;
++      if (offsetFactor034(*aS, aUV.X(), aUV.Y(), 1., 1., aD, aFct0) && isAbove(aFct0))
++      {
++        return false;
++      }
++      break;
++    }
++    double       aU0, aU1, aV0, aV1;
++    BRepTools::UVBounds(theF, aU0, aU1, aV0, aV1);
++    if (!(aU1 > aU0) || !(aV1 > aV0))
++    {
++      return false;
++    }
+     int aNU = 16, aNV = 16;
+     if (aGAS.GetType() == GeomAbs_BSplineSurface)
+     {
+-- 
+2.52.0.windows.1
+

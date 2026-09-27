@@ -1,0 +1,4 @@
+rbox_off-1.5i rbox_r1_a.brep offset -1.5 int none 1309.0
+rboxn_off-1.5i rbox_r1_n.brep offset -1.5 int none 1309.0
+boss_off+1.5i boss_r1_a.brep offset 1.5 int none
+bossn_off+1.5i boss_r1_n.brep offset 1.5 int none

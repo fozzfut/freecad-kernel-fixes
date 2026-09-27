@@ -1,0 +1,2 @@
+type=Compound loc=Placement [Pos=(0,0,0), Yaw-Pitch-Roll=(0,0,0)] placement=Placement [Pos=(0,0,0), Yaw-Pitch-Roll=(0,0,0)] faces=26
+DONE

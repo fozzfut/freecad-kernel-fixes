@@ -1,0 +1,5 @@
+c031_m2s10_obl_c1_r1_thk0.3r_arc /c/dev/occt8-mig/fillet-corner-r3/out/x/m2s10/case_obl_c1_r1.brep thick 0.3 arc 0 0 largest
+c031_m2s10_obl_c1_r1_off0.3r_arc /c/dev/occt8-mig/fillet-corner-r3/out/x/m2s10/case_obl_c1_r1.brep offset 0.3 arc 0 0 none
+c031_m2s10_sq_c08_r15_thk0.3r_arc /c/dev/occt8-mig/fillet-corner-r3/out/x/m2s10/case_sq_c08_r15.brep thick 0.45 arc 0 0 largest
+c031_m2s10_sq_c08_r15_off0.3r_arc /c/dev/occt8-mig/fillet-corner-r3/out/x/m2s10/case_sq_c08_r15.brep offset 0.45 arc 0 0 none
+c031_m2s10_sq_c15_r1_thk0.3r_arc /c/dev/occt8-mig/fillet-corner-r3/out/x/m2s10/case_sq_c15_r1.brep thick 0.3 arc 0 0 largest

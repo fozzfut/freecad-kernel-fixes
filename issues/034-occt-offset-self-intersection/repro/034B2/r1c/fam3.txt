@@ -1,0 +1,480 @@
+vbox1ap0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep offset -0.5 arc none 0 -
+vbox1ap0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep thick -0.5 arc largest 0 -
+vbox1ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep offset -1.0 arc none 0 -
+vbox1ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep thick -1.0 arc largest 0 -
+vbox1ap0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p0.brep
+vbox1ap0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_a_p0_1.01.brep
+vbox1ap0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p0.brep
+vbox1ap0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_a_p0_1.5.brep
+vbox1ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+vbox1ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_a_p0_3.brep
+vbox1ap1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep offset -0.5 arc none 0 -
+vbox1ap1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep thick -0.5 arc largest 0 -
+vbox1ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep offset -1.0 arc none 0 -
+vbox1ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep thick -1.0 arc largest 0 -
+vbox1ap1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p1.brep
+vbox1ap1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_a_p1_1.01.brep
+vbox1ap1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p1.brep
+vbox1ap1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_a_p1_1.5.brep
+vbox1ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+vbox1ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_a_p1_3.brep
+vbox1np0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep offset -0.5 arc none 0 -
+vbox1np0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep thick -0.5 arc largest 0 -
+vbox1np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep offset -1.0 arc none 0 -
+vbox1np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep thick -1.0 arc largest 0 -
+vbox1np0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p0.brep
+vbox1np0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_n_p0_1.01.brep
+vbox1np0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p0.brep
+vbox1np0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_n_p0_1.5.brep
+vbox1np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+vbox1np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_n_p0_3.brep
+vbox1np1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep offset -0.5 arc none 0 -
+vbox1np1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep thick -0.5 arc largest 0 -
+vbox1np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep offset -1.0 arc none 0 -
+vbox1np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep thick -1.0 arc largest 0 -
+vbox1np1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p1.brep
+vbox1np1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_n_p1_1.01.brep
+vbox1np1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p1.brep
+vbox1np1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_n_p1_1.5.brep
+vbox1np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+vbox1np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r1_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r1_n_p1_3.brep
+vbox2ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep offset -1.0 arc none 0 -
+vbox2ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep thick -1.0 arc largest 0 -
+vbox2ap0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep offset -2.0 arc none 0 -
+vbox2ap0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep thick -2.0 arc largest 0 -
+vbox2ap0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p0.brep
+vbox2ap0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r2_a_p0_2.02.brep
+vbox2ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+vbox2ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r2_a_p0_3.brep
+vbox2ap0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep offset -6.0 arc none 0 -
+vbox2ap0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p0.brep thick -6.0 arc largest 0 -
+vbox2ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep offset -1.0 arc none 0 -
+vbox2ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep thick -1.0 arc largest 0 -
+vbox2ap1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep offset -2.0 arc none 0 -
+vbox2ap1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep thick -2.0 arc largest 0 -
+vbox2ap1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p1.brep
+vbox2ap1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r2_a_p1_2.02.brep
+vbox2ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+vbox2ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r2_a_p1_3.brep
+vbox2ap1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep offset -6.0 arc none 0 -
+vbox2ap1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_a_p1.brep thick -6.0 arc largest 0 -
+vbox2np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep offset -1.0 arc none 0 -
+vbox2np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep thick -1.0 arc largest 0 -
+vbox2np0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep offset -2.0 arc none 0 -
+vbox2np0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep thick -2.0 arc largest 0 -
+vbox2np0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p0.brep
+vbox2np0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r2_n_p0_2.02.brep
+vbox2np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+vbox2np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r2_n_p0_3.brep
+vbox2np0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep offset -6.0 arc none 0 -
+vbox2np0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p0.brep thick -6.0 arc largest 0 -
+vbox2np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep offset -1.0 arc none 0 -
+vbox2np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep thick -1.0 arc largest 0 -
+vbox2np1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep offset -2.0 arc none 0 -
+vbox2np1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep thick -2.0 arc largest 0 -
+vbox2np1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p1.brep
+vbox2np1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r2_n_p1_2.02.brep
+vbox2np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+vbox2np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vboxthk_r2_n_p1_3.brep
+vbox2np1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep offset -6.0 arc none 0 -
+vbox2np1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vbox_r2_n_p1.brep thick -6.0 arc largest 0 -
+tbox1ap0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep offset -0.5 arc none 0 -
+tbox1ap0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep thick -0.5 arc largest 0 -
+tbox1ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep offset -1.0 arc none 0 -
+tbox1ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep thick -1.0 arc largest 0 -
+tbox1ap0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p0.brep
+tbox1ap0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_a_p0_1.01.brep
+tbox1ap0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p0.brep
+tbox1ap0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_a_p0_1.5.brep
+tbox1ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+tbox1ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_a_p0_3.brep
+tbox1ap1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep offset -0.5 arc none 0 -
+tbox1ap1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep thick -0.5 arc largest 0 -
+tbox1ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep offset -1.0 arc none 0 -
+tbox1ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep thick -1.0 arc largest 0 -
+tbox1ap1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p1.brep
+tbox1ap1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_a_p1_1.01.brep
+tbox1ap1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p1.brep
+tbox1ap1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_a_p1_1.5.brep
+tbox1ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+tbox1ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_a_p1_3.brep
+tbox1np0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep offset -0.5 arc none 0 -
+tbox1np0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep thick -0.5 arc largest 0 -
+tbox1np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep offset -1.0 arc none 0 -
+tbox1np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep thick -1.0 arc largest 0 -
+tbox1np0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p0.brep
+tbox1np0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_n_p0_1.01.brep
+tbox1np0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p0.brep
+tbox1np0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_n_p0_1.5.brep
+tbox1np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+tbox1np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_n_p0_3.brep
+tbox1np1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep offset -0.5 arc none 0 -
+tbox1np1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep thick -0.5 arc largest 0 -
+tbox1np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep offset -1.0 arc none 0 -
+tbox1np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep thick -1.0 arc largest 0 -
+tbox1np1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p1.brep
+tbox1np1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_n_p1_1.01.brep
+tbox1np1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p1.brep
+tbox1np1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_n_p1_1.5.brep
+tbox1np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+tbox1np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r1_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r1_n_p1_3.brep
+tbox2ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep offset -1.0 arc none 0 -
+tbox2ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep thick -1.0 arc largest 0 -
+tbox2ap0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep offset -2.0 arc none 0 -
+tbox2ap0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep thick -2.0 arc largest 0 -
+tbox2ap0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p0.brep
+tbox2ap0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r2_a_p0_2.02.brep
+tbox2ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+tbox2ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r2_a_p0_3.brep
+tbox2ap0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep offset -6.0 arc none 0 -
+tbox2ap0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p0.brep thick -6.0 arc largest 0 -
+tbox2ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep offset -1.0 arc none 0 -
+tbox2ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep thick -1.0 arc largest 0 -
+tbox2ap1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep offset -2.0 arc none 0 -
+tbox2ap1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep thick -2.0 arc largest 0 -
+tbox2ap1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p1.brep
+tbox2ap1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r2_a_p1_2.02.brep
+tbox2ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+tbox2ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r2_a_p1_3.brep
+tbox2ap1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep offset -6.0 arc none 0 -
+tbox2ap1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_a_p1.brep thick -6.0 arc largest 0 -
+tbox2np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep offset -1.0 arc none 0 -
+tbox2np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep thick -1.0 arc largest 0 -
+tbox2np0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep offset -2.0 arc none 0 -
+tbox2np0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep thick -2.0 arc largest 0 -
+tbox2np0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p0.brep
+tbox2np0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r2_n_p0_2.02.brep
+tbox2np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+tbox2np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r2_n_p0_3.brep
+tbox2np0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep offset -6.0 arc none 0 -
+tbox2np0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p0.brep thick -6.0 arc largest 0 -
+tbox2np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep offset -1.0 arc none 0 -
+tbox2np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep thick -1.0 arc largest 0 -
+tbox2np1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep offset -2.0 arc none 0 -
+tbox2np1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep thick -2.0 arc largest 0 -
+tbox2np1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p1.brep
+tbox2np1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r2_n_p1_2.02.brep
+tbox2np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+tbox2np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_tboxthk_r2_n_p1_3.brep
+tbox2np1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep offset -6.0 arc none 0 -
+tbox2np1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tbox_r2_n_p1.brep thick -6.0 arc largest 0 -
+ebox1ap0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep offset -0.5 arc none 0 -
+ebox1ap0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep thick -0.5 arc largest 0 -
+ebox1ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep offset -1.0 arc none 0 -
+ebox1ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep thick -1.0 arc largest 0 -
+ebox1ap0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p0.brep
+ebox1ap0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_a_p0_1.01.brep
+ebox1ap0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p0.brep
+ebox1ap0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_a_p0_1.5.brep
+ebox1ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+ebox1ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_a_p0_3.brep
+ebox1ap1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep offset -0.5 arc none 0 -
+ebox1ap1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep thick -0.5 arc largest 0 -
+ebox1ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep offset -1.0 arc none 0 -
+ebox1ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep thick -1.0 arc largest 0 -
+ebox1ap1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p1.brep
+ebox1ap1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_a_p1_1.01.brep
+ebox1ap1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p1.brep
+ebox1ap1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_a_p1_1.5.brep
+ebox1ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+ebox1ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_a_p1_3.brep
+ebox1np0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep offset -0.5 arc none 0 -
+ebox1np0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep thick -0.5 arc largest 0 -
+ebox1np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep offset -1.0 arc none 0 -
+ebox1np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep thick -1.0 arc largest 0 -
+ebox1np0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p0.brep
+ebox1np0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_n_p0_1.01.brep
+ebox1np0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p0.brep
+ebox1np0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_n_p0_1.5.brep
+ebox1np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+ebox1np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_n_p0_3.brep
+ebox1np1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep offset -0.5 arc none 0 -
+ebox1np1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep thick -0.5 arc largest 0 -
+ebox1np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep offset -1.0 arc none 0 -
+ebox1np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep thick -1.0 arc largest 0 -
+ebox1np1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p1.brep
+ebox1np1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_n_p1_1.01.brep
+ebox1np1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p1.brep
+ebox1np1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_n_p1_1.5.brep
+ebox1np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+ebox1np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r1_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r1_n_p1_3.brep
+ebox2ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep offset -1.0 arc none 0 -
+ebox2ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep thick -1.0 arc largest 0 -
+ebox2ap0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep offset -2.0 arc none 0 -
+ebox2ap0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep thick -2.0 arc largest 0 -
+ebox2ap0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p0.brep
+ebox2ap0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r2_a_p0_2.02.brep
+ebox2ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+ebox2ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r2_a_p0_3.brep
+ebox2ap0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep offset -6.0 arc none 0 -
+ebox2ap0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p0.brep thick -6.0 arc largest 0 -
+ebox2ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep offset -1.0 arc none 0 -
+ebox2ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep thick -1.0 arc largest 0 -
+ebox2ap1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep offset -2.0 arc none 0 -
+ebox2ap1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep thick -2.0 arc largest 0 -
+ebox2ap1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p1.brep
+ebox2ap1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r2_a_p1_2.02.brep
+ebox2ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+ebox2ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r2_a_p1_3.brep
+ebox2ap1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep offset -6.0 arc none 0 -
+ebox2ap1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_a_p1.brep thick -6.0 arc largest 0 -
+ebox2np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep offset -1.0 arc none 0 -
+ebox2np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep thick -1.0 arc largest 0 -
+ebox2np0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep offset -2.0 arc none 0 -
+ebox2np0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep thick -2.0 arc largest 0 -
+ebox2np0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p0.brep
+ebox2np0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r2_n_p0_2.02.brep
+ebox2np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+ebox2np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r2_n_p0_3.brep
+ebox2np0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep offset -6.0 arc none 0 -
+ebox2np0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p0.brep thick -6.0 arc largest 0 -
+ebox2np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep offset -1.0 arc none 0 -
+ebox2np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep thick -1.0 arc largest 0 -
+ebox2np1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep offset -2.0 arc none 0 -
+ebox2np1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep thick -2.0 arc largest 0 -
+ebox2np1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p1.brep
+ebox2np1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r2_n_p1_2.02.brep
+ebox2np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+ebox2np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_eboxthk_r2_n_p1_3.brep
+ebox2np1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep offset -6.0 arc none 0 -
+ebox2np1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/ebox_r2_n_p1.brep thick -6.0 arc largest 0 -
+vtbox1ap0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep offset -0.5 arc none 0 -
+vtbox1ap0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep thick -0.5 arc largest 0 -
+vtbox1ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep offset -1.0 arc none 0 -
+vtbox1ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep thick -1.0 arc largest 0 -
+vtbox1ap0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p0.brep
+vtbox1ap0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_a_p0_1.01.brep
+vtbox1ap0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p0.brep
+vtbox1ap0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_a_p0_1.5.brep
+vtbox1ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+vtbox1ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_a_p0_3.brep
+vtbox1ap1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep offset -0.5 arc none 0 -
+vtbox1ap1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep thick -0.5 arc largest 0 -
+vtbox1ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep offset -1.0 arc none 0 -
+vtbox1ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep thick -1.0 arc largest 0 -
+vtbox1ap1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p1.brep
+vtbox1ap1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_a_p1_1.01.brep
+vtbox1ap1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p1.brep
+vtbox1ap1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_a_p1_1.5.brep
+vtbox1ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+vtbox1ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_a_p1_3.brep
+vtbox1np0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep offset -0.5 arc none 0 -
+vtbox1np0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep thick -0.5 arc largest 0 -
+vtbox1np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep offset -1.0 arc none 0 -
+vtbox1np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep thick -1.0 arc largest 0 -
+vtbox1np0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p0.brep
+vtbox1np0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_n_p0_1.01.brep
+vtbox1np0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p0.brep
+vtbox1np0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_n_p0_1.5.brep
+vtbox1np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+vtbox1np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_n_p0_3.brep
+vtbox1np1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep offset -0.5 arc none 0 -
+vtbox1np1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep thick -0.5 arc largest 0 -
+vtbox1np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep offset -1.0 arc none 0 -
+vtbox1np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep thick -1.0 arc largest 0 -
+vtbox1np1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep offset -1.01 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.01_p1.brep
+vtbox1np1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_n_p1_1.01.brep
+vtbox1np1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep offset -1.5 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_1.5_p1.brep
+vtbox1np1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_n_p1_1.5.brep
+vtbox1np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+vtbox1np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r1_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r1_n_p1_3.brep
+vtbox2ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep offset -1.0 arc none 0 -
+vtbox2ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep thick -1.0 arc largest 0 -
+vtbox2ap0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep offset -2.0 arc none 0 -
+vtbox2ap0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep thick -2.0 arc largest 0 -
+vtbox2ap0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p0.brep
+vtbox2ap0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r2_a_p0_2.02.brep
+vtbox2ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+vtbox2ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r2_a_p0_3.brep
+vtbox2ap0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep offset -6.0 arc none 0 -
+vtbox2ap0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p0.brep thick -6.0 arc largest 0 -
+vtbox2ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep offset -1.0 arc none 0 -
+vtbox2ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep thick -1.0 arc largest 0 -
+vtbox2ap1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep offset -2.0 arc none 0 -
+vtbox2ap1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep thick -2.0 arc largest 0 -
+vtbox2ap1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p1.brep
+vtbox2ap1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r2_a_p1_2.02.brep
+vtbox2ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+vtbox2ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r2_a_p1_3.brep
+vtbox2ap1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep offset -6.0 arc none 0 -
+vtbox2ap1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_a_p1.brep thick -6.0 arc largest 0 -
+vtbox2np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep offset -1.0 arc none 0 -
+vtbox2np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep thick -1.0 arc largest 0 -
+vtbox2np0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep offset -2.0 arc none 0 -
+vtbox2np0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep thick -2.0 arc largest 0 -
+vtbox2np0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p0.brep
+vtbox2np0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r2_n_p0_2.02.brep
+vtbox2np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p0.brep
+vtbox2np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r2_n_p0_3.brep
+vtbox2np0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep offset -6.0 arc none 0 -
+vtbox2np0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p0.brep thick -6.0 arc largest 0 -
+vtbox2np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep offset -1.0 arc none 0 -
+vtbox2np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep thick -1.0 arc largest 0 -
+vtbox2np1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep offset -2.0 arc none 0 -
+vtbox2np1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep thick -2.0 arc largest 0 -
+vtbox2np1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep offset -2.02 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_2.02_p1.brep
+vtbox2np1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r2_n_p1_2.02.brep
+vtbox2np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep offset -3.0 arc none 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_box_3_p1.brep
+vtbox2np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_vtboxthk_r2_n_p1_3.brep
+vtbox2np1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep offset -6.0 arc none 0 -
+vtbox2np1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/vtbox_r2_n_p1.brep thick -6.0 arc largest 0 -
+tri1ap0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep offset -0.5 arc none 0 -
+tri1ap0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep thick -0.5 arc largest 0 -
+tri1ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep offset -1.0 arc none 0 -
+tri1ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep thick -1.0 arc largest 0 -
+tri1ap0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep offset -1.01 arc none 0 -
+tri1ap0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_a_p0_1.01.brep
+tri1ap0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep offset -1.5 arc none 0 -
+tri1ap0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_a_p0_1.5.brep
+tri1ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep offset -3.0 arc none 0 -
+tri1ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_a_p0_3.brep
+tri1ap1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep offset -0.5 arc none 0 -
+tri1ap1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep thick -0.5 arc largest 0 -
+tri1ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep offset -1.0 arc none 0 -
+tri1ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep thick -1.0 arc largest 0 -
+tri1ap1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep offset -1.01 arc none 0 -
+tri1ap1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_a_p1_1.01.brep
+tri1ap1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep offset -1.5 arc none 0 -
+tri1ap1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_a_p1_1.5.brep
+tri1ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep offset -3.0 arc none 0 -
+tri1ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_a_p1_3.brep
+tri1np0_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep offset -0.5 arc none 0 -
+tri1np0_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep thick -0.5 arc largest 0 -
+tri1np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep offset -1.0 arc none 0 -
+tri1np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep thick -1.0 arc largest 0 -
+tri1np0_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep offset -1.01 arc none 0 -
+tri1np0_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_n_p0_1.01.brep
+tri1np0_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep offset -1.5 arc none 0 -
+tri1np0_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_n_p0_1.5.brep
+tri1np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep offset -3.0 arc none 0 -
+tri1np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_n_p0_3.brep
+tri1np1_off-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep offset -0.5 arc none 0 -
+tri1np1_thk-0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep thick -0.5 arc largest 0 -
+tri1np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep offset -1.0 arc none 0 -
+tri1np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep thick -1.0 arc largest 0 -
+tri1np1_off-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep offset -1.01 arc none 0 -
+tri1np1_thk-1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep thick -1.01 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_n_p1_1.01.brep
+tri1np1_off-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep offset -1.5 arc none 0 -
+tri1np1_thk-1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep thick -1.5 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_n_p1_1.5.brep
+tri1np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep offset -3.0 arc none 0 -
+tri1np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r1_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r1_n_p1_3.brep
+tri2ap0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep offset -1.0 arc none 0 -
+tri2ap0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep thick -1.0 arc largest 0 -
+tri2ap0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep offset -2.0 arc none 0 -
+tri2ap0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep thick -2.0 arc largest 0 -
+tri2ap0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep offset -2.02 arc none 0 -
+tri2ap0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r2_a_p0_2.02.brep
+tri2ap0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep offset -3.0 arc none 0 -
+tri2ap0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r2_a_p0_3.brep
+tri2ap0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep offset -6.0 arc none 0 -
+tri2ap0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p0.brep thick -6.0 arc largest 0 -
+tri2ap1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep offset -1.0 arc none 0 -
+tri2ap1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep thick -1.0 arc largest 0 -
+tri2ap1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep offset -2.0 arc none 0 -
+tri2ap1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep thick -2.0 arc largest 0 -
+tri2ap1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep offset -2.02 arc none 0 -
+tri2ap1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r2_a_p1_2.02.brep
+tri2ap1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep offset -3.0 arc none 0 -
+tri2ap1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r2_a_p1_3.brep
+tri2ap1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep offset -6.0 arc none 0 -
+tri2ap1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_a_p1.brep thick -6.0 arc largest 0 -
+tri2np0_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep offset -1.0 arc none 0 -
+tri2np0_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep thick -1.0 arc largest 0 -
+tri2np0_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep offset -2.0 arc none 0 -
+tri2np0_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep thick -2.0 arc largest 0 -
+tri2np0_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep offset -2.02 arc none 0 -
+tri2np0_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r2_n_p0_2.02.brep
+tri2np0_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep offset -3.0 arc none 0 -
+tri2np0_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r2_n_p0_3.brep
+tri2np0_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep offset -6.0 arc none 0 -
+tri2np0_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p0.brep thick -6.0 arc largest 0 -
+tri2np1_off-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep offset -1.0 arc none 0 -
+tri2np1_thk-1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep thick -1.0 arc largest 0 -
+tri2np1_off-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep offset -2.0 arc none 0 -
+tri2np1_thk-2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep thick -2.0 arc largest 0 -
+tri2np1_off-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep offset -2.02 arc none 0 -
+tri2np1_thk-2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep thick -2.02 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r2_n_p1_2.02.brep
+tri2np1_off-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep offset -3.0 arc none 0 -
+tri2np1_thk-3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep thick -3.0 arc largest 0 C:/dev/occt8-mig/offset-034b2/r1c/cases/ref_trithk_r2_n_p1_3.brep
+tri2np1_off-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep offset -6.0 arc none 0 -
+tri2np1_thk-6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tri_r2_n_p1.brep thick -6.0 arc largest 0 -
+tray1ap0_off+0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep offset 0.5 arc none
+tray1ap0_thk+0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep thick 0.5 arc 1
+tray1ap0_off+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep offset 1.0 arc none
+tray1ap0_thk+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep thick 1.0 arc 1
+tray1ap0_off+1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep offset 1.01 arc none
+tray1ap0_thk+1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep thick 1.01 arc 1
+tray1ap0_off+1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep offset 1.5 arc none
+tray1ap0_thk+1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep thick 1.5 arc 1
+tray1ap0_off+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep offset 3.0 arc none
+tray1ap0_thk+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p0.brep thick 3.0 arc 1
+tray1ap1_off+0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep offset 0.5 arc none
+tray1ap1_thk+0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep thick 0.5 arc 1
+tray1ap1_off+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep offset 1.0 arc none
+tray1ap1_thk+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep thick 1.0 arc 1
+tray1ap1_off+1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep offset 1.01 arc none
+tray1ap1_thk+1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep thick 1.01 arc 1
+tray1ap1_off+1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep offset 1.5 arc none
+tray1ap1_thk+1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep thick 1.5 arc 1
+tray1ap1_off+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep offset 3.0 arc none
+tray1ap1_thk+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_a_p1.brep thick 3.0 arc 1
+tray1np0_off+0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep offset 0.5 arc none
+tray1np0_thk+0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep thick 0.5 arc 1
+tray1np0_off+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep offset 1.0 arc none
+tray1np0_thk+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep thick 1.0 arc 1
+tray1np0_off+1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep offset 1.01 arc none
+tray1np0_thk+1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep thick 1.01 arc 1
+tray1np0_off+1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep offset 1.5 arc none
+tray1np0_thk+1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep thick 1.5 arc 1
+tray1np0_off+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep offset 3.0 arc none
+tray1np0_thk+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p0.brep thick 3.0 arc 1
+tray1np1_off+0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep offset 0.5 arc none
+tray1np1_thk+0.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep thick 0.5 arc 1
+tray1np1_off+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep offset 1.0 arc none
+tray1np1_thk+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep thick 1.0 arc 1
+tray1np1_off+1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep offset 1.01 arc none
+tray1np1_thk+1.01 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep thick 1.01 arc 1
+tray1np1_off+1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep offset 1.5 arc none
+tray1np1_thk+1.5 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep thick 1.5 arc 1
+tray1np1_off+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep offset 3.0 arc none
+tray1np1_thk+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r1_n_p1.brep thick 3.0 arc 1
+tray2ap0_off+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep offset 1.0 arc none
+tray2ap0_thk+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep thick 1.0 arc 1
+tray2ap0_off+2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep offset 2.0 arc none
+tray2ap0_thk+2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep thick 2.0 arc 1
+tray2ap0_off+2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep offset 2.02 arc none
+tray2ap0_thk+2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep thick 2.02 arc 1
+tray2ap0_off+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep offset 3.0 arc none
+tray2ap0_thk+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep thick 3.0 arc 1
+tray2ap0_off+6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep offset 6.0 arc none
+tray2ap0_thk+6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p0.brep thick 6.0 arc 1
+tray2ap1_off+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep offset 1.0 arc none
+tray2ap1_thk+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep thick 1.0 arc 1
+tray2ap1_off+2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep offset 2.0 arc none
+tray2ap1_thk+2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep thick 2.0 arc 1
+tray2ap1_off+2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep offset 2.02 arc none
+tray2ap1_thk+2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep thick 2.02 arc 1
+tray2ap1_off+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep offset 3.0 arc none
+tray2ap1_thk+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep thick 3.0 arc 1
+tray2ap1_off+6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep offset 6.0 arc none
+tray2ap1_thk+6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_a_p1.brep thick 6.0 arc 1
+tray2np0_off+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep offset 1.0 arc none
+tray2np0_thk+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep thick 1.0 arc 1
+tray2np0_off+2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep offset 2.0 arc none
+tray2np0_thk+2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep thick 2.0 arc 1
+tray2np0_off+2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep offset 2.02 arc none
+tray2np0_thk+2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep thick 2.02 arc 1
+tray2np0_off+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep offset 3.0 arc none
+tray2np0_thk+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep thick 3.0 arc 1
+tray2np0_off+6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep offset 6.0 arc none
+tray2np0_thk+6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p0.brep thick 6.0 arc 1
+tray2np1_off+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep offset 1.0 arc none
+tray2np1_thk+1 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep thick 1.0 arc 1
+tray2np1_off+2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep offset 2.0 arc none
+tray2np1_thk+2 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep thick 2.0 arc 1
+tray2np1_off+2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep offset 2.02 arc none
+tray2np1_thk+2.02 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep thick 2.02 arc 1
+tray2np1_off+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep offset 3.0 arc none
+tray2np1_thk+3 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep thick 3.0 arc 1
+tray2np1_off+6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep offset 6.0 arc none
+tray2np1_thk+6 C:/dev/occt8-mig/offset-034b2/r1c/cases/tray_r2_n_p1.brep thick 6.0 arc 1

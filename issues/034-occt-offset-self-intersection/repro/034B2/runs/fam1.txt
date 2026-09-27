@@ -1,0 +1,210 @@
+rbox0.5ap0_-0.25 rbox_r0.5_a_p0.brep offset -0.25 arc none 
+rbox0.5ap0_-0.495 rbox_r0.5_a_p0.brep offset -0.495 arc none 
+rbox0.5ap0_-0.5 rbox_r0.5_a_p0.brep offset -0.5 arc none 2223.0
+rbox0.5ap0_-0.505 rbox_r0.5_a_p0.brep offset -0.505 arc none 2217.654099
+rbox0.5ap0_-0.75 rbox_r0.5_a_p0.brep offset -0.75 arc none 1965.625
+rbox0.5ap0_-1.5 rbox_r0.5_a_p0.brep offset -1.5 arc none 1309.0
+rbox0.5ap1_-0.25 rbox_r0.5_a_p1.brep offset -0.25 arc none 
+rbox0.5ap1_-0.495 rbox_r0.5_a_p1.brep offset -0.495 arc none 
+rbox0.5ap1_-0.5 rbox_r0.5_a_p1.brep offset -0.5 arc none 2223.0
+rbox0.5ap1_-0.505 rbox_r0.5_a_p1.brep offset -0.505 arc none 2217.654099
+rbox0.5ap1_-0.75 rbox_r0.5_a_p1.brep offset -0.75 arc none 1965.625
+rbox0.5ap1_-1.5 rbox_r0.5_a_p1.brep offset -1.5 arc none 1309.0
+rbox0.5ap2_-0.25 rbox_r0.5_a_p2.brep offset -0.25 arc none 
+rbox0.5ap2_-0.495 rbox_r0.5_a_p2.brep offset -0.495 arc none 
+rbox0.5ap2_-0.5 rbox_r0.5_a_p2.brep offset -0.5 arc none 2223.0
+rbox0.5ap2_-0.505 rbox_r0.5_a_p2.brep offset -0.505 arc none 2217.654099
+rbox0.5ap2_-0.75 rbox_r0.5_a_p2.brep offset -0.75 arc none 1965.625
+rbox0.5ap2_-1.5 rbox_r0.5_a_p2.brep offset -1.5 arc none 1309.0
+rbox0.5np0_-0.25 rbox_r0.5_n_p0.brep offset -0.25 arc none 
+rbox0.5np0_-0.495 rbox_r0.5_n_p0.brep offset -0.495 arc none 
+rbox0.5np0_-0.5 rbox_r0.5_n_p0.brep offset -0.5 arc none 2223.0
+rbox0.5np0_-0.505 rbox_r0.5_n_p0.brep offset -0.505 arc none 2217.654099
+rbox0.5np0_-0.75 rbox_r0.5_n_p0.brep offset -0.75 arc none 1965.625
+rbox0.5np0_-1.5 rbox_r0.5_n_p0.brep offset -1.5 arc none 1309.0
+rbox0.5np1_-0.25 rbox_r0.5_n_p1.brep offset -0.25 arc none 
+rbox0.5np1_-0.495 rbox_r0.5_n_p1.brep offset -0.495 arc none 
+rbox0.5np1_-0.5 rbox_r0.5_n_p1.brep offset -0.5 arc none 2223.0
+rbox0.5np1_-0.505 rbox_r0.5_n_p1.brep offset -0.505 arc none 2217.654099
+rbox0.5np1_-0.75 rbox_r0.5_n_p1.brep offset -0.75 arc none 1965.625
+rbox0.5np1_-1.5 rbox_r0.5_n_p1.brep offset -1.5 arc none 1309.0
+rbox0.5np2_-0.25 rbox_r0.5_n_p2.brep offset -0.25 arc none 
+rbox0.5np2_-0.495 rbox_r0.5_n_p2.brep offset -0.495 arc none 
+rbox0.5np2_-0.5 rbox_r0.5_n_p2.brep offset -0.5 arc none 2223.0
+rbox0.5np2_-0.505 rbox_r0.5_n_p2.brep offset -0.505 arc none 2217.654099
+rbox0.5np2_-0.75 rbox_r0.5_n_p2.brep offset -0.75 arc none 1965.625
+rbox0.5np2_-1.5 rbox_r0.5_n_p2.brep offset -1.5 arc none 1309.0
+rbox1ap0_-0.5 rbox_r1_a_p0.brep offset -0.5 arc none 
+rbox1ap0_-0.99 rbox_r1_a_p0.brep offset -0.99 arc none 
+rbox1ap0_-1 rbox_r1_a_p0.brep offset -1.0 arc none 1728.0
+rbox1ap0_-1.01 rbox_r1_a_p0.brep offset -1.01 arc none 1718.8951920000002
+rbox1ap0_-1.5 rbox_r1_a_p0.brep offset -1.5 arc none 1309.0
+rbox1ap0_-3 rbox_r1_a_p0.brep offset -3.0 arc none 448.0
+rbox1ap1_-0.5 rbox_r1_a_p1.brep offset -0.5 arc none 
+rbox1ap1_-0.99 rbox_r1_a_p1.brep offset -0.99 arc none 
+rbox1ap1_-1 rbox_r1_a_p1.brep offset -1.0 arc none 1728.0
+rbox1ap1_-1.01 rbox_r1_a_p1.brep offset -1.01 arc none 1718.8951920000002
+rbox1ap1_-1.5 rbox_r1_a_p1.brep offset -1.5 arc none 1309.0
+rbox1ap1_-3 rbox_r1_a_p1.brep offset -3.0 arc none 448.0
+rbox1ap2_-0.5 rbox_r1_a_p2.brep offset -0.5 arc none 
+rbox1ap2_-0.99 rbox_r1_a_p2.brep offset -0.99 arc none 
+rbox1ap2_-1 rbox_r1_a_p2.brep offset -1.0 arc none 1728.0
+rbox1ap2_-1.01 rbox_r1_a_p2.brep offset -1.01 arc none 1718.8951920000002
+rbox1ap2_-1.5 rbox_r1_a_p2.brep offset -1.5 arc none 1309.0
+rbox1ap2_-3 rbox_r1_a_p2.brep offset -3.0 arc none 448.0
+rbox1np0_-0.5 rbox_r1_n_p0.brep offset -0.5 arc none 
+rbox1np0_-0.99 rbox_r1_n_p0.brep offset -0.99 arc none 
+rbox1np0_-1 rbox_r1_n_p0.brep offset -1.0 arc none 1728.0
+rbox1np0_-1.01 rbox_r1_n_p0.brep offset -1.01 arc none 1718.8951920000002
+rbox1np0_-1.5 rbox_r1_n_p0.brep offset -1.5 arc none 1309.0
+rbox1np0_-3 rbox_r1_n_p0.brep offset -3.0 arc none 448.0
+rbox1np1_-0.5 rbox_r1_n_p1.brep offset -0.5 arc none 
+rbox1np1_-0.99 rbox_r1_n_p1.brep offset -0.99 arc none 
+rbox1np1_-1 rbox_r1_n_p1.brep offset -1.0 arc none 1728.0
+rbox1np1_-1.01 rbox_r1_n_p1.brep offset -1.01 arc none 1718.8951920000002
+rbox1np1_-1.5 rbox_r1_n_p1.brep offset -1.5 arc none 1309.0
+rbox1np1_-3 rbox_r1_n_p1.brep offset -3.0 arc none 448.0
+rbox1np2_-0.5 rbox_r1_n_p2.brep offset -0.5 arc none 
+rbox1np2_-0.99 rbox_r1_n_p2.brep offset -0.99 arc none 
+rbox1np2_-1 rbox_r1_n_p2.brep offset -1.0 arc none 1728.0
+rbox1np2_-1.01 rbox_r1_n_p2.brep offset -1.01 arc none 1718.8951920000002
+rbox1np2_-1.5 rbox_r1_n_p2.brep offset -1.5 arc none 1309.0
+rbox1np2_-3 rbox_r1_n_p2.brep offset -3.0 arc none 448.0
+rbox2ap0_-1 rbox_r2_a_p0.brep offset -1.0 arc none 
+rbox2ap0_-1.98 rbox_r2_a_p0.brep offset -1.98 arc none 
+rbox2ap0_-2 rbox_r2_a_p0.brep offset -2.0 arc none 960.0
+rbox2ap0_-2.02 rbox_r2_a_p0.brep offset -2.02 arc none 947.4111360000002
+rbox2ap0_-3 rbox_r2_a_p0.brep offset -3.0 arc none 448.0
+rbox2ap0_-6 rbox_r2_a_p0.brep offset -6.0 arc none -32.0
+rbox2ap1_-1 rbox_r2_a_p1.brep offset -1.0 arc none 
+rbox2ap1_-1.98 rbox_r2_a_p1.brep offset -1.98 arc none 
+rbox2ap1_-2 rbox_r2_a_p1.brep offset -2.0 arc none 960.0
+rbox2ap1_-2.02 rbox_r2_a_p1.brep offset -2.02 arc none 947.4111360000002
+rbox2ap1_-3 rbox_r2_a_p1.brep offset -3.0 arc none 448.0
+rbox2ap1_-6 rbox_r2_a_p1.brep offset -6.0 arc none -32.0
+rbox2ap2_-1 rbox_r2_a_p2.brep offset -1.0 arc none 
+rbox2ap2_-1.98 rbox_r2_a_p2.brep offset -1.98 arc none 
+rbox2ap2_-2 rbox_r2_a_p2.brep offset -2.0 arc none 960.0
+rbox2ap2_-2.02 rbox_r2_a_p2.brep offset -2.02 arc none 947.4111360000002
+rbox2ap2_-3 rbox_r2_a_p2.brep offset -3.0 arc none 448.0
+rbox2ap2_-6 rbox_r2_a_p2.brep offset -6.0 arc none -32.0
+rbox2np0_-1 rbox_r2_n_p0.brep offset -1.0 arc none 
+rbox2np0_-1.98 rbox_r2_n_p0.brep offset -1.98 arc none 
+rbox2np0_-2 rbox_r2_n_p0.brep offset -2.0 arc none 960.0
+rbox2np0_-2.02 rbox_r2_n_p0.brep offset -2.02 arc none 947.4111360000002
+rbox2np0_-3 rbox_r2_n_p0.brep offset -3.0 arc none 448.0
+rbox2np0_-6 rbox_r2_n_p0.brep offset -6.0 arc none -32.0
+rbox2np1_-1 rbox_r2_n_p1.brep offset -1.0 arc none 
+rbox2np1_-1.98 rbox_r2_n_p1.brep offset -1.98 arc none 
+rbox2np1_-2 rbox_r2_n_p1.brep offset -2.0 arc none 960.0
+rbox2np1_-2.02 rbox_r2_n_p1.brep offset -2.02 arc none 947.4111360000002
+rbox2np1_-3 rbox_r2_n_p1.brep offset -3.0 arc none 448.0
+rbox2np1_-6 rbox_r2_n_p1.brep offset -6.0 arc none -32.0
+rbox2np2_-1 rbox_r2_n_p2.brep offset -1.0 arc none 
+rbox2np2_-1.98 rbox_r2_n_p2.brep offset -1.98 arc none 
+rbox2np2_-2 rbox_r2_n_p2.brep offset -2.0 arc none 960.0
+rbox2np2_-2.02 rbox_r2_n_p2.brep offset -2.02 arc none 947.4111360000002
+rbox2np2_-3 rbox_r2_n_p2.brep offset -3.0 arc none 448.0
+rbox2np2_-6 rbox_r2_n_p2.brep offset -6.0 arc none -32.0
+boss0.5ap0_+0.25 boss_r0.5_a_p0.brep offset 0.25 arc none 
+boss0.5ap0_+0.495 boss_r0.5_a_p0.brep offset 0.495 arc none 
+boss0.5ap0_+0.5 boss_r0.5_a_p0.brep offset 0.5 arc none 
+boss0.5ap0_+0.505 boss_r0.5_a_p0.brep offset 0.505 arc none 
+boss0.5ap0_+0.75 boss_r0.5_a_p0.brep offset 0.75 arc none 
+boss0.5ap0_+1.5 boss_r0.5_a_p0.brep offset 1.5 arc none 
+boss0.5ap1_+0.25 boss_r0.5_a_p1.brep offset 0.25 arc none 
+boss0.5ap1_+0.495 boss_r0.5_a_p1.brep offset 0.495 arc none 
+boss0.5ap1_+0.5 boss_r0.5_a_p1.brep offset 0.5 arc none 
+boss0.5ap1_+0.505 boss_r0.5_a_p1.brep offset 0.505 arc none 
+boss0.5ap1_+0.75 boss_r0.5_a_p1.brep offset 0.75 arc none 
+boss0.5ap1_+1.5 boss_r0.5_a_p1.brep offset 1.5 arc none 
+boss0.5ap2_+0.25 boss_r0.5_a_p2.brep offset 0.25 arc none 
+boss0.5ap2_+0.495 boss_r0.5_a_p2.brep offset 0.495 arc none 
+boss0.5ap2_+0.5 boss_r0.5_a_p2.brep offset 0.5 arc none 
+boss0.5ap2_+0.505 boss_r0.5_a_p2.brep offset 0.505 arc none 
+boss0.5ap2_+0.75 boss_r0.5_a_p2.brep offset 0.75 arc none 
+boss0.5ap2_+1.5 boss_r0.5_a_p2.brep offset 1.5 arc none 
+boss0.5np0_+0.25 boss_r0.5_n_p0.brep offset 0.25 arc none 
+boss0.5np0_+0.495 boss_r0.5_n_p0.brep offset 0.495 arc none 
+boss0.5np0_+0.5 boss_r0.5_n_p0.brep offset 0.5 arc none 
+boss0.5np0_+0.505 boss_r0.5_n_p0.brep offset 0.505 arc none 
+boss0.5np0_+0.75 boss_r0.5_n_p0.brep offset 0.75 arc none 
+boss0.5np0_+1.5 boss_r0.5_n_p0.brep offset 1.5 arc none 
+boss0.5np1_+0.25 boss_r0.5_n_p1.brep offset 0.25 arc none 
+boss0.5np1_+0.495 boss_r0.5_n_p1.brep offset 0.495 arc none 
+boss0.5np1_+0.5 boss_r0.5_n_p1.brep offset 0.5 arc none 
+boss0.5np1_+0.505 boss_r0.5_n_p1.brep offset 0.505 arc none 
+boss0.5np1_+0.75 boss_r0.5_n_p1.brep offset 0.75 arc none 
+boss0.5np1_+1.5 boss_r0.5_n_p1.brep offset 1.5 arc none 
+boss0.5np2_+0.25 boss_r0.5_n_p2.brep offset 0.25 arc none 
+boss0.5np2_+0.495 boss_r0.5_n_p2.brep offset 0.495 arc none 
+boss0.5np2_+0.5 boss_r0.5_n_p2.brep offset 0.5 arc none 
+boss0.5np2_+0.505 boss_r0.5_n_p2.brep offset 0.505 arc none 
+boss0.5np2_+0.75 boss_r0.5_n_p2.brep offset 0.75 arc none 
+boss0.5np2_+1.5 boss_r0.5_n_p2.brep offset 1.5 arc none 
+boss1ap0_+0.5 boss_r1_a_p0.brep offset 0.5 arc none 
+boss1ap0_+0.99 boss_r1_a_p0.brep offset 0.99 arc none 
+boss1ap0_+1 boss_r1_a_p0.brep offset 1.0 arc none 
+boss1ap0_+1.01 boss_r1_a_p0.brep offset 1.01 arc none 
+boss1ap0_+1.5 boss_r1_a_p0.brep offset 1.5 arc none 
+boss1ap0_+3 boss_r1_a_p0.brep offset 3.0 arc none 
+boss1ap1_+0.5 boss_r1_a_p1.brep offset 0.5 arc none 
+boss1ap1_+0.99 boss_r1_a_p1.brep offset 0.99 arc none 
+boss1ap1_+1 boss_r1_a_p1.brep offset 1.0 arc none 
+boss1ap1_+1.01 boss_r1_a_p1.brep offset 1.01 arc none 
+boss1ap1_+1.5 boss_r1_a_p1.brep offset 1.5 arc none 
+boss1ap1_+3 boss_r1_a_p1.brep offset 3.0 arc none 
+boss1ap2_+0.5 boss_r1_a_p2.brep offset 0.5 arc none 
+boss1ap2_+0.99 boss_r1_a_p2.brep offset 0.99 arc none 
+boss1ap2_+1 boss_r1_a_p2.brep offset 1.0 arc none 
+boss1ap2_+1.01 boss_r1_a_p2.brep offset 1.01 arc none 
+boss1ap2_+1.5 boss_r1_a_p2.brep offset 1.5 arc none 
+boss1ap2_+3 boss_r1_a_p2.brep offset 3.0 arc none 
+boss1np0_+0.5 boss_r1_n_p0.brep offset 0.5 arc none 
+boss1np0_+0.99 boss_r1_n_p0.brep offset 0.99 arc none 
+boss1np0_+1 boss_r1_n_p0.brep offset 1.0 arc none 
+boss1np0_+1.01 boss_r1_n_p0.brep offset 1.01 arc none 
+boss1np0_+1.5 boss_r1_n_p0.brep offset 1.5 arc none 
+boss1np0_+3 boss_r1_n_p0.brep offset 3.0 arc none 
+boss1np1_+0.5 boss_r1_n_p1.brep offset 0.5 arc none 
+boss1np1_+0.99 boss_r1_n_p1.brep offset 0.99 arc none 
+boss1np1_+1 boss_r1_n_p1.brep offset 1.0 arc none 
+boss1np1_+1.01 boss_r1_n_p1.brep offset 1.01 arc none 
+boss1np1_+1.5 boss_r1_n_p1.brep offset 1.5 arc none 
+boss1np1_+3 boss_r1_n_p1.brep offset 3.0 arc none 
+boss1np2_+0.5 boss_r1_n_p2.brep offset 0.5 arc none 
+boss1np2_+0.99 boss_r1_n_p2.brep offset 0.99 arc none 
+boss1np2_+1 boss_r1_n_p2.brep offset 1.0 arc none 
+boss1np2_+1.01 boss_r1_n_p2.brep offset 1.01 arc none 
+boss1np2_+1.5 boss_r1_n_p2.brep offset 1.5 arc none 
+boss1np2_+3 boss_r1_n_p2.brep offset 3.0 arc none 
+boss2ap0_+1 boss_r2_a_p0.brep offset 1.0 arc none 
+boss2ap0_+1.98 boss_r2_a_p0.brep offset 1.98 arc none 
+boss2ap0_+2 boss_r2_a_p0.brep offset 2.0 arc none 
+boss2ap0_+2.02 boss_r2_a_p0.brep offset 2.02 arc none 
+boss2ap0_+3 boss_r2_a_p0.brep offset 3.0 arc none 
+boss2ap1_+1 boss_r2_a_p1.brep offset 1.0 arc none 
+boss2ap1_+1.98 boss_r2_a_p1.brep offset 1.98 arc none 
+boss2ap1_+2 boss_r2_a_p1.brep offset 2.0 arc none 
+boss2ap1_+2.02 boss_r2_a_p1.brep offset 2.02 arc none 
+boss2ap1_+3 boss_r2_a_p1.brep offset 3.0 arc none 
+boss2ap2_+1 boss_r2_a_p2.brep offset 1.0 arc none 
+boss2ap2_+1.98 boss_r2_a_p2.brep offset 1.98 arc none 
+boss2ap2_+2 boss_r2_a_p2.brep offset 2.0 arc none 
+boss2ap2_+2.02 boss_r2_a_p2.brep offset 2.02 arc none 
+boss2ap2_+3 boss_r2_a_p2.brep offset 3.0 arc none 
+boss2np0_+1 boss_r2_n_p0.brep offset 1.0 arc none 
+boss2np0_+1.98 boss_r2_n_p0.brep offset 1.98 arc none 
+boss2np0_+2 boss_r2_n_p0.brep offset 2.0 arc none 
+boss2np0_+2.02 boss_r2_n_p0.brep offset 2.02 arc none 
+boss2np0_+3 boss_r2_n_p0.brep offset 3.0 arc none 
+boss2np1_+1 boss_r2_n_p1.brep offset 1.0 arc none 
+boss2np1_+1.98 boss_r2_n_p1.brep offset 1.98 arc none 
+boss2np1_+2 boss_r2_n_p1.brep offset 2.0 arc none 
+boss2np1_+2.02 boss_r2_n_p1.brep offset 2.02 arc none 
+boss2np1_+3 boss_r2_n_p1.brep offset 3.0 arc none 
+boss2np2_+1 boss_r2_n_p2.brep offset 1.0 arc none 
+boss2np2_+1.98 boss_r2_n_p2.brep offset 1.98 arc none 
+boss2np2_+2 boss_r2_n_p2.brep offset 2.0 arc none 
+boss2np2_+2.02 boss_r2_n_p2.brep offset 2.02 arc none 
+boss2np2_+3 boss_r2_n_p2.brep offset 3.0 arc none 

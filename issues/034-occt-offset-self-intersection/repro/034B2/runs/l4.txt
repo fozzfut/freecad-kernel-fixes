@@ -1,0 +1,6 @@
+rbox0.5np1_-0.495 rbox_r0.5_n_p1.brep offset -0.495 arc none 
+rbox1np1_-0.99 rbox_r1_n_p1.brep offset -0.99 arc none 
+rbox2ap0_-6 rbox_r2_a_p0.brep offset -6.0 arc none -32.0
+rbox2np1_-1.98 rbox_r2_n_p1.brep offset -1.98 arc none 
+boss1np0_+0.5 boss_r1_n_p0.brep offset 0.5 arc none 
+boss1np0_+1.5 boss_r1_n_p0.brep offset 1.5 arc none 

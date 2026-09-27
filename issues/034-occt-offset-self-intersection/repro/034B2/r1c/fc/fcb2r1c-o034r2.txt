@@ -1,0 +1,11 @@
+vbox_r1_pdthick_in1 PD::Thickness r=1 t=1 reversed=True face=2 ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=2791.41593 ref=847.41593 0.01s
+vbox_r1_pdthick_in1.5 PD::Thickness r=1 t=1.5 reversed=True face=2 ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=2791.41593 ref=1201.91593 0.03s
+vbox_r1_pdthick_in2 PD::Thickness r=1 t=2 reversed=True face=2 ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=2791.41593 ref=1511.41593 0.23s
+vbox_r1_rot_pdthick_in1.5 PD::Thickness r=1 t=1.5 reversed=True face=2 ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=2791.41593 ref=1201.91593 0.03s
+vtbox_r1_pdthick_in1.5 PD::Thickness r=1 t=1.5 reversed=True face=13 ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=2777.49262 ref=- 0.23s
+vbox_r2_pdthick_in3 PD::Thickness r=2 t=3 reversed=True face=2 ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=2765.66371 ref=1981.66371 0.05s
+vbox_r1_off-1.5 Part::Offset r=1 value=-1.5 ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done ref=1309.00000 0.04s
+vbox_r1_off-3 Part::Offset r=1 value=-3 ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done ref=448.00000 0.03s
+NEGCTRL_vbox_r1_pdthick_in0.5 PD::Thickness r=1 t=0.5 reversed=True face=2 OK isValid=True check=clean vol=446.95464 solids=1 faces=19 vol0=2791.41593 ref=- 0.29s
+NEGCTRL_vbox_r1_off-0.5 Part::Offset r=1 value=-0.5 OK isValid=True check=clean vol=2221.06858 solids=1 faces=10 ref=- 0.52s
+FC-B2R1C-DONE

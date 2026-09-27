@@ -1,0 +1,13 @@
+034 B2: rim intersection hardening (rational surfaces, removed faces only, no exceptions, compound input)
+
+- surfaces are extended in place only when the vanishing set reaches a
+  removed face (the rim lemma needs no extension otherwise), and only
+  polynomial B-spline / Bezier ones (GeomLib::ExtendSurfByLength keeps
+  their parametrisation; not guaranteed for rational ones);
+- an exception inside the rim intersection is reported as
+  CannotTrimEdges (the code the stage A guard gave these offsets);
+- the positive-volume check of an offset built around vanishing faces also
+  covers a solid given inside a compound (FreeCAD's Part::Offset input):
+  the result is then a closed shell, not a solid.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

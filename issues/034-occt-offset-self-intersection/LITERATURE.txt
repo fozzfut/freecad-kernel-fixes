@@ -249,3 +249,103 @@ Better-known method check: a full BRepCheck + BOP self-interference check of eve
 slow method (review r1 fallback: correct, but pays the geometric check on every legal cavity); a point-classification
 test that the cavity lies inside the outer shell (BRepClass3d) was considered and NOT used - it is geometric, the
 generator argument above already fixes where a cavity can come from, and no member of the class needed it.
+
+==== Lane B2 round 1 (class: freeform offsets past the curvature radius; 27.09.2026) - sources added and how applied ====
+Pass done BEFORE the kernel change. Venues: CAD / CAGD / ACM TOG (IF >= 5 or specialist CAD/geometry); ASME JMD marked.
+DOIs checked by web search 27.09 unless marked [not re-checked].
+B2-1. Aomura S., Uehara T. Self-intersection of an offset surface. Computer-Aided Design 22(7):417-421, 1990.
+      ScienceDirect pii 001044859090106M (doi 10.1016/0010-4485(90)90106-M). Venue: CAD. [ABS; method summarised in B2-3, OA]
+      Idea: self-intersection curves of a (collapsed) B-spline offset: start points by one-dimensional searches,
+      curves by integrating an ODE system (tracing).
+      Applied: design of the in-face trace (round 3 plan: predictor-corrector on S_d(p) = S_d(q), p != q). Not in code yet.
+B2-2. Maekawa T., Cho W., Patrikalakis N.M. Computation of self-intersections of offsets of Bezier surface patches.
+      ASME Journal of Mechanical Design 119(2):275-283, 1997. Venue: ASME JMD (IF ~3, NOT in the specialist list -
+      supporting source only). [ABS]
+      Idea: start points of the self-intersection curves from a polynomial system (interval projected polyhedron);
+      trivial solutions p = q removed with normal bounding pyramids.
+      Applied: seed search design for round 3 (the trivial diagonal must be excluded by a normal-cone test).
+B2-3. Patrikalakis N.M., Maekawa T. Shape Interrogation for CAD/CAM. Springer 2002 (2010 reprint), section 11.3
+      "Singularities of offset surfaces" [OA hyperbook web.mit.edu/hyperbook/Patrikalakis-Maekawa-Cho/node225.html].
+      Book (specialist). Idea: two singularity kinds of an offset: irregular points / cuspidal edges where a principal
+      radius equals the offset, and self-intersection curves that end on them.
+      Applied: the class split used here: V = the whole face beyond the cuspidal set (vanishing face, this round);
+      P = cuspidal edge inside the face (partial fold, rounds 3-4).
+B2-4. Park Y., Son S.-H., Kim M.-S., Elber G. Surface-surface-intersection computation using a bounding volume
+      hierarchy with osculating toroidal patches in the leaf nodes. Computer-Aided Design 127:102866, 2020.
+      doi 10.1016/j.cad.2020.102866. Venue: CAD. [ABS]
+      Idea: robust SSI near tangency with osculating-torus leaves.
+      Applied: upgrade path for the rim intersections at the degenerate threshold (offset = blend radius), where the
+      two rim offsets meet on their own boundaries. This round uses OCCT IntPatch on copies enlarged by 10 x tolerance.
+B2-5. Cheng J.-S., Zhang B., Xiao Y., Li M. Topology driven approximation to rational surface-surface intersection via
+      interval algebraic topology analysis. ACM Transactions on Graphics 42(4), 2023. doi 10.1145/3592452.
+      Venue: TOG (IF ~7). [ABS]
+      Idea: certified topology of SSI curves (interval algebraic topology), then approximation.
+      Applied: upgrade path for a certified crease topology of the partial-fold trace (round 3+).
+Re-used (base file / earlier stages): Farouki 1986 (CAGD) and Maekawa 1999 (CAD): the offset folds where 1 - d*k_i < 0;
+Forsyth 1995 (SMA): offset faces may vanish, neighbours are extended and intersected; Rossignac-Requicha 1986 (CAGD):
+closing/opening - a closed blend network smaller than the offset is invisible to the offset; Hong 2019 / Park 2021:
+miter points = ends of self-intersection curves (numerically unstable in (u,v)); Li-Jia-Chen TOG 2025: certified
+self-intersection test (upgrade of the sampled fold test).
+Own derivation (recorded here and in the code comment):
+  (1) Ball argument. If 1 - d*k_i(x) < 0 for a principal curvature k_i at x (d signed along the outward normal), the
+      ball of radius |d| centred at p = x + d*n(x) contains surface points near x, so dist(p, S) < |d| and p is never
+      on the offset. A face with this at every point contributes nothing to the offset ("vanishing face").
+  (2) Rim lemma. Let Z be a connected set of vanishing faces whose boundary edges are all shared, tangent (G1) edges.
+      Every boundary point of the dilation near Z has a nearest point on S at distance |d|; by (1) it is not in Z and
+      not on a boundary edge of Z (the Z side folds there too), so it is the offset of an interior point of a
+      surviving neighbour ("rim face"). The dilation boundary is closed, so the rim offsets must meet each other inside
+      their own parameter domains (on their boundary exactly when the offset equals the blend radius): pairwise
+      intersection of the rim offsets is enough, no extension beyond the tolerance is needed.
+  (3) Tolerance-degenerate face: min factor * face size <= tolerance => the offset face is below the tolerance in one
+      direction (a curve or point) - treated as vanishing, like OCCT's analytic status Degenerated (|R| < Tol).
+Better-known method check: for exact trimming of partial folds the literature (B2-1..B2-3, Seong-Elber-Kim 2006,
+Pekerman 2008, Park 2021) traces the self-intersection curve; nothing cheaper is known. For vanishing faces
+Forsyth's neighbour intersection is the classic kernel method; this round implements it for the tangent-bounded case.
+==== Lane B2 round 1, continuation 28.09.2026 (sharp rim edges, removed faces, planar-substitute orientation) ====
+Pass done before the change (web search 28.09 + the lane's sources). Venues: CAD / CAGD / SMA (ACM solid modeling, conference).
+B2-6. Rossignac J.R., Requicha A.A.G. Offsetting operations in solid modelling. Computer Aided Geometric Design 3(2):129-148,
+      1986. doi 10.1016/0167-8396(86)90017-8. Venue: CAGD (specialist). [ABS]
+      Idea: offsets as Minkowski growing/shrinking; rounding a solid = opening/closing, so an offset larger than the
+      rounding radius does not see the rounding.
+      Applied: the correctness criterion of this class and the independent references: the inward offset / shell of a
+      box whose edges are rounded with r < d equals that of the sharp box (sharp boxes built by booleans in the tests).
+B2-7. Forsyth M. Shelling and offsetting bodies. Proc. 3rd ACM Symposium on Solid Modeling and Applications (SMA) 1995,
+      pp. 373-381. doi 10.1145/218013.218088 (web-checked 28.09). Venue: SMA (conference, specialist). [ABS]
+      Idea: offset faces may vanish; the surviving neighbours are extended and intersected.
+      Applied: already in round 1; extended here to neighbours across sharp edges whose offsets intersect.
+B2-8. Lee S.H. Offsetting operations on non-manifold topological models. Computer-Aided Design 41(11):830-846, 2009.
+      ScienceDirect pii S0010448509001523 (DOI not re-checked). Venue: CAD. [ABS]
+      Idea: every offset element is generated by one input element (face, edge, vertex); the kind of the element and
+      of its adjacency decides which offset elements meet.
+      Applied: the scope rule by edge kind: a sharp edge of intersection kind generates no offset element (its faces'
+      offsets meet directly), a sharp edge of tube kind generates a pipe that itself folds with the vanishing set.
+B2-9. Hong Q.Y., Park Y., Kim M.-S., Elber G. Trimming offset surface self-intersections around near-singular
+      regions. Computers & Graphics 82:84-94, 2019. ScienceDirect pii S0097849319300779 (DOI not re-checked). Venue: C&G (supporting, not in the
+      specialist list). [ABS]
+      Idea: miter points (open ends of self-intersection curves) as small parameter quads.
+      Applied: design of round 2 (the tube of a sharp edge ending on a vanishing blend folds; its fold curve can
+      collapse to one point - see own derivation (6)).
+Own derivations (recorded here and in the commit/code comments):
+  (4) Sharp-rim lemma. Let e be a sharp edge between a vanishing face Z and a rim face R whose two offsets intersect
+      (convex edge, inward offset; concave edge, outward offset). The normal cone of e points into the material side
+      (no tube), so no point of the offset has its nearest point on e; with (2) every boundary point of the dilation
+      near Z has its nearest point inside a rim face: the pairwise intersection of the rim offsets is enough, as for
+      tangent rims. Check on the box corner (fillet r, inward d >= r): the corner point (d,d) is at distance
+      sqrt2 (d-r) + r >= d from the removed corner zone (equality only at d = r), so the inner corner is sharp and
+      exact (erosion of the rounded box = erosion of the sharp box, B2-6).
+  (5) Thick solid: the offset edge of a rim face on a removed face ends where the vanishing set began (the offset
+      of the old tangent/sharp vertex), while the rim faces meet the removed face and each other at the new corner,
+      which lies beyond that end for d > r and exactly at it for d = r. So the removed face must be intersected with
+      the rim face extended past that end (enlarged copies), not with the stock edge.
+  (6) Tube of a sharp end edge (round 2): a circular end arc of radius r of a concave blend, outward offset d > r:
+      the pipe of radius d around it folds where d * sin(phi) / r > 1 (phi = angle from the side face normal); the
+      valid band phi < asin(r/d) closes to one point (the arc's axis at depth sqrt(d^2 - r^2)); beyond it the pipes of
+      the two straight side edges meet along x-a = z-a = sqrt(d^2 - s^2). Exact, but needs pipe trimming at the fold
+      curve and pipe-pipe rim pairs; not in this round.
+  (7) Planar substitution (BRepOffset_MakeOffset, stock) replaces a planar B-spline face by a plane face made FORWARD
+      and loses the orientation of a REVERSED face; the removed face's copy used for the rim-pair section therefore
+      takes the orientation of the face it replaced (measured: all-NURBS boxes with the bottom removed were an error
+      before, exact after; analytic results unchanged).
+Better-known method check: no published kernel method for this sub-class beyond Forsyth's neighbour intersection was
+found; the exact partial-fold trimming (Aomura-Uehara 1990, Maekawa 1999, Hong 2019, Park 2021) stays the method for
+rounds 2+.

@@ -1,0 +1,9 @@
+rbox_thk-1.5 rbox_r1_a.brep thick -1.5 arc largest 1174.06931
+rboxn_thk-1.5 rbox_r1_n.brep thick -1.5 arc largest 1174.06931
+rbox_thk-1 rbox_r1_a.brep thick -1 arc largest
+rbox_thk-3 rbox_r1_a.brep thick -3 arc largest
+boss_thk+1.5 boss_r1_a.brep thick 1.5 arc largest
+bfil_off-2.5 /c/dev/occt8-mig/offset-034/cases/box_fillet_r2.brep offset -2.5 arc none
+bfil_thk-2.5 /c/dev/occt8-mig/offset-034/cases/box_fillet_r2.brep thick -2.5 arc largest
+bfiln_off-2.5 /c/dev/occt8-mig/offset-034/cases/box_fillet_r2_nurbs.brep offset -2.5 arc none
+bfiln_thk-2.5 /c/dev/occt8-mig/offset-034/cases/box_fillet_r2_nurbs.brep thick -2.5 arc 9

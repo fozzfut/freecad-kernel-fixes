@@ -1,0 +1,1 @@
+plate1024_off+0.2 RES op=offset t=0.2 join=arc inter=0 self=0 done=1 err=0 exc=- ms=3156 grade=OK bop=- nf=3098 vol0=327617.7053 vol=360961.1919 chkus=2963351 bopus=16644031 foldFaces=0 minJ=0.8667 peakMB=103 removed=- folds=[] 

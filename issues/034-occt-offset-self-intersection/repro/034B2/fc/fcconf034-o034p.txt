@@ -1,0 +1,15 @@
+lwall_nurbs_out1 PD::Thickness value=1 reversed=False join=Arc inter=False ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=760.5365 0.10s
+lwall_analytic_out1 PD::Thickness value=1 reversed=False join=Arc inter=False ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=760.5365 0.02s
+vr6p4_default_in1 PD::Thickness value=1 reversed=True join=Arc inter=False ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=68854.0072 0.16s
+c031_m2s10_sq_c15_out0.3 PD::Thickness value=0.3 reversed=False join=Arc inter=False ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=75535.4131 0.75s
+step_nurbs_1.5 Part::Offset value=1.5 join=Arc inter=False self=False ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done vol0=3002.1460 1.32s
+step_nurbs_1.5_self Part::Offset value=1.5 join=Arc inter=False self=True ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done vol0=3002.1460 1.87s
+step_analytic_1.5_int_i1 Part::Offset value=1.5 join=Intersection inter=True self=False ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done vol0=3002.1460 0.04s
+step_analytic_1.5_arc Part::Offset value=1.5 join=Arc inter=False self=False ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done vol0=3002.1460 0.04s
+NEGCTRL_step_nurbs_0.9 Part::Offset value=0.9 join=Arc inter=False self=False OK state=Up-to-date isValid=True check=clean vol=4388.4115 solids=1 vol0=3002.1460 0.76s
+bfil_in1_KNOWN_GAP PD::Thickness value=1 reversed=True join=Arc inter=False INV state=Up-to-date isValid=False check=FAULTS vol=1198.1298 solids=1 vol0=3839.0324 0.42s
+bfiln_in2.5 PD::Thickness value=2.5 reversed=True join=Arc inter=False ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=3839.0324 0.32s
+NEGCTRL_bfiln_out1 Part::Offset value=1 join=Arc inter=False self=False OK state=Up-to-date isValid=True check=clean vol=5411.5220 solids=1 vol0=3839.0324 1.17s
+NEGCTRL_oring_out0.5 Part::Offset value=0.5 join=Arc inter=False self=False OK state=Up-to-date isValid=True check=clean vol=68597.3520 solids=1 vol0=59569.2224 0.15s
+NEGCTRL_oring_in1 PD::Thickness value=1 reversed=True join=Arc inter=False OK state=Up-to-date isValid=True check=clean vol=10923.8692 solids=1 vol0=59569.2224 0.10s
+FC-CONF-DONE

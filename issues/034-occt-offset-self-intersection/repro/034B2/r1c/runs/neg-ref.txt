@@ -1,0 +1,1 @@
+R WRONG done=1 err=0 exc=- ms=16 grade=OK bop=- nsol=1 nf=6 vol=1309.00000 vol0=2791.41593 ref=0.00000 oracle S=0 OFF=6 WALL=0 MIX=0 mc=0/952/1 sd=78 rem=- peakMB=14

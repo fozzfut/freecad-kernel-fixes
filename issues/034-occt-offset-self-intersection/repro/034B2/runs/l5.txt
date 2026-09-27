@@ -1,0 +1,12 @@
+boss0.5mp0_+0.5 boss_r0.5_m_p0.brep offset 0.5 arc none
+boss0.5mp1_+0.5 boss_r0.5_m_p1.brep offset 0.5 arc none
+boss0.5mp2_+0.5 boss_r0.5_m_p2.brep offset 0.5 arc none
+boss1mp0_+1 boss_r1_m_p0.brep offset 1.0 arc none
+boss1mp1_+1 boss_r1_m_p1.brep offset 1.0 arc none
+boss1mp2_+1 boss_r1_m_p2.brep offset 1.0 arc none
+boss2mp0_+2 boss_r2_m_p0.brep offset 2.0 arc none
+boss2mp0_+6 boss_r2_m_p0.brep offset 6.0 arc none
+boss2mp1_+2 boss_r2_m_p1.brep offset 2.0 arc none
+boss2mp1_+6 boss_r2_m_p1.brep offset 6.0 arc none
+boss2mp2_+2 boss_r2_m_p2.brep offset 2.0 arc none
+boss2mp2_+6 boss_r2_m_p2.brep offset 6.0 arc none

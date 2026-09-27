@@ -1,0 +1,6 @@
+rbox_thk-1.5 rbox_r1_a.brep thick -1.5 arc largest
+rboxn_thk-1.5 rbox_r1_n.brep thick -1.5 arc largest
+rbox_thk-0.5 rbox_r1_a.brep thick -0.5 arc largest
+boss_thk+1.5 boss_r1_a.brep thick 1.5 arc largest
+bossn_thk+1.5 boss_r1_n.brep thick 1.5 arc largest
+boss_thk-1.5 boss_r1_a.brep thick -1.5 arc largest

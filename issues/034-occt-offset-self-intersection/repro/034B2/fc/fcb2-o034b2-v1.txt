@@ -1,0 +1,12 @@
+rbox_r1_off-1.5 Part::Offset value=-1.5 join=Arc ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done ref=1309.00000 0.64s
+rbox_r1_off-2.5 Part::Offset value=-2.5 join=Arc ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done ref=675.00000 0.02s
+rbox_r1_off-1_eq_radius Part::Offset value=-1 join=Arc ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done ref=1728.00000 0.51s
+rbox_r1_rot_off-1.5 Part::Offset value=-1.5 join=Arc ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done ref=1309.00000 0.30s
+rbox_r1_pdthick_in1.5 PD::Thickness face=11 value=1.5 reversed=True join=Arc OK isValid=True check=clean vol=1174.06931 solids=1 faces=31 vol0=2763.56931 ref=1174.06931 2.36s
+rbox_r1_pdthick_in2 PD::Thickness face=11 value=2 reversed=True join=Arc OK isValid=True check=clean vol=1483.56931 solids=1 faces=31 vol0=2763.56931 ref=1483.56931 2.46s
+boss_r1_off+1.5 Part::Offset value=1.5 join=Arc ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done ref=- 1.32s
+boss_r1_off+1.5_int Part::Offset value=1.5 join=Intersection ERR state=Touched,Invalid msg=BRepOffsetAPI_MakeOffsetShape_not_done ref=- 0.06s
+NEGCTRL_rbox_r1_off-0.5 Part::Offset value=-0.5 join=Arc OK isValid=True check=clean vol=2214.36873 solids=1 faces=26 ref=- 0.76s
+NEGCTRL_rbox_r2_pdthick_out1 PD::Thickness face=11 value=1 reversed=False join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid vol0=2659.63418 ref=- 0.27s
+NEGCTRL_boss_r2_off+1 Part::Offset value=1 join=Arc OK isValid=True check=clean vol=8032.62292 solids=1 faces=30 ref=- 0.44s
+FC-B2-DONE

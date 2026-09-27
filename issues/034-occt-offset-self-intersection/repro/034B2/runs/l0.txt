@@ -1,0 +1,10 @@
+step_off+0.9 step_r1_a.brep offset 0.9 arc none
+step_off+1.5 step_r1_a.brep offset 1.5 arc none
+stepn_off+1.5 step_r1_n.brep offset 1.5 arc none
+rbox_off-1.5 rbox_r1_a.brep offset -1.5 arc none 1309.0
+rboxn_off-1.5 rbox_r1_n.brep offset -1.5 arc none 1309.0
+pocket_off+1.5 pocket_r1_a.brep offset 1.5 arc none
+lwall_off+1.5 lwall_r1_a.brep offset 1.5 arc none
+boss_off+1.5 boss_r1_a.brep offset 1.5 arc none
+dimple_off+4 dimple_h15.brep offset 4 arc none
+dimple_off+2 dimple_h15.brep offset 2 arc none

@@ -1,0 +1,30 @@
+034 B2 (TKOffset): offsets past the blend radius - vanishing faces, rim faces meet
+
+Class: a face whose smallest principal offset factor 1 - d*k_i is below
+zero (or zero within the tolerance) over the whole face - a fillet, round,
+torus ring or corner ball smaller than the offset, analytic or free-form.
+Its offset lies strictly closer than |d| to the input (ball argument), so
+it contributes nothing to the offset.
+
+Stock drops analytic faces in this state (status Reversed/Degenerated) but
+never joins their neighbours (open shell: error or empty result) and keeps
+free-form ones untrimmed (self-intersecting result). Now, in the arc join:
+- such faces are found by curvature (analytic status, or a sampled factor
+  with local ascent and early exit for free-form faces) and dropped;
+- the offset edges they shared with their neighbours are not used;
+- every pair of surviving faces around a connected vanishing set is
+  intersected on copies enlarged by 10 x tolerance (the rim offsets meet
+  inside their own domains; exactly on the boundary when the offset equals
+  the radius); a bounded B-spline rim surface is extended in place first
+  (same parametrisation, pcurves kept);
+- a set that reaches a removed face of a thick solid: the rim offsets are
+  extended across the set and intersected with the removed face's surface;
+  ContextIntByArc skips cap edges/faces whose offset vanished (stock read an
+  unbound image there);
+- an offset of a solid built this way must give solids of positive volume
+  (collapse beyond the half thickness -> CannotTrimEdges).
+Scope: sets bounded by tangent edges or removed faces; other sets (a blend
+ending on a sharp edge, whose tube folds too; partial folds inside a face)
+keep the stock flow and the stage A guard. Intersection join unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
