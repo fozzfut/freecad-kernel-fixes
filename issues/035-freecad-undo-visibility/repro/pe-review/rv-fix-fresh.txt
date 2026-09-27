@@ -1,0 +1,17 @@
+PROBE-START pref_off=False AutoTransactionView=False AutoTransactionData=True UndoVisibility=True
+HD not importable: No module named 'hybriddesign'
+CASE R1-pd-exclusive PASS before=[False, True] after=[True, False] steps=1 names=['Edit property Visibility'] undo->[False, True] redo->[True, False] note=cell-click
+CASE R2-two-edits PASS states=(False, True) names=['Edit property Visibility', 'Edit property Visibility'] undo1=False undo2=True
+CASE R3-owner-pad PASS hidden=False names=['Edit property Visibility', 'Make Pad'] undo1(vis,pad)=(True, True) undo2=(True, False) note=cell-click
+CASE R4-part-children PASS steps=1 names=['Edit property Visibility'] undo->[(True, True, True)] redo->[(False, True, True)] note=cell-click
+CASE R5-showintree-multi PASS steps=1 names=['Edit property ShowInTree...'] undo->[True, True] redo->[False, False] note=cell-click
+CASE R6-tree-toggle-in-tx PASS sit=False pending=True names=['Tool'] after_undo=(True, 0.0)
+CASE R7-data-bool-identity INFO AllowCompound True->False names=['Edit Body.AllowCompound'] undo->True note=cell-click
+CASE R8-sketch-edit PASS dialog=True pe(vis,steps,names,pend)=(False, 1, ['Edit property Visibility'], False) toggle=(False, 1, ['Toggle Visibility'], False) after_close=['Sketch recompute', 'Toggle Visibility', 'Edit property Visibility'] note=cell-click
+CASE R9-touched INFO touched before=['BodyBox'] after_hide=['BodyBox'] names=['Edit property Visibility'] after_undo=['BodyBox'] vis=True len=7.0
+CASE R10-save-reopen PASS modified before/after hide=True/True reopened vis=False undo=0
+CASE R11-data-visibility PASS steps=1 names=['Edit Body.Visibility'] undo->[True] redo->[False] note=cell-click
+  R11 menu={'was': False}
+  R11 menu restore={'was': True}
+PROBE-END pass=9 fail=0 invalid=0 info=2
+PROBE-EXIT

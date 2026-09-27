@@ -1,0 +1,26 @@
+PROBE-START gui=? pref_off=False
+HD C:\dev\occt8-mig\undovis-pe\review\runs\uv-inst-owner\data\Mod\HybridDesign\hybriddesign\__init__.py
+AutoTransactionView=False UndoVisibility=True
+CASE C1-toggle PASS steps=1 names=['Toggle Visibility'] undo->[True] redo->[False]
+CASE C2-hidesel PASS steps=1 names=['Hide Selection'] undo->[True] redo->[False]
+CASE C3-showsel PASS steps=1 names=['Show Selection'] undo->[False] redo->[True]
+CASE C4-toggle-multi PASS steps=1 names=['Toggle Visibility'] undo->[True, True, True] redo->[False, False, False]
+CASE C5-hidesel-multi PASS steps=1 names=['Hide Selection'] undo->[True, True, True] redo->[False, False, False]
+CASE C6a-hideall PASS steps=1 names=['Hide All Objects'] undo->[True, True] redo->[False, False]
+CASE C6b-showall PASS steps=1 names=['Show All Objects'] undo->[False, False] redo->[True, True]
+CASE C6c-toggleall PASS steps=1 names=['Toggle All Objects'] undo->[True, True] redo->[False, False]
+TREE True visible=True
+CASE C7a-eye PASS steps=1 names=['Hide'] undo->[True] redo->[False]
+CASE C7b-eye-in-part PASS steps=1 names=['Hide'] undo->[True] redo->[False]
+CASE C8a-tree-space PASS steps=1 names=['Toggle Visibility'] undo->[True] redo->[False]
+CASE C8b-tree-space-multi PASS steps=1 names=['Toggle Visibility'] undo->[True, True] redo->[False, False]
+CASE C9-modeling PASS pad=(True, False, True) hide=(False, False, True) undoNames=['Toggle Visibility', 'Pad'] undo1=(True, False, True) undo2=(True, True, False) redo1=(True, False, True) redo2=(False, False, True)
+CASE C10-link PASS steps=1 names=['Toggle Visibility'] undo->[True] redo->[False]
+CASE C10b-link-hidesel PASS steps=1 names=['Hide Selection'] undo->[True] redo->[False]
+  C11 modified right after save=True, forced clean=False
+CASE C11-save PASS modified before/after hide=False/True reopen1=(False, True, 0) reopen2=(False, True, 0)
+CASE C12-noop PASS undoCount=0 vis=False
+CASE C12b-noop-others PASS showsel-on-shown=0 hideall-on-hidden=0
+CASE C13-in-tool PASS pending_after_hide=True undoNames=['Tool'] after_undo=(True, 0.0)
+PROBE-END pass=19 fail=0 invalid=0
+PROBE-EXIT

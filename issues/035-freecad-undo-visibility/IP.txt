@@ -1,0 +1,8 @@
+035 provenance / IP (27.09.2026)
+- Design element "one undo step per user show/hide action": own derivation from FreeCAD's existing TransactionView
+  helper (LGPL, same repo) + general HCI literature (LITERATURE.txt). No proprietary code, text or documentation used.
+- Fusion 360 was referenced only as the owner's expectation of BEHAVIOUR (Ctrl+Z restores visibility), not as a source.
+- Patent check: grouping UI actions into undo transactions is decades-old prior art (Berlage 1994, Myers 1996);
+  no new algorithm is introduced. No patent concern identified.
+- 035-PE (27.09.2026): same design element applied to two more FreeCAD paths (PropertyItem::setPropertyValue, TreeWidget::
+  onToggleVisibilityInTree); own derivation from FreeCAD's PropertyEditor transaction code (LGPL). No new method, no patent concern.
