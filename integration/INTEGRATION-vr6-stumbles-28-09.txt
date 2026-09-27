@@ -1,0 +1,35 @@
+Integration vr6-stumbles (FreeCAD 26.3dev weekly 019f5c5 + our patches; accepted 28.09.2026)
+
+Installed into C:/dev/FreeCAD-occt8-perf on 28.09 00:06 (install-all.sh, md5-checked, stock kept in _replaced):
+  bin/FreeCADGui.dll    672076f4 (weekly) -> f3353384a825ac61a65af2c34aa22309 (was 7af65a21)
+  lib/PartGui.pyd       1b95afc5 (weekly) -> d974f0594c10da8cb129b33ee8b4757c (was e5b8412a)
+  lib/PartDesignGui.pyd 615092c6 (weekly) -> 853c19e5b81bfac28e14d5c1b713905e (was c3964619)
+
+FreeCADGui.dll = fcD mig/vr6-int 9d93e69 (local FreeCAD checkout, upstream-only remote):
+  3eccec5 (035 + 035-PE, delivered 7af65a21) + 038 r1-r3 (89d3ff9 af4d3f4 10f9f7b)
+  + 036 6c90e2c (git patch-id == 1a72a61) + 040 9d93e69 (git patch-id == 01c0dbd).
+  Patches: issues/036 patches-263/0001 (branch fix/036-save-modified), issues/038 patches-263/0001-0003
+  (fix/038-039-view-fit; 0004 Sketcher is source-only, not built), issues/040 patches-263/0001
+  (fix/040-observer-under-construction).
+PartGui.pyd = 039 (issues/039 patches-263/0001, fix/038-039-view-fit).
+PartDesignGui.pyd = 037 (issues/037 patches-263/0001, fix/037-body-selection; fc-vr6body mig/vr6-body ec79350).
+HybridDesign master d655292 (merge of fix/vr6-asm 7422a6b), pushed to fozzfut/HybridDesign.
+
+Reviews: vr6-save r1, vr6-body r2, vr6-asm r2, vr6-unconf r3 - ACCEPTED (ledger C:/dev/occt8-mig/progress.md).
+
+Acceptance 28.09 (evidence C:/dev/occt8-mig/vr6integr/{runs,accept}, C:/dev/thk-vr6-model/run_final*.log):
+- scenario_vr6.py through fcui, windowed, HD d655292, real Assembly path (Assembly_CreateAssembly, 4x Assembly_InsertLink
+  panel = 16 links, 'Ground Part?' Yes, Assembly_ToggleGrounded): 0 stumbles, peak 811 MB.
+  Negative control: same scenario on pristine weekly + same HD: 11 stumbles (InsertLink greyed, 0 links; saveAs leaves
+  Modified True).
+- Lane probes on the integrated run copy: 035 uvprobe 19/19, pvprobe 11/11; 036 vsprobe 19/19, rvprobe 22/22;
+  037 bodysel 49/49, rv2probe 17/17; 038 r3probe 17, rv3probe 11 (EXPECT_FAIL control fails as designed), skcam 4;
+  039 vselprobe 29/29; 040 asmpath 0 stumbles, vpwmut (mutant caught), prefs2 page once; STUMBLES probes asm/body/save OK.
+- HD tests/gui/vp_wrappers_gui: EXIT CODE 0 (55 types created/restored, 0 differ; 33 Assembly commands, 0 unreachable).
+- FreeCAD suites, per-test verdicts vs lane references: TestGuiBase 39 SAME (stock's own 1 FAIL + 1 ERROR in
+  TestNavigationStyle), TestAssemblyWorkbench 35 SAME (stock 2 ERROR), TestPartDesignGui 21 SAME, TestPartGui 15 OK,
+  Document 135 OK. Comparator control: previous delivery differs in exactly testAppSaveResetsGuiModified (FAIL -> ok).
+- Patch files: the byte-exact (CRLF) set of this branch (8db034c). Verified 28.09 with git apply --cached on a scratch
+  index: 036 + 038 0001-0003 + 040 onto 3eccec5 = tree of 9d93e69 (the installed FreeCADGui.dll source); 039 applies on
+  946127c; 037 onto cb851d2 = tree of ec79350. Mutant (one context byte changed) refused. Copies for the colleague
+  package: C:/dev/hd-package/sources-vr6 (build-package-26.ps1 -> sources/freecad-26.3/9..13).
