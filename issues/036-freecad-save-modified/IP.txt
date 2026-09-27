@@ -1,0 +1,5 @@
+036 - IP / provenance
+- Design element: Gui::Document subscribes to App::Document::signalFinishSave and clears its modified flag when the
+  written file is the document's own FileName. Provenance: own derivation from FreeCAD's own code (LGPL-2.1+), using
+  FreeCAD's existing signal; MVC/Observer pattern (Krasner & Pope 1988; Gamma et al. 1994) - public, decades old.
+- No proprietary code, text or documentation consulted. No new algorithm -> no patent search needed.

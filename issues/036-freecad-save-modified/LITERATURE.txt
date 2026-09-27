@@ -1,0 +1,13 @@
+036 - literature pass (rule 26.09 "literature first")
+
+Problem class: two layers (model = App::Document, view = Gui::Document) keep one piece of state ("unsaved changes");
+the view layer must follow every state change of the model, not only the ones it started itself.
+This is a consistency bugfix inside an existing observer design, not a new algorithm; no journal method changes the
+design. Sources consulted for the pattern:
+- Krasner G.E., Pope S.T., "A cookbook for using the model-view-controller user interface paradigm in Smalltalk-80",
+  JOOP 1(3), 1988 (conference/magazine, no IF) - the view observes the model's change notifications instead of the
+  controller patching the view after each command. Applied: Gui listens to App's signalFinishSave instead of every
+  Gui command resetting the flag after its own App call.
+- Gamma E. et al., Design Patterns (1994), Observer - the same idea; book, no IF.
+No journal with IF >= 5 treats a "dirty flag across layers" bug; recorded as "no applicable journal source".
+Upstream reports (context, not design sources): FreeCAD issues #30581, #19029.
