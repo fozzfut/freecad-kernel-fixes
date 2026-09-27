@@ -1,0 +1,348 @@
+From 2af3f99ed16c62fe799228afcf49bae60137d1cd Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 17:25:30 +0700
+Subject: [PATCH] Gui: showing or hiding objects is one undo step (issue 035)
+
+App::DocumentObject::Visibility has Property::NoModify, and
+App::Document::_checkTransaction ignores NoModify properties when it
+decides whether to open the booked transaction, so a visibility change
+made outside an open transaction was not recorded: Ctrl+Z skipped it and
+undid the modeling step before it (e.g. hide a body after a Pad, Ctrl+Z
+removes the Pad and the body stays hidden). Only Std_ToggleVisibility
+opened a transaction, and only with PropertyView/AutoTransactionView
+(default false); Std_ShowSelection, Std_HideSelection, Std_ShowObjects,
+Std_HideObjects, Std_ToggleObjects and the tree's eye icon and Space key
+opened none.
+
+Gui::VisibilityTransaction (header only) books one transaction per user
+action on every document the action touches and commits it at the end;
+the view provider's Visibility record restores both properties on
+undo/redo. Nothing is booked when a document already has a transaction
+(a task dialog/tool is running: the change stays part of that step, as
+before), during undo/redo, while a global transaction is active, or when
+the action changes nothing (hide an already hidden selection, hide all
+with everything hidden).
+
+Preference BaseApp/Preferences/View/UndoVisibility (default true);
+false = previous behaviour. Std_ToggleSelectability and property editor
+edits keep AutoTransactionView.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Gui/CommandView.cpp         | 108 ++++++++++++++++++++++++++++++++
+ src/Gui/Tree.cpp                |  26 +++++++-
+ src/Gui/VisibilityTransaction.h |  80 +++++++++++++++++++++++
+ 3 files changed, 211 insertions(+), 3 deletions(-)
+ create mode 100644 src/Gui/VisibilityTransaction.h
+
+diff --git a/src/Gui/CommandView.cpp b/src/Gui/CommandView.cpp
+index c5b0d4f..c533154 100644
+--- a/src/Gui/CommandView.cpp
++++ b/src/Gui/CommandView.cpp
+@@ -94,6 +94,7 @@
+ #include "View3DInventorViewer.h"
+ #include "ViewParams.h"
+ #include "ViewProviderGeometryObject.h"
++#include "VisibilityTransaction.h"
+ #include "WaitCursor.h"
+ 
+ using namespace Gui;
+@@ -134,6 +135,84 @@ public:
+         }
+     }
+ };
++
++// Documents a visibility change of the current selection can touch: the selected object's, and
++// those of the sub-object and its parent the selection resolves to (a link to another document).
++std::vector<App::Document*> selectionDocuments()
++{
++    std::vector<App::Document*> docs;
++    for (const auto& sel : Selection().getCompleteSelection(ResolveMode::NoResolve)) {
++        if (!sel.pObject || !sel.pObject->isAttachedToDocument()) {
++            continue;
++        }
++        docs.push_back(sel.pObject->getDocument());
++        App::DocumentObject* parent = nullptr;
++        std::string element;
++        auto obj = sel.pObject->resolve(sel.SubName, &parent, &element);
++        if (obj && obj->isAttachedToDocument()) {
++            docs.push_back(obj->getDocument());
++        }
++        if (parent && parent->isAttachedToDocument()) {
++            docs.push_back(parent->getDocument());
++        }
++    }
++    return docs;
++}
++
++// Whether showing (@a show) or hiding the current selection changes anything (the element
++// visibility for a sub-object its parent handles, the view provider's otherwise).
++bool selectionChanges(bool show)
++{
++    for (const auto& sel : Selection().getCompleteSelection(ResolveMode::NoResolve)) {
++        if (!sel.pObject || !sel.pObject->isAttachedToDocument()) {
++            continue;
++        }
++        App::DocumentObject* parent = nullptr;
++        std::string element;
++        auto obj = sel.pObject->resolve(sel.SubName, &parent, &element);
++        if (!obj || !obj->isAttachedToDocument()) {
++            continue;
++        }
++        if (parent) {
++            int vis = parent->isElementVisible(element.c_str());
++            if (vis >= 0) {
++                if ((vis > 0) != show) {
++                    return true;
++                }
++                continue;
++            }
++        }
++        auto vp = Application::Instance->getViewProvider(obj);
++        if (vp && vp->isShow() != show) {
++            return true;
++        }
++    }
++    return false;
++}
++
++// Whether showing (@a show) or hiding all objects of the active document changes anything.
++bool documentChanges(bool show)
++{
++    Gui::Document* doc = Application::Instance->activeDocument();
++    if (!doc) {
++        return false;
++    }
++    for (auto obj : doc->getDocument()->getObjects()) {
++        if (doc->isShow(obj->getNameInDocument()) != show) {
++            return true;
++        }
++    }
++    return false;
++}
++
++std::vector<App::Document*> activeDocument()
++{
++    std::vector<App::Document*> docs;
++    if (auto doc = App::GetApplication().getActiveDocument()) {
++        docs.push_back(doc);
++    }
++    return docs;
++}
+ }  // namespace
+ 
+ //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+@@ -980,6 +1059,14 @@ StdCmdToggleVisibility::StdCmdToggleVisibility()
+ void StdCmdToggleVisibility::activated(int iMsg)
+ {
+     Q_UNUSED(iMsg);
++    if (VisibilityTransaction::enabled()) {
++        VisibilityTransaction transaction(
++            QT_TRANSLATE_NOOP("Command", "Toggle Visibility"),
++            selectionDocuments()
++        );
++        Selection().setVisible(SelectionSingleton::VisToggle);
++        return;
++    }
+     TransactionView transaction(
+         getActiveGuiDocument(),
+         QT_TRANSLATE_NOOP("Command", "Toggle Visibility")
+@@ -1187,6 +1274,11 @@ StdCmdShowSelection::StdCmdShowSelection()
+ void StdCmdShowSelection::activated(int iMsg)
+ {
+     Q_UNUSED(iMsg);
++    VisibilityTransaction transaction(
++        QT_TRANSLATE_NOOP("Command", "Show Selection"),
++        selectionDocuments(),
++        selectionChanges(true)
++    );
+     Selection().setVisible(SelectionSingleton::VisShow);
+ }
+ 
+@@ -1215,6 +1307,11 @@ StdCmdHideSelection::StdCmdHideSelection()
+ void StdCmdHideSelection::activated(int iMsg)
+ {
+     Q_UNUSED(iMsg);
++    VisibilityTransaction transaction(
++        QT_TRANSLATE_NOOP("Command", "Hide Selection"),
++        selectionDocuments(),
++        selectionChanges(false)
++    );
+     Selection().setVisible(SelectionSingleton::VisHide);
+ }
+ 
+@@ -1287,6 +1384,7 @@ StdCmdToggleObjects::StdCmdToggleObjects()
+ void StdCmdToggleObjects::activated(int iMsg)
+ {
+     Q_UNUSED(iMsg);
++    VisibilityTransaction transaction(QT_TRANSLATE_NOOP("Command", "Toggle All Objects"), activeDocument());
+     // go through active document
+     Gui::Document* doc = Application::Instance->activeDocument();
+     App::Document* app = doc->getDocument();
+@@ -1339,6 +1437,11 @@ StdCmdShowObjects::StdCmdShowObjects()
+ void StdCmdShowObjects::activated(int iMsg)
+ {
+     Q_UNUSED(iMsg);
++    VisibilityTransaction transaction(
++        QT_TRANSLATE_NOOP("Command", "Show All Objects"),
++        activeDocument(),
++        documentChanges(true)
++    );
+     // go through active document
+     Gui::Document* doc = Application::Instance->activeDocument();
+     App::Document* app = doc->getDocument();
+@@ -1381,6 +1484,11 @@ StdCmdHideObjects::StdCmdHideObjects()
+ void StdCmdHideObjects::activated(int iMsg)
+ {
+     Q_UNUSED(iMsg);
++    VisibilityTransaction transaction(
++        QT_TRANSLATE_NOOP("Command", "Hide All Objects"),
++        activeDocument(),
++        documentChanges(false)
++    );
+     // go through active document
+     Gui::Document* doc = Application::Instance->activeDocument();
+     App::Document* app = doc->getDocument();
+diff --git a/src/Gui/Tree.cpp b/src/Gui/Tree.cpp
+index 7a1f4d3..2698bbc 100644
+--- a/src/Gui/Tree.cpp
++++ b/src/Gui/Tree.cpp
+@@ -66,6 +66,7 @@
+ #include "TreeParams.h"
+ #include "View3DInventor.h"
+ #include "ViewProviderDocumentObject.h"
++#include "VisibilityTransaction.h"
+ #include "Widgets.h"
+ #include "Workbench.h"
+ 
+@@ -1987,7 +1988,17 @@ void TreeWidget::keyPressEvent(QKeyEvent* event)
+     }
+ 
+     else if (event->key() == Qt::Key_Space && event->modifiers() == Qt::NoModifier) {
+-        // Toggle each selected feature's own visibility directly
++        // Toggle each selected feature's own visibility directly, as one undo step
++        std::vector<App::Document*> docs;
++        for (auto* raw : selectedItems()) {
++            if (raw->type() == ObjectType) {
++                auto* vp = static_cast<DocumentObjectItem*>(raw)->object();
++                if (vp && vp->getObject()) {
++                    docs.push_back(vp->getObject()->getDocument());
++                }
++            }
++        }
++        VisibilityTransaction transaction(QT_TRANSLATE_NOOP("Command", "Toggle Visibility"), docs);
+         for (auto* raw : selectedItems()) {
+             if (raw->type() != ObjectType) {
+                 continue;
+@@ -2057,11 +2068,20 @@ void TreeWidget::mousePressEvent(QMouseEvent* event)
+                 if (parent) {
+                     visible = parent->isElementVisible(objname);
+                 }
+-                if (parent && visible >= 0) {
++                bool element = parent && visible >= 0;
++                if (!element) {
++                    visible = obj->Visibility.getValue();
++                }
++                // one undo step per click
++                VisibilityTransaction transaction(
++                    visible ? QT_TRANSLATE_NOOP("Command", "Hide")
++                            : QT_TRANSLATE_NOOP("Command", "Show"),
++                    {obj->getDocument(), parent ? parent->getDocument() : nullptr}
++                );
++                if (element) {
+                     parent->setElementVisible(objname, !visible);
+                 }
+                 else {
+-                    visible = obj->Visibility.getValue();
+                     obj->Visibility.setValue(!visible);
+                 }
+                 visibilityIconDoubleClickTimer.start();
+diff --git a/src/Gui/VisibilityTransaction.h b/src/Gui/VisibilityTransaction.h
+new file mode 100644
+index 0000000..009c861
+--- /dev/null
++++ b/src/Gui/VisibilityTransaction.h
+@@ -0,0 +1,80 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++#pragma once
++
++#include <algorithm>
++#include <vector>
++
++#include <App/Application.h>
++#include <App/Document.h>
++
++namespace Gui
++{
++
++/** One undo step for one user action that shows or hides objects.
++ *
++ * Used by Std_ToggleVisibility, Std_ShowSelection, Std_HideSelection, Std_ShowObjects,
++ * Std_HideObjects, Std_ToggleObjects and the tree view's eye icon and Space key.
++ *
++ * App::DocumentObject::Visibility carries Property::NoModify, and App::Document::_checkTransaction
++ * never opens a transaction for a NoModify property, so a visibility change made outside an open
++ * transaction was not undoable: Ctrl+Z skipped it and undid the modeling step before it instead.
++ * The view provider's Visibility is recorded by an open transaction (TransactionViewProvider), and
++ * undo/redo of that record restores both properties.
++ *
++ * The transaction named @a name is booked on every given document that has none of its own, with
++ * one transaction ID, and committed when this object goes out of scope. Nothing is booked when a
++ * document already has a transaction booked or pending, a global transaction is active, or an undo
++ * or redo is running: then the change belongs to that step, as before. Nothing is booked either
++ * when the caller knows the action changes nothing (@a changes false): setting a Visibility to the
++ * value it has is still recorded, and would leave an undo step that does nothing.
++ *
++ * Preference BaseApp/Preferences/View/UndoVisibility (default true); false restores the previous
++ * behaviour (only Std_ToggleVisibility, and only with PropertyView/AutoTransactionView).
++ */
++class VisibilityTransaction
++{
++public:
++    static bool enabled()
++    {
++        return App::GetApplication()
++            .GetParameterGroupByPath("User parameter:BaseApp/Preferences/View")
++            ->GetBool("UndoVisibility", true);
++    }
++
++    VisibilityTransaction(const char* name, std::vector<App::Document*> docs, bool changes = true)
++    {
++        if (!changes || !enabled() || App::GetApplication().getGlobalTransaction() != 0) {
++            return;
++        }
++        std::vector<App::Document*> seen;
++        for (App::Document* doc : docs) {
++            if (!doc || std::find(seen.begin(), seen.end(), doc) != seen.end()) {
++                continue;
++            }
++            seen.push_back(doc);
++            if (doc->getBookedTransactionID() != 0 || doc->hasPendingTransaction()
++                || doc->transacting() || doc->isTransactionLocked()) {
++                continue;
++            }
++            int id = doc->openTransaction(App::TransactionName {.name = name, .temporary = false}, tid);
++            if (tid == 0) {
++                tid = id;
++            }
++        }
++    }
++
++    ~VisibilityTransaction()
++    {
++        if (tid != 0) {
++            App::GetApplication().commitTransaction(tid);
++        }
++    }
++
++    VisibilityTransaction(const VisibilityTransaction&) = delete;
++    VisibilityTransaction& operator=(const VisibilityTransaction&) = delete;
++
++private:
++    int tid {0};
++};
++
++}  // namespace Gui
+-- 
+2.52.0.windows.1
+

@@ -1,0 +1,19 @@
+035 undoable visibility - literature pass (27.09.2026). Scope: undo granularity in interactive systems - which user
+actions become undo steps and how one action maps to one step. Sources read at abstract/section level (marked).
+
+1. Berlage T. "A selective undo mechanism for graphical user interfaces based on command objects." ACM TOCHI 1(3):269-294,
+   1994. DOI 10.1145/196699.196721. Venue ACM Transactions on Computer-Human Interaction (IF ~4-5; top HCI journal).
+   Idea: every user-level action is one command object on the history; composite actions are grouped so one undo reverts
+   the whole action. APPLIED: one transaction (one command object) per show/hide action, multi-selection grouped.
+   (abstract + sections 2-3)
+2. Myers B.A., Kosbie D.S. "Reusable hierarchical command objects." Proc. CHI 1996, 260-267. DOI 10.1145/238386.238519.
+   Conference (CHI, top HCI venue). Idea: hierarchical command objects; view-changing operations may be recorded but
+   treated as a separate class so they do not interfere with editing history. APPLIED: visibility steps are named
+   separately ("Hide Selection", "Show", ...) and never merged into modeling steps; programmatic view changes stay out.
+   (abstract)
+3. Abowd G.D., Dix A.J. "Giving undo attention." Interacting with Computers 4(3):317-342, 1992.
+   DOI 10.1016/0953-5438(92)90021-7. Idea: undo must follow the user's perceived action unit; a system that skips
+   actions the user perceives as state changes breaks the undo model. APPLIED: the root complaint (Ctrl+Z skipped the
+   hide and undid a modeling step) is exactly this failure; no-op actions leave no step. (abstract)
+Not applicable: nothing in the literature changes FreeCAD's transaction engine choice; the fix only adds explicit
+transactions at the user-action layer. No proprietary product documentation used (IP rule 27.09).
