@@ -25,6 +25,12 @@ TARGETS = {
     "gui2": ("bin\\FreeCADGui.dll", "FreeCADGui", ["Gui/View3DInventorViewer.cpp", "Gui/Navigation/NavigationStyle.cpp",
              "Gui/Navigation/NavigationAnimator.cpp", "Gui/View3DPy.cpp", "Gui/View3DViewerPy.cpp",
              "Gui/CommandView.cpp", "Gui/Tree.cpp", "Gui/propertyeditor/PropertyItem.cpp"], "FreeCADGui.dll", "FreeCADGui.lib"),
+    # round 3: gui2 + Quarter/SoQTQuarterAdaptor.cpp (endSeek); all callers of Quarter's seekToPoint (NavigationStyle,
+    # View3DInventorViewer, View3DViewerPy, the adaptor itself) are in this list
+    "gui3": ("bin\\FreeCADGui.dll", "FreeCADGui", ["Gui/View3DInventorViewer.cpp", "Gui/Navigation/NavigationStyle.cpp",
+             "Gui/Navigation/NavigationAnimator.cpp", "Gui/View3DPy.cpp", "Gui/View3DViewerPy.cpp",
+             "Gui/CommandView.cpp", "Gui/Tree.cpp", "Gui/propertyeditor/PropertyItem.cpp",
+             "Gui/Quarter/SoQTQuarterAdaptor.cpp"], "FreeCADGui.dll", "FreeCADGui.lib"),
     # round 2 D0: only the five sources the delivered 035-PE build (7af65a21) swapped, from a folder whose path has the
     # length of that build's mirror (C:\dev\occt8-mig\uvp\fix\src = C:\dev\occt8-mig\vr6unconf\d), so __FILE__ strings keep their size
     "gui2d0": ("bin\\FreeCADGui.dll", "FreeCADGui", ["Gui/View3DPy.cpp", "Gui/View3DViewerPy.cpp", "Gui/CommandView.cpp",
@@ -72,6 +78,16 @@ for entry in cc:
                 new.append(a)
             if a == "/TP" and not FLAT:
                 new.extend(inc)
+                if target == "gui3":
+                    # round 3 overlay = the whole src/Gui header tree (mirror_gui_headers.py): every Gui sub-folder
+                    # include dir of the unit (Selection, Quarter, ...) first from the overlay, so a header is never
+                    # found under two paths (pragma once is per path)
+                    gpre = r"C:\dev\occt8-mig\fcD\src\src\Gui"
+                    for b in args:
+                        if b[:2] in ("-I", "/I") and b[2:].rstrip("\\").startswith(gpre) and ".." not in b:
+                            rest = b[2:].rstrip("\\")[len(gpre):]
+                            if rest:
+                                new.append("/I" + os.path.join(ovl, "Gui" + rest).replace("/", "\\"))
         if not FLAT:
             # the unit's own source folder in fcD/src, searched LAST (a unit normally sees it first as its own dir)
             new.append("-I" + os.path.dirname(entry["file"]))

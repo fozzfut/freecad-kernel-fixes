@@ -117,3 +117,73 @@ lib/PartGui.pyd e5b8412a -> d974f059. Бинарники: build/variants801/vr6v
 оставлено; m2 (вращение при вписывании) - решение VF2 оставлено; m3 - согласен. (a) - не воспроизведено, закрыто.
 РЕШЕНИЯ (меняемые): VF6 абсолютная поза = stop (как стоковый setCameraOrientation), вписывание = finish (VF1);
 VF7 без общего детектора внешних записей (см. ОТВЕРГНУТО).
+
+РАУНД 3 (27.09.2026, ответ на ревью r2: R1 MAJOR - resetToHomePosition; m1 Sketcher; m2 обратная пара с seek; m3 порядок)
+
+КЛАСС (уточнён): движение камеры, которое само ставит позу каждый кадр (FixedTimeAnimation/HomeAnimation - относительные
+шаги, Coin seek - абсолютная интерполяция 0.4 с), не должно продолжаться, когда камеру поставил кто-то другой или
+началось другое движение: побеждает последнее.
+
+R1. КОРЕНЬ: src/Gui/Quarter/SoQTQuarterAdaptor.cpp:571 resetToHomePosition копирует сохранённую камеру абсолютно
+(copyFieldValues / convert*2*) и не останавливает идущую анимацию. Путь пользователя: Std_RecallWorkingView (клавиша End,
+View3DInventor.cpp:456 "RecallWorkingView") и Std_ViewRestoreCamera (CommandView.cpp:368). Контроль ревьюера d01s
+(view.stopAnimating() перед командой) = PASS - доказывает причину.
+ИСПРАВЛЕНИЕ (10f9f7b, patches-263/0003): View3DInventorViewer переопределяет resetToHomePosition (виртуальная в
+SoQTQuarterAdaptor, как уже переопределён setSeekMode): если есть камера и сохранённая поза - stopAnimating(), затем
+унаследованный. Все вызовы виртуальные (dumpbin: ни один объект не зовёт SoQTQuarterAdaptor::resetToHomePosition
+напрямую; vtable View3DInventorViewer только в View3DInventorViewer.cpp.obj). Граница: подклассы в других модулях
+(CAM Dummy3DViewer, MatGui AppearancePreview) собраны со старым заголовком - у них стоковый restore (анимаций нет).
+
+m2. SEEK - тоже движение камеры. Новое SoQTQuarterAdaptor::endSeek(finish): остановить идущий seek (где он есть,
+или в его конечной позе); seek из режима seek заканчивается как сам (setSeekMode(false)), seek прямо из кода
+(Python seekToPoint) режимы не трогает.
+- NavigationStyle::startAnimating: новая анимация сначала завершает seek (stop) - как NavigationAnimator::start
+  останавливает идущую анимацию. Раньше конец seek (setSeekMode(false) -> stopAnimating) убивал поворот (d08).
+- View3DInventorViewer::seekToPoint (две перегрузки скрывают Quarter): перед seek останавливают анимацию вида (как
+  setSeekMode(true) перед выбором точки). Все вызовы Quarter seekToPoint - в собранных файлах (NavigationStyle,
+  View3DInventorViewer, View3DViewerPy, сам адаптер).
+- Вписывания (viewAll/viewObjects/viewBoundBox) доводят seek до конца (finish), как и анимацию (VF1);
+  setCameraOrientation/translateCamera рядом со стоковым animator->stop() завершают seek;
+  View3DInventorViewer::stopAnimating (Python view.stopAnimating, DemoMode) останавливает и анимацию, и seek
+  (объявленное изменение); setSeekMode оставлен стоковым (только анимация навигации).
+- Граница: интерактивные стоковые остановки (перетаскивание, панорама, колесо) seek не трогают - при seek из режима
+  события мыши и так идут мимо стиля навигации.
+
+m3. Порядок «проверка, стоп, установка» одинаков: setViewDirection и viewDefaultOrientation сначала проверяют блокировку
+ориентации (canChangeCameraOrientation), и только потом останавливают. l01 (setViewDirection при блокировке во время
+Right): поставка PASS, r2 FAIL 90 град (поворот остановлен зря), r3 PASS.
+
+m1. Sketcher ViewProviderSketch::centerSelection пишет camera->position абсолютно: исправлено в ИСХОДНИКЕ
+(mig/vr6-sketch-m1 1ddce71, patches-263/0004: viewer->stopAnimating() перед записью; экспорт уже есть в поставленной
+FreeCADGui, совместимо), НО SketcherGui.pyd в этой полосе НЕ собирается: в поставке стоковый бинарник weekly, в
+bld144 SketcherGui не собран вовсе; замена целого модуля ради пути «двойной щелчок по ограничению в первые 0.5 с
+поворота к эскизу» - несоразмерный риск тождественности. Решение VF8 (меняемое): собрать при первой полосе, которая
+всё равно пересобирает SketcherGui.
+
+СБОРКА: MSVC 14.44, tools/mkmod.py target gui3 = 9 исходников (8 раунда 2 + Quarter/SoQTQuarterAdaptor.cpp), 0
+предупреждений. Изменённый заголовок View3DInventorViewer.h включается ОТНОСИТЕЛЬНО из Selection/SoFCUnifiedSelection.h,
+а файлы moc включают заголовки по пути fcD - поэтому overlay несёт ВСЁ дерево заголовков src/Gui того же коммита
+(repro/mirror_gui_headers.py), копии 4 moc с перенаправленным include, и каталоги -I подпапок Gui берутся из overlay
+первыми (showIncludes: ни один заголовок не включён по двум путям). D0: control (3eccec5 тем же конвейером) против
+control раунда 2 = 34 байта (метки PE, цифра пути overlay, 2 хэша RTTI анонимных пространств); имена экспорта control
+== поставка 12230/12230. FIX FreeCADGui.dll 4e89623d165f83db00a4abfd32f1692f: к поставке +6 имён экспорта (r1: finish,
+finishAnimating; r3: endSeek, View3DInventorViewer::resetToHomePosition, seekToPoint x2), -0; импорт +3 QtCore (r1);
+r2 -> r3 импорт +0/-0 (repro/abi-r3.txt, полная таблица имён - pefile обрезает на 8192). Патчи 0001-0004
+применяются к weekly 019f5c5 и к 3eccec5; git merge-tree с mig/vr6-save, vr6-asm, r028, r030, vr6-body - без конфликтов.
+
+ТЕСТЫ (offscreen, <= 0.28 ГБ; run copies vr6unconf/rc/{dlv3 = поставка 7af65a21 + e5b8412a, fix3 = + 4e89623d +
+d974f059}; runs3/*):
+- ревью d01/d02 (End / Restore camera во время Right): fix3 PASS в 3 прогонах из 3; поставка FAIL 56.6 град /
+  110.7 мм в 2 из 3 (в первом прогоне под 100 % CPU поворот успел закончиться до команды - d01 PASS, d02 FAIL);
+  n11 (в покое, отрицательный контроль) PASS везде; d01s PASS везде; d03-d06 fix3 PASS (поставка 4 FAIL).
+- seek (repro/r3probe.py): s01 Right во время seek: fix3 PASS, поставка FAIL 56.6 град (= d08); s04 setCamera и s05
+  End во время seek: fix3 PASS, поставка FAIL 176.5 мм; s07 view.stopAnimating во время seek: fix3 стоит, поставка
+  двигается; s02 seek во время Right и s03 вписывание во время seek: PASS оба; s06 seek в покое (контроль) PASS оба.
+  d07 (Python seek во время Right): fix3 ровно на точке (q 0.707107,0,0,0.707107), поставка смесь.
+- l01/l02 (m3): PASS fix3 и поставка; r2 fix2 l01 FAIL 90 град (отрицательный контроль изменения m3).
+- e01 (перспектива во время Right): CAM fix3 = поставка с точностью 2e-3 мм (шум таймера, как в раунде 2).
+- прежние: vselprobe 29/29; rvprobe fix3 = раунд 2 (r21 - ожидание пробы, отмечено ревью), поставка 11 FAIL;
+  skcam k1 3/3 PASS (поставка 3/3 FAIL), k0 PASS оба; (a) okexact 34 закрытия, 0 спотыканий (всего 267).
+- TestGuiBase 37: вердикты fix3 == поставка (1 FAIL + 1 ERROR + 7 skipped - сток); контроль компаратора пойман.
+НЕ УСТАНОВЛЕНО (интеграция): bin/FreeCADGui.dll 7af65a21 -> 4e89623d, lib/PartGui.pyd e5b8412a -> d974f059
+(build/variants801/vr6view3, + control/, MD5SUMS). r1 9a0de2e7 и r2 39a66e0c - не ставить.
