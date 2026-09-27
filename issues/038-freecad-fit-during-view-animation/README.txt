@@ -66,7 +66,7 @@ R1. КЛАСС ШИРЕ ВПИСЫВАНИЯ: любая АБСОЛЮТНАЯ у
 камеру ОТНОСИТЕЛЬНО прошлого кадра вокруг запомненного центра; HomeAnimation (поставка, View3DInventorViewer.cpp:4559)
 каждый кадр пишет свою позу поверх. Кто поставил камеру абсолютно, того анимация уводит (или затирает).
 Сток сам следует правилу «новая установка останавливает идущую анимацию» в NavigationStyle::setCameraOrientation
-(:648 animator->stop()) и translateCamera (:694); без него остались:
+(:648 animator->stop()) и translateCamera (:693), zoom (:989); без него остались:
 - View3DInventorViewer::applyCameraState (:4247) = Python setCamera, Std_FreezeViews (CommandView.cpp:516),
   восстановление камеры TempoVis после эскиза (Mod/Show/SceneDetails/Camera.py:50), BIM ArchSectionPlane.py:912;
 - View3DInventorViewer::setViewDirection (:3655) = Python setViewDirection;
