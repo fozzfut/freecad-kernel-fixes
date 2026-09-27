@@ -1,0 +1,256 @@
+From 7192f9ea35b7e839ee12948cdb7fc908ccdd9929 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 20:30:28 +0700
+Subject: [PATCH] 034 A2 r2 (TKOffset): extra shells of a thick solid are legal
+ cavities, a detached wall is an error
+
+Review of A2 r1: the shell-count bound (1 per open piece of the kept faces,
+2 per closed piece) rejected EXACT thick solids whose offset pinches off
+at a neck thinner than 2|t| (or seals a slot narrower than 2t outward):
+the unreachable part of the hollow is a closed cavity, one more shell.
+
+Every face of the glued thick solid is now classified by its generator,
+read from the offset history (myInitOffsetFace) and the gluing copies:
+kept input face, wall (image of a removed face), offset (image of a kept
+face, edge or vertex). A shell is ANCHORED (holds kept faces) or not.
+The wall of an opening is the band of the removed face between its rim
+and the offset, so every piece of it touches the rim (Rossignac-Requicha
+1986 shelling; own derivation):
+- a shell without kept faces that holds a wall is impossible (the offset
+  shell was closed across the opening): error, always, O(F+E);
+- more shells than the pieces give are accepted when every shell without
+  kept faces is made of known offset faces only and every wall meets an
+  offset face (cavities of the hollow); otherwise the extra shell is not
+  explained and the result is checked (BRepCheck + BOP self-interference,
+  the review's safety net), error only if that fails.
+The count bound stays only as the gate of the second rule. Closed and
+coherent shells (check 1) and the tangent free-form check (3) unchanged.
+NCollection_Vector -> NCollection_DynamicArray (deprecated alias).
+
+Exports unchanged (480 = weekly); imports + BRepTools_Quilt::Copy and
+::IsCopied (exported by the weekly TKBRep).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepOffset/BRepOffset_MakeOffset.cxx      | 149 ++++++++++++++++--
+ 1 file changed, 140 insertions(+), 9 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+index f87db873..00722d50 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+@@ -93,7 +93,6 @@
+ #include <Geom_Line.hxx>
+ #include <NCollection_DynamicArray.hxx>
+ #include <NCollection_IncAllocator.hxx>
+-#include <NCollection_Vector.hxx>
+ //
+ #include <BOPAlgo_ArgumentAnalyzer.hxx>
+ #include <BOPAlgo_CheckResult.hxx>
+@@ -664,7 +663,7 @@ struct EdgeUses034
+ static void collectEdgeUses034(
+   const TopoDS_Shape&                                            theS,
+   NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theEdges,
+-  NCollection_Vector<EdgeUses034>&                               theUses)
++  NCollection_DynamicArray<EdgeUses034>&                         theUses)
+ {
+   int aFaceIdx = 0;
+   for (TopExp_Explorer aFExp(theS, TopAbs_FACE); aFExp.More(); aFExp.Next())
+@@ -713,7 +712,7 @@ static bool solidShellsBroken034(const TopoDS_Shape& theS)
+     for (TopExp_Explorer aShExp(aSoExp.Current(), TopAbs_SHELL); aShExp.More(); aShExp.Next())
+     {
+       NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> anEdges;
+-      NCollection_Vector<EdgeUses034>                               aUses;
++      NCollection_DynamicArray<EdgeUses034>                         aUses;
+       collectEdgeUses034(aShExp.Current(), anEdges, aUses);
+       for (int i = 0; i < aUses.Length(); ++i)
+       {
+@@ -759,8 +758,8 @@ static int maxThickShells034(const TopoDS_Shape& theRest)
+     return theI;
+   };
+   NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> anEdges;
+-  NCollection_Vector<int> anEdgeFace; // first face of an edge
+-  NCollection_Vector<int> anEdgeUses;
++  NCollection_DynamicArray<int> anEdgeFace; // first face of an edge
++  NCollection_DynamicArray<int> anEdgeUses;
+   for (int iF = 1; iF <= aNbF; ++iF)
+   {
+     for (TopExp_Explorer anEExp(aFaces(iF), TopAbs_EDGE); anEExp.More(); anEExp.Next())
+@@ -856,6 +855,131 @@ static bool tangentFreeFormJoin034(const TopoDS_Shape&       theFaces,
+   }
+   return false;
+ }
++
++//=======================================================================
++// Issue 034 stage A2, round 2: which shells a thick solid may have.
++//
++// A thick solid is the input minus its inner offset (Rossignac-Requicha
++// 1986). The inner offset can split into several components: where the
++// input is thinner than 2|t| (a neck) the offset pinches off, and a
++// component that no opening reaches stays a closed cavity. So the shells
++// of a correct thick solid are of two kinds only:
++//  - ANCHORED: it holds kept input faces (one per connected piece of them);
++//  - CAVITY: offset faces only (images of kept faces, edges, vertices):
++//    the offset of a closed piece, or a pinched-off part of the hollow.
++// The wall of an opening (the image of a removed face) is the band of the
++// removed face between its rim (edges shared with kept faces) and the
++// offset; every piece of the band touches the rim, so the wall lies in an
++// anchored shell and meets offset faces there. Hence:
++//  - a shell without kept faces that holds a wall is impossible: the
++//    opening was not cut, the offset shell was closed across it (Broken);
++//  - more shells than the pieces give (maxThickShells034) are legal
++//    exactly when the extra ones are cavities: every shell without kept
++//    faces is made of known offset faces only, and every wall meets an
++//    offset face (the opening is cut through to the offset). Otherwise
++//    the extra shell is not explained by the construction (Proven false).
++// Pure topology on the history of the offset (myInitOffsetFace) and on the
++// copies made by the gluing; linear in the number of faces and edges.
++//=======================================================================
++struct ThickShells034
++{
++  bool Broken = false; //!< a shell without kept faces holds a wall
++  bool Proven = true;  //!< every shell is anchored or a cavity, every wall meets an offset face
++};
++
++static TopoDS_Shape glued034(const BRepTools_Quilt& theGlue, const TopoDS_Shape& theS)
++{
++  return theGlue.IsCopied(theS) ? theGlue.Copy(theS) : theS;
++}
++
++static ThickShells034 thickShells034(
++  const TopoDS_Shape&                                                  theSolid,
++  const TopoDS_Shape&                                                  theKept,
++  const BRepTools_Quilt&                                               theGlue,
++  const BRepAlgo_Image&                                                theInit,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theRemoved)
++{
++  ThickShells034                                         aRes;
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aKept, aWalls, anOffsets;
++  for (TopExp_Explorer aFExp(theKept, TopAbs_FACE); aFExp.More(); aFExp.Next())
++  {
++    aKept.Add(glued034(theGlue, aFExp.Current()));
++  }
++  for (NCollection_List<TopoDS_Shape>::Iterator aRIt(theInit.Roots()); aRIt.More(); aRIt.Next())
++  {
++    const TopoDS_Shape& aRoot = aRIt.Value();
++    if (!theInit.HasImage(aRoot))
++    {
++      continue;
++    }
++    const bool                     isWall = theRemoved.Contains(aRoot);
++    NCollection_List<TopoDS_Shape> anImages;
++    theInit.LastImage(aRoot, anImages);
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt(anImages); anIt.More(); anIt.Next())
++    {
++      for (TopExp_Explorer aFExp(anIt.Value(), TopAbs_FACE); aFExp.More(); aFExp.Next())
++      {
++        const TopoDS_Shape aF = glued034(theGlue, aFExp.Current());
++        (isWall ? aWalls : anOffsets).Add(aF);
++      }
++    }
++  }
++  // shells: a shell without kept faces must be a cavity of offset faces
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> anOffsetEdges;
++  for (TopExp_Explorer aShExp(theSolid, TopAbs_SHELL); aShExp.More(); aShExp.Next())
++  {
++    bool isAnchored = false, hasWall = false, hasUnknown = false;
++    for (TopExp_Explorer aFExp(aShExp.Current(), TopAbs_FACE); aFExp.More(); aFExp.Next())
++    {
++      const TopoDS_Shape& aF = aFExp.Current();
++      if (aKept.Contains(aF))
++      {
++        isAnchored = true;
++      }
++      else if (aWalls.Contains(aF))
++      {
++        hasWall = true;
++      }
++      else if (anOffsets.Contains(aF))
++      {
++        for (TopExp_Explorer anEExp(aF, TopAbs_EDGE); anEExp.More(); anEExp.Next())
++        {
++          anOffsetEdges.Add(anEExp.Current());
++        }
++      }
++      else
++      {
++        hasUnknown = true;
++      }
++    }
++    if (!isAnchored && hasWall)
++    {
++      aRes.Broken = true;
++      aRes.Proven = false;
++      return aRes;
++    }
++    if (!isAnchored && hasUnknown)
++    {
++      aRes.Proven = false;
++    }
++  }
++  // walls: each one meets an offset face (the opening reaches the offset)
++  for (TopExp_Explorer aFExp(theSolid, TopAbs_FACE); aRes.Proven && aFExp.More(); aFExp.Next())
++  {
++    if (!aWalls.Contains(aFExp.Current()))
++    {
++      continue;
++    }
++    bool isMet = false;
++    for (TopExp_Explorer anEExp(aFExp.Current(), TopAbs_EDGE); !isMet && anEExp.More();
++         anEExp.Next())
++    {
++      isMet = anOffsetEdges.Contains(anEExp.Current());
++    }
++    aRes.Proven = isMet;
++  }
++  return aRes;
++}
+ } // namespace
+ 
+ //=======================================================================
+@@ -1756,6 +1880,7 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+   // Construction of a solid with the initial shell, parallel shell
+   // limited by caps.
+   //--------------------------------------------------------------------
++  ThickShells034 aThickShells; // issue 034 A2: origin of the shells
+   if (!myFaces.IsEmpty())
+   {
+     TopoDS_Solid    Res;
+@@ -1807,6 +1932,7 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     }
+     Res.Closed(true);
+     myOffsetShape = Res;
++    aThickShells = thickShells034(Res, myShape, Glue, myInitOffsetFace, myFaces);
+ 
+     // Test of Validity of the result of thick Solid
+     // more face than the initial solid.
+@@ -1858,9 +1984,12 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     return;
+   }
+   // Issue 034 stage A2: structure of the thick solid. Its shells must be
+-  // closed and coherently oriented, and there must be no more of them
+-  // than the pieces of the remaining input faces allow (an opening that
+-  // was not cut leaves the offset shell closed and apart).
++  // closed and coherently oriented; a shell without kept input faces must
++  // not hold the wall of an opening (the opening was not cut and the offset
++  // shell was closed across it). More shells than the pieces of the kept
++  // faces give are legal cavities (the offset pinched off at a neck thinner
++  // than 2|t|) when thickShells034() explains every shell; a result it does
++  // not explain is checked (BRepCheck + BOP self-interference).
+   if (!myFaces.IsEmpty())
+   {
+     int aNbShells = 0;
+@@ -1868,7 +1997,9 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     {
+       ++aNbShells;
+     }
+-    if (aNbShells > maxThickShells034(myShape) || solidShellsBroken034(myOffsetShape))
++    if (solidShellsBroken034(myOffsetShape) || aThickShells.Broken
++        || (aNbShells > maxThickShells034(myShape) && !aThickShells.Proven
++            && resultIsBroken034(myOffsetShape)))
+     {
+       myDone  = false;
+       myError = BRepOffset_UnknownError;
+-- 
+2.52.0.windows.1
+

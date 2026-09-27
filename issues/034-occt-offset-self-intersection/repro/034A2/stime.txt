@@ -1,0 +1,8 @@
+STIME faces=1030 broken=0 shellsUS=4555 maxShells=2 countUS=4860
+STIME faces=1030 broken=0 shellsUS=5170 maxShells=2 countUS=6038
+STIME faces=31 broken=0 shellsUS=135 maxShells=2 countUS=74
+STIME faces=31 broken=0 shellsUS=129 maxShells=2 countUS=71
+STIME faces=1880 broken=0 shellsUS=6980 maxShells=2 countUS=9163
+STIME faces=1880 broken=0 shellsUS=10441 maxShells=2 countUS=10748
+STIME faces=244 broken=0 shellsUS=773 maxShells=2 countUS=701
+STIME faces=244 broken=0 shellsUS=726 maxShells=2 countUS=666

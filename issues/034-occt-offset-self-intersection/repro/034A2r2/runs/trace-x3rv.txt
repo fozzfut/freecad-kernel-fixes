@@ -1,0 +1,132 @@
+flatbell_h0.6_a_t-1_arc A2R2T faces=14 us=18 
+flatbell_h0.6_a_t-1_int 
+flatbell_h0.6_rot_t-1_arc A2R2T faces=14 us=15 
+flatbell_h0.6_rot_t-1_int 
+flatbell_h0.6_nurbs_t-1_arc 
+flatbell_h0.6_nurbs_t-1_int 
+flatbell_h1.5_a_t-1_arc 
+flatbell_h1.5_a_t-1_int 
+flatbell_h1.5_rot_t-1_arc 
+flatbell_h1.5_rot_t-1_int 
+flatbell_h1.5_nurbs_t-1_arc 
+flatbell_h1.5_nurbs_t-1_int 
+flatbell_h2.6_a_t-1_arc A2R2T faces=31 us=53 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+flatbell_h2.6_a_t-1_int A2R2T faces=27 us=47 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+flatbell_h2.6_rot_t-1_arc A2R2T faces=31 us=60 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+flatbell_h2.6_rot_t-1_int A2R2T faces=27 us=50 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+flatbell_h2.6_nurbs_t-1_arc A2R2T faces=31 us=66 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+flatbell_h2.6_nurbs_t-1_int A2R2T faces=27 us=48 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+chain3_h1_a_t-1_arc 
+chain3_h1_a_t-1_int A2R2T faces=43 us=70 A2R2 shells=3 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+chain3_h1_rot_t-1_arc 
+chain3_h1_rot_t-1_int A2R2T faces=43 us=66 A2R2 shells=3 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+chain3_h1_nurbs_t-1_arc 
+chain3_h1_nurbs_t-1_int A2R2T faces=43 us=65 A2R2 shells=3 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+spherebell_r0.8_a_t-1_arc 
+spherebell_r0.8_a_t-1_int A2R2T faces=5 us=21 
+spherebell_r0.8_rot_t-1_arc 
+spherebell_r0.8_rot_t-1_int A2R2T faces=7 us=28 
+spherebell_r0.8_nurbs_t-1_arc 
+spherebell_r0.8_nurbs_t-1_int 
+cylbell_h1_a_t-1_arc 
+cylbell_h1_a_t-1_int 
+cylbell_h1_rot_t-1_arc 
+cylbell_h1_rot_t-1_int 
+cylbell_h1_nurbs_t-1_arc 
+cylbell_h1_nurbs_t-1_int 
+slotbox_w1_a_t1_arc 
+slotbox_w1_a_t1_int A2R2T faces=27 us=39 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+slotbox_w1_rot_t1_arc 
+slotbox_w1_rot_t1_int A2R2T faces=27 us=40 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+slotbox_w1_nurbs_t1_arc 
+slotbox_w1_nurbs_t1_int A2R2T faces=27 us=48 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+slotbox_w3_a_t1_arc A2R2T faces=51 us=110 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+slotbox_w3_a_t1_int A2R2T faces=31 us=57 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+slotbox_w3_rot_t1_arc A2R2T faces=51 us=102 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+slotbox_w3_rot_t1_int A2R2T faces=31 us=56 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+slotbox_w3_nurbs_t1_arc A2R2T faces=51 us=106 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+slotbox_w3_nurbs_t1_int A2R2T faces=31 us=65 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+voidbox_top_thick-2_arc 
+voidbox_top_thick-2_int 
+voidbox_top_thick2_arc 
+voidbox_top_thick2_int 
+twoboxes_top1_thick-2_arc 
+twoboxes_top1_thick-2_int 
+twoboxes_top1_thick2_arc 
+twoboxes_top1_thick2_int 
+twoboxes_top2_thick-2_arc 
+twoboxes_top2_thick-2_int 
+openshell_thicken2_arc 
+openshell_thicken2_int 
+openshell_thicken-2_arc 
+openshell_thicken-2_int 
+planeface_thicken2_arc 
+planeface_thicken2_int 
+cylface_thicken1_arc 
+cylface_thicken1_int 
+hemisphere_flat_thick-1_arc A2R2T faces=3 us=13 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+hemisphere_flat_thick-1_int A2R2T faces=3 us=12 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+hemisphere_flat_thick1_arc A2R2T faces=3 us=13 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+hemisphere_flat_thick1_int A2R2T faces=3 us=13 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+cylinder_top_thick-1_arc A2R2T faces=5 us=17 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+cylinder_top_thick-1_int A2R2T faces=5 us=17 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+cylinder_top_thick1_arc A2R2T faces=6 us=19 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+cylinder_top_thick1_int A2R2T faces=5 us=16 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+tube_thick-1_arc A2R2T faces=4 us=14 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+tube_thick-1_int A2R2T faces=4 us=14 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+tube_thick1_arc A2R2T faces=4 us=15 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+tube_thick1_int A2R2T faces=4 us=14 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+cone_base_thick-1_arc 
+cone_base_thick-1_int A2R2T faces=3 us=13 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+holebox_top_thick-1_arc A2R2T faces=14 us=27 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+holebox_top_thick-1_int A2R2T faces=14 us=30 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+holebox_top_thick1_arc A2R2T faces=27 us=63 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+holebox_top_thick1_int A2R2T faces=14 us=29 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+sqtube_thick-2_arc A2R2T faces=10 us=26 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+sqtube_thick-2_int A2R2T faces=10 us=26 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+sqtube_thick2_arc A2R2T faces=14 us=38 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+sqtube_thick2_int A2R2T faces=10 us=25 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+vfilbox_top_thick-2_arc A2R2T faces=19 us=34 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+vfilbox_top_thick-2_int A2R2T faces=19 us=42 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+vfilbox_top_thick2_arc A2R2T faces=27 us=63 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+vfilbox_top_thick2_int A2R2T faces=19 us=37 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+vfilboxN_top_thick-2_arc A2R2T faces=19 us=38 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+vfilboxN_top_thick-2_int A2R2T faces=19 us=47 
+vfilboxN_top_thick2_arc A2R2T faces=27 us=34 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+vfilboxN_top_thick2_int A2R2T faces=19 us=22 
+dumbbell_plate_thick-1_arc 
+dumbbell_plate_thick-1_int A2R2T faces=27 us=43 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+dumbbell_rod_thick-1_arc 
+dumbbell_rod_thick-1_int A2R2T faces=25 us=62 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+neck_h0.4_a_thick-1_arc 
+neck_h0.4_a_thick-1_int A2R2T faces=27 us=49 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h0.4_rot_thick-1_arc 
+neck_h0.4_rot_thick-1_int A2R2T faces=27 us=45 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h0.4_nurbs_thick-1_arc 
+neck_h0.4_nurbs_thick-1_int A2R2T faces=27 us=44 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h1_a_thick-1_arc 
+neck_h1_a_thick-1_int A2R2T faces=27 us=41 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h1_rot_thick-1_arc 
+neck_h1_rot_thick-1_int A2R2T faces=27 us=31 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h1_nurbs_thick-1_arc 
+neck_h1_nurbs_thick-1_int A2R2T faces=27 us=41 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h1.6_a_thick-1_arc 
+neck_h1.6_a_thick-1_int A2R2T faces=27 us=42 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h1.6_rot_thick-1_arc 
+neck_h1.6_rot_thick-1_int A2R2T faces=27 us=24 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h1.6_nurbs_thick-1_arc 
+neck_h1.6_nurbs_thick-1_int A2R2T faces=27 us=43 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h1.9_a_thick-1_arc 
+neck_h1.9_a_thick-1_int A2R2T faces=27 us=42 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h1.9_rot_thick-1_arc 
+neck_h1.9_rot_thick-1_int A2R2T faces=27 us=37 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h1.9_nurbs_thick-1_arc 
+neck_h1.9_nurbs_thick-1_int A2R2T faces=27 us=29 A2R2 shells=2 bound=1 broken=0 proven=1 path=CAVITY-PROVEN 
+neck_h2.5_a_thick-1_arc A2R2T faces=39 us=79 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+neck_h2.5_a_thick-1_int A2R2T faces=31 us=32 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+neck_h2.5_rot_thick-1_arc A2R2T faces=39 us=249 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+neck_h2.5_rot_thick-1_int A2R2T faces=31 us=53 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+neck_h2.5_nurbs_thick-1_arc A2R2T faces=39 us=67 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+neck_h2.5_nurbs_thick-1_int A2R2T faces=31 us=50 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+voidbox_side_thick-1_arc 
+voidbox_side_thick-1_int 

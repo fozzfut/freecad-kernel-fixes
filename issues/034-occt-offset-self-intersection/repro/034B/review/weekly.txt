@@ -1,0 +1,99 @@
+== ctl_stepn_off+0.9 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=0.9 join=arc
+STOCK done=1 err=0 exc=- ms=10 grade=OK bop=- nsol=1 nf=38 vol=4388.41149 oracle S=0 OFF=38 WALL=0 MIX=0 offDev=4.95e-06 mixWorst=0 mix=[]
+== ctl_step_off+0.9 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=0.9 join=arc
+STOCK done=1 err=0 exc=- ms=6 grade=OK bop=- nsol=1 nf=38 vol=4388.41150 oracle S=0 OFF=38 WALL=0 MIX=0 offDev=2.00e-15 mixWorst=0 mix=[]
+== step_off+1.1 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=1.1 join=arc
+STOCK done=1 err=0 exc=- ms=5 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== step_off+1.5 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=1.5 join=arc
+STOCK done=1 err=0 exc=- ms=5 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== step_thk+1.5 rc=0
+IN nf=9 vol0=3002.14602 op=thick t=1.5 join=arc
+STOCK done=0 err=1 exc=- ms=7 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== stepn_off+1.1 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=1.1 join=arc
+STOCK done=1 err=0 exc=- ms=10 grade=BOP bop=2x7, nsol=1 nf=38 vol=4732.72275 oracle S=0 OFF=36 WALL=0 MIX=2 offDev=3.98e-06 mixWorst=0.0897 mix=[24(1.02..1.1) 36(1.01..1.07) ]
+== stepn_off+1.5 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=1.5 join=arc
+STOCK done=1 err=0 exc=- ms=10 grade=BOP bop=2x7, nsol=1 nf=38 vol=5462.40117 oracle S=0 OFF=35 WALL=0 MIX=3 offDev=7.33e-15 mixWorst=0.449 mix=[3(1.46..1.5) 30(1.06..1.49) 34(1.05..1.35) ]
+== stepn_thk+1.5 rc=0
+IN nf=9 vol0=3002.14602 op=thick t=1.5 join=arc
+STOCK done=1 err=0 exc=- ms=10 grade=BOP bop=2x7, nsol=1 nf=38 vol=2232.50073 oracle S=8 OFF=26 WALL=0 MIX=4 offDev=6.88e-15 mixWorst=0.692 mix=[9(0.571..0.808) 19(1.05..1.35) 24(1.46..1.5) 33(1.06..1.49) ]
+== lwall_thk+1 rc=0
+IN nf=9 vol0=760.53650 op=thick t=1 join=arc
+STOCK done=1 err=0 exc=- ms=6 grade=INV bop=2x5,11x1, nsol=1 nf=34 vol=970.08126 oracle S=8 OFF=23 WALL=0 MIX=2 offDev=1.78e-15 mixWorst=0.444 mix=[12(0.556..0.854) 33(0.566..1) ]
+== lwall_off+1 rc=0
+IN nf=9 vol0=760.53650 op=offset t=1 join=arc
+STOCK done=1 err=0 exc=- ms=5 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== lwalln_thk+1 rc=0
+IN nf=9 vol0=760.53650 op=thick t=1 join=arc
+STOCK done=1 err=0 exc=- ms=37 grade=INV bop=2x5,11x1, nsol=1 nf=34 vol=970.08126 oracle S=8 OFF=23 WALL=0 MIX=3 offDev=4.44e-15 mixWorst=0.5 mix=[9(0.101..0.929) 12(0.551..0.854) 23(0.56..0.958) ]
+== lwalln_off+1 rc=0
+IN nf=9 vol0=760.53650 op=offset t=1 join=arc
+STOCK done=1 err=0 exc=- ms=10 grade=BOP bop=2x7, nsol=1 nf=38 vol=1871.42911 oracle S=0 OFF=35 WALL=0 MIX=3 offDev=4.44e-15 mixWorst=0.449 mix=[5(0.56..0.958) 14(0.879..1) 33(0.551..0.854) ]
+== pocket_off+1.5 rc=0
+IN nf=23 vol0=3413.06490 op=offset t=1.5 join=arc
+STOCK done=1 err=0 exc=- ms=6 grade=NOSOLID bop=2x32, nsol=0 nf=39 vol=6413.09061 oracle S=0 OFF=31 WALL=0 MIX=8 offDev=4.66e-15 mixWorst=0.432 mix=[2(1.07..1.5) 3(1.07..1.5) 5(1.36..1.5) 6(1.07..1.5) 8(1.36..1.5) 34(1.07..1.5) 37(1.36..1.5) 38(1.36..1.5) ]
+== pocket_thk+1.5 rc=0
+IN nf=23 vol0=3413.06490 op=thick t=1.5 join=arc
+STOCK done=0 err=1 exc=- ms=5 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== pocketn_off+1.5 rc=0
+IN nf=23 vol0=3413.06490 op=offset t=1.5 join=arc
+STOCK done=1 err=0 exc=- ms=16 grade=BOP bop=2x56, nsol=1 nf=51 vol=6461.48895 oracle S=0 OFF=30 WALL=0 MIX=21 offDev=7.55e-15 mixWorst=0.495 mix=[1(1.05..1.35) 2(1.01..1.25) 3(1.36..1.5) 4(1.05..1.35) 5(1.46..1.5) 6(1.05..1.35) 8(1.36..1.5) 9(1.01..1.25) 10(1.05..1.35) 12(1.46..1.5) 13(1.01..1.25) 37(1.36..1.5) 38(1.05..1.35) 39(1.01..1.25) 40(1.46..1.5) 42(1.46..1.5) 43(1.05..1.35) 44(1.23..1.5) 45(1.05..1.35) 47(1.05..1.35) 48(1.36..1.5) ]
+== pocketn_thk+1.5 rc=0
+IN nf=23 vol0=3413.06490 op=thick t=1.5 join=arc
+STOCK done=1 err=0 exc=- ms=16 grade=BOP bop=2x56, nsol=1 nf=65 vol=2299.98379 oracle S=22 OFF=21 WALL=0 MIX=21 offDev=1.31e-14 mixWorst=0.495 mix=[1(1.46..1.5) 4(1.46..1.5) 5(1.36..1.5) 6(1.05..1.35) 7(1.01..1.25) 8(1.05..1.35) 9(1.36..1.5) 10(1.05..1.35) 11(1.05..1.35) 12(1.36..1.5) 13(1.05..1.35) 14(1.01..1.25) 15(1.05..1.35) 53(1.36..1.5) 55(1.23..1.5) 56(1.46..1.5) 61(1.05..1.35) 62(1.46..1.5) 63(1.01..1.25) 64(1.01..1.25) 65(1.05..1.35) ]
+== bfil_off-2.5 rc=0
+IN nf=26 vol0=3839.03240 op=offset t=-2.5 join=arc
+STOCK done=1 err=0 exc=- ms=2 grade=NOSOLID bop=2x36, nsol=0 nf=6 vol=1386.66667 oracle S=0 OFF=2 WALL=0 MIX=4 offDev=0.00e+00 mixWorst=0.0714 mix=[1(2.43..2.5) 2(2.43..2.5) 4(2.43..2.5) 6(2.43..2.5) ]
+== bfil_thk-2.5 rc=0
+IN nf=26 vol0=3839.03240 op=thick t=-2.5 join=arc
+STOCK done=1 err=0 exc=- ms=5 grade=OK bop=- nsol=1 nf=26 vol=3839.03240 oracle S=25 OFF=0 WALL=1 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== bfiln_off-2.5 rc=0
+IN nf=26 vol0=3839.03240 op=offset t=-2.5 join=arc
+STOCK done=1 err=0 exc=- ms=12 grade=BOP bop=2x84, nsol=1 nf=26 vol=1117.32153 oracle S=0 OFF=2 WALL=0 MIX=24 offDev=0.00e+00 mixWorst=0.495 mix=[1(2.01..2.25) 2(2.05..2.35) 3(2.01..2.25) 4(2.05..2.35) 5(2.05..2.35) 6(2.01..2.25) 7(2.01..2.25) 8(2.05..2.35) 9(2.01..2.25) 10(2.43..2.5) 11(2.05..2.35) 12(2.01..2.25) 13(2.05..2.35) 14(2.43..2.5) 15(2.05..2.35) 16(2.01..2.25) 17(2.01..2.25) 18(2.43..2.5) 19(2.43..2.5) 21(2.05..2.35) 22(2.05..2.35) 23(2.05..2.35) 24(2.05..2.35) 25(2.05..2.35) ]
+== bfiln_thk-2.5 rc=0
+IN nf=26 vol0=3839.03240 op=thick t=-2.5 join=arc
+STOCK done=1 err=0 exc=- ms=71 grade=INV bop=2x116,3x16,11x1, nsol=1 nf=52 vol=3610.49821 oracle S=25 OFF=1 WALL=1 MIX=24 offDev=0.00e+00 mixWorst=0.495 mix=[28(2.11..2.35) 29(2.11..2.35) 30(2.11..2.35) 31(2.11..2.35) 32(2.01..2.25) 33(2.05..2.35) 34(2.48..2.5) 35(2.05..2.35) 36(2.48..2.5) 37(2.01..2.25) 38(2.05..2.35) 40(2.48..2.5) 41(2.01..2.25) 42(2.01..2.25) 43(2.05..2.35) 44(2.01..2.25) 45(2.01..2.25) 46(2.05..2.35) 47(2.05..2.35) 48(2.01..2.25) 49(2.01..2.25) 50(2.05..2.35) 51(2.05..2.35) 52(2.48..2.5) ]
+== c031owner_thk+0.1 rc=0
+IN nf=29 vol0=75276.15523 op=thick t=0.1 join=arc
+STOCK done=0 err=1 exc=- ms=113 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031owner_thk+0.3 rc=0
+IN nf=29 vol0=75276.15523 op=thick t=0.3 join=arc
+STOCK done=0 err=1 exc=- ms=169 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031owner_thk-0.3 rc=0
+IN nf=29 vol0=75276.15523 op=thick t=-0.3 join=arc
+STOCK done=0 err=1 exc=- ms=141 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031sq15_thk+0.1 rc=0
+IN nf=18 vol0=75535.41314 op=thick t=0.1 join=arc
+STOCK done=1 err=0 exc=- ms=76 grade=BOP bop=2x1, nsol=1 nf=61 vol=885.54379 oracle S=16 OFF=41 WALL=0 MIX=1 offDev=1.53e-13 mixWorst=0.0185 mix=[40(0.0815..0.1) ]
+== c031sq15_thk+0.3 rc=0
+IN nf=18 vol0=75535.41314 op=thick t=0.3 join=arc
+STOCK done=0 err=1 exc=- ms=150 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031sq08_thk+0.15 rc=0
+IN nf=18 vol0=75335.92745 op=thick t=0.15 join=arc
+STOCK done=1 err=0 exc=- ms=81 grade=BOP bop=2x1, nsol=1 nf=61 vol=1343.62019 oracle S=15 OFF=41 WALL=0 MIX=2 offDev=3.07e-14 mixWorst=0.0275 mix=[18(3.55e-15..0.00414) 46(0.122..0.15) ]
+== c031sq08_thk+0.45 rc=0
+IN nf=18 vol0=75335.92745 op=thick t=0.45 join=arc
+STOCK done=1 err=0 exc=- ms=154 grade=INV bop=2x2,11x1, nsol=1 nf=61 vol=4066.72659 oracle S=15 OFF=40 WALL=0 MIX=3 offDev=2.33e-14 mixWorst=0.216 mix=[11(3.55e-15..0.00414) 41(0.341..0.45) 54(0.216..0.45) ]
+== c031hex_thk+0.1 rc=0
+IN nf=22 vol0=24374.82418 op=thick t=0.1 join=arc
+STOCK done=1 err=0 exc=- ms=126 grade=BOP bop=2x2,3x4, nsol=1 nf=77 vol=451.34284 oracle S=21 OFF=54 WALL=0 MIX=1 offDev=2.19e-13 mixWorst=0.0263 mix=[36(0.0737..0.1) ]
+== c031hex_thk+0.3 rc=0
+IN nf=22 vol0=24374.82418 op=thick t=0.3 join=arc
+STOCK done=0 err=1 exc=- ms=133 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031obl_thk+0.1 rc=0
+IN nf=18 vol0=32343.42066 op=thick t=0.1 join=arc
+STOCK done=1 err=0 exc=- ms=87 grade=BOP bop=2x2,3x4, nsol=1 nf=61 vol=535.78383 oracle S=17 OFF=42 WALL=0 MIX=1 offDev=7.13e-13 mixWorst=0.0226 mix=[5(0.0774..0.1) ]
+== c031obl_thk+0.3 rc=0
+IN nf=18 vol0=32343.42066 op=thick t=0.3 join=arc
+STOCK done=1 err=0 exc=- ms=140 grade=BOP bop=2x3, nsol=1 nf=61 vol=1616.63157 oracle S=17 OFF=41 WALL=0 MIX=2 offDev=1.18e-13 mixWorst=0.149 mix=[41(0.275..0.3) 43(0.149..0.3) ]
+== c5829_thk-1 rc=0
+IN nf=30 vol0=367718.70847 op=thick t=-1 join=arc
+STOCK done=1 err=0 exc=- ms=9 grade=BOP bop=2x12,3x16, nsol=1 nf=59 vol=19565.47187 oracle S=27 OFF=25 WALL=0 MIX=6 offDev=1.35e-14 mixWorst=0.0506 mix=[22(2.22e-16..0.00591) 25(1.11e-16..0.00448) 44(0.977..1) 46(0.949..1) 47(0.977..1) 53(0.97..1) ]
+== c5829_thk-0.5 rc=0
+IN nf=30 vol0=367718.70847 op=thick t=-0.5 join=arc
+STOCK done=1 err=0 exc=- ms=8 grade=BOP bop=2x4, nsol=1 nf=59 vol=9869.79752 oracle S=27 OFF=25 WALL=0 MIX=6 offDev=1.13e-14 mixWorst=0.00632 mix=[20(2.22e-16..0.00591) 23(1.11e-16..0.00448) 39(0.494..0.5) 40(0.497..0.5) 51(0.494..0.5) 53(0.496..0.5) ]

@@ -1,0 +1,10 @@
+OCC 8.0.1 FC ['26', '3', '0']
+box 100x60x40 r=5 t=-1 join=0 EXC BRep_API: command not done
+box 100x60x40 r=5 t=-1 join=2 EXC BRep_API: command not done
+box 100x60x40 r=5 t=-2 join=0 EXC BRep_API: command not done
+box 100x60x40 r=5 t=-2 join=2 EXC BRep_API: command not done
+box 120x80x50 r=8 t=-1.5 join=0 EXC BRep_API: command not done
+box 120x80x50 r=8 t=-1.5 join=2 EXC BRep_API: command not done
+box 100x60x40 r=5 t=1 join=0 EXC BRep_API: command not done
+box 100x60x40 r=5 t=1 join=2 EXC BRep_API: command not done
+ENCL-DONE

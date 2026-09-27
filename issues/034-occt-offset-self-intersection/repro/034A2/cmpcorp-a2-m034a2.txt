@@ -1,0 +1,12 @@
+CHANGED box_plate_thk-1 a[done=1 err=0 exc=- grade=OK bop=- nf=6 vol=600.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED box_plate_thk+1 a[done=1 err=0 exc=- grade=OK bop=- nf=6 vol=600.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED box_plate_thk-1_int a[done=1 err=0 exc=- grade=OK bop=- nf=6 vol=600.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED box_thk-1 a[done=1 err=0 exc=- grade=OK bop=- nf=11 vol=984.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED box_thk+1_int a[done=1 err=0 exc=- grade=OK bop=- nf=11 vol=1224.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED cyl_thk-1 a[done=1 err=0 exc=- grade=OK bop=- nf=5 vol=389.5575] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED cyl_thk+1 a[done=1 err=0 exc=- grade=OK bop=- nf=6 vol=519.9985] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED vr6_thk+0.5 a[done=1 err=0 exc=- grade=OK bop=- nf=114 vol=8702.0118] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED oring_thk+1_int a[done=1 err=0 exc=- grade=OK bop=- nf=19 vol=11718.9009] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED boxchf_thk-1 a[done=1 err=0 exc=- grade=OK bop=- nf=19 vol=2982.8954] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED per_thk-0.5 a[done=1 err=0 exc=- grade=OK bop=- nf=5 vol=793.6053] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CMP same=42 changed=11 OK->ERR:11

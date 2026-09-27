@@ -1,0 +1,144 @@
+fbox100_60_40_r5_e12_t-1_arc A2R2T faces=52 us=82 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox100_60_40_r5_e12_t-1_int A2R2T faces=26 us=22 
+fbox100_60_40_r5_e12_t-2_arc A2R2T faces=52 us=45 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox100_60_40_r5_e12_t-2_int A2R2T faces=26 us=21 
+fbox100_60_40_r5_e12_t1_arc A2R2T faces=26 us=23 
+fbox100_60_40_r5_e12_t1_int A2R2T faces=26 us=24 
+fbox100_60_40_r5_e12_nurbs_t-1_arc A2R2T faces=26 us=27 
+fbox100_60_40_r5_e12_nurbs_t-1_int A2R2T faces=26 us=25 
+fbox100_60_40_r5_e12_nurbs_t-2_arc A2R2T faces=26 us=26 
+fbox100_60_40_r5_e12_nurbs_t-2_int A2R2T faces=26 us=25 
+fbox100_60_40_r5_e12_nurbs_t1_arc A2R2T faces=26 us=116 
+fbox100_60_40_r5_e12_nurbs_t1_int 
+fbox100_60_40_r5_e12_rot_t-1_arc A2R2T faces=52 us=72 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox100_60_40_r5_e12_rot_t-1_int A2R2T faces=26 us=22 
+fbox100_60_40_r5_e12_rot_t-2_arc A2R2T faces=52 us=83 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox100_60_40_r5_e12_rot_t-2_int A2R2T faces=26 us=20 
+fbox100_60_40_r5_e12_rot_t1_arc A2R2T faces=26 us=23 
+fbox100_60_40_r5_e12_rot_t1_int A2R2T faces=26 us=20 
+fbox100_60_40_r5_e4_t-1_arc A2R2T faces=20 us=38 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox100_60_40_r5_e4_t-1_int A2R2T faces=10 us=15 
+fbox100_60_40_r5_e4_t-2_arc A2R2T faces=20 us=18 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox100_60_40_r5_e4_t-2_int A2R2T faces=10 us=12 
+fbox100_60_40_r5_e4_t1_arc A2R2T faces=35 us=58 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e4_t1_int A2R2T faces=10 us=13 
+fbox100_60_40_r5_e4_nurbs_t-1_arc A2R2T faces=10 us=14 
+fbox100_60_40_r5_e4_nurbs_t-1_int A2R2T faces=10 us=12 
+fbox100_60_40_r5_e4_nurbs_t-2_arc A2R2T faces=10 us=13 
+fbox100_60_40_r5_e4_nurbs_t-2_int A2R2T faces=10 us=14 
+fbox100_60_40_r5_e4_nurbs_t1_arc 
+fbox100_60_40_r5_e4_nurbs_t1_int A2R2T faces=19 us=21 
+fbox100_60_40_r5_e4_rot_t-1_arc A2R2T faces=20 us=36 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox100_60_40_r5_e4_rot_t-1_int A2R2T faces=10 us=12 
+fbox100_60_40_r5_e4_rot_t-2_arc A2R2T faces=20 us=39 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox100_60_40_r5_e4_rot_t-2_int A2R2T faces=10 us=16 
+fbox100_60_40_r5_e4_rot_t1_arc A2R2T faces=35 us=69 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e4_rot_t1_int A2R2T faces=10 us=12 
+fbox100_60_40_r5_e8_t-1_arc A2R2T faces=35 us=61 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_t-1_int A2R2T faces=35 us=63 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_t-2_arc A2R2T faces=35 us=70 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_t-2_int A2R2T faces=35 us=68 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_t1_arc A2R2T faces=35 us=62 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_t1_int A2R2T faces=35 us=65 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_nurbs_t-1_arc A2R2T faces=35 us=75 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_nurbs_t-1_int A2R2T faces=35 us=73 
+fbox100_60_40_r5_e8_nurbs_t-2_arc A2R2T faces=35 us=78 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_nurbs_t-2_int A2R2T faces=35 us=78 
+fbox100_60_40_r5_e8_nurbs_t1_arc A2R2T faces=35 us=58 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_nurbs_t1_int A2R2T faces=35 us=63 
+fbox100_60_40_r5_e8_rot_t-1_arc A2R2T faces=35 us=54 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_rot_t-1_int A2R2T faces=35 us=63 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_rot_t-2_arc A2R2T faces=35 us=57 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_rot_t-2_int A2R2T faces=35 us=60 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_rot_t1_arc A2R2T faces=35 us=64 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox100_60_40_r5_e8_rot_t1_int A2R2T faces=35 us=63 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fbox120_80_50_r8_e12_t-1_arc A2R2T faces=52 us=75 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox120_80_50_r8_e12_t-1_int A2R2T faces=26 us=19 
+fbox120_80_50_r8_e12_t-2_arc A2R2T faces=52 us=72 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox120_80_50_r8_e12_t-2_int A2R2T faces=26 us=23 
+fbox120_80_50_r8_e12_t1_arc A2R2T faces=26 us=20 
+fbox120_80_50_r8_e12_t1_int A2R2T faces=26 us=21 
+fbox120_80_50_r8_e12_nurbs_t-1_arc A2R2T faces=26 us=25 
+fbox120_80_50_r8_e12_nurbs_t-1_int A2R2T faces=26 us=28 
+fbox120_80_50_r8_e12_nurbs_t-2_arc A2R2T faces=26 us=25 
+fbox120_80_50_r8_e12_nurbs_t-2_int A2R2T faces=26 us=30 
+fbox120_80_50_r8_e12_nurbs_t1_arc A2R2T faces=26 us=25 
+fbox120_80_50_r8_e12_nurbs_t1_int A2R2T faces=26 us=30 
+fbox120_80_50_r8_e12_rot_t-1_arc A2R2T faces=52 us=81 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox120_80_50_r8_e12_rot_t-1_int A2R2T faces=26 us=21 
+fbox120_80_50_r8_e12_rot_t-2_arc A2R2T faces=52 us=84 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox120_80_50_r8_e12_rot_t-2_int A2R2T faces=26 us=19 
+fbox120_80_50_r8_e12_rot_t1_arc A2R2T faces=26 us=20 
+fbox120_80_50_r8_e12_rot_t1_int A2R2T faces=26 us=22 
+fbox30_20_10_r2_e12_t-1_arc A2R2T faces=52 us=71 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox30_20_10_r2_e12_t-1_int A2R2T faces=26 us=20 
+fbox30_20_10_r2_e12_t-0.5_arc A2R2T faces=52 us=83 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox30_20_10_r2_e12_t-0.5_int A2R2T faces=26 us=21 
+fbox30_20_10_r2_e12_t1_arc A2R2T faces=26 us=22 
+fbox30_20_10_r2_e12_t1_int A2R2T faces=26 us=24 
+fbox30_20_10_r2_e12_nurbs_t-1_arc A2R2T faces=26 us=27 
+fbox30_20_10_r2_e12_nurbs_t-1_int A2R2T faces=26 us=29 
+fbox30_20_10_r2_e12_nurbs_t-0.5_arc A2R2T faces=26 us=25 
+fbox30_20_10_r2_e12_nurbs_t-0.5_int A2R2T faces=26 us=27 
+fbox30_20_10_r2_e12_nurbs_t1_arc A2R2T faces=26 us=25 
+fbox30_20_10_r2_e12_nurbs_t1_int A2R2T faces=26 us=25 
+fbox30_20_10_r2_e12_rot_t-1_arc A2R2T faces=52 us=80 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox30_20_10_r2_e12_rot_t-1_int A2R2T faces=26 us=21 
+fbox30_20_10_r2_e12_rot_t-0.5_arc A2R2T faces=52 us=64 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox30_20_10_r2_e12_rot_t-0.5_int A2R2T faces=26 us=20 
+fbox30_20_10_r2_e12_rot_t1_arc A2R2T faces=26 us=21 
+fbox30_20_10_r2_e12_rot_t1_int A2R2T faces=26 us=889 
+fbox50_50_50_r10_e12_t-1_arc A2R2T faces=52 us=50 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox50_50_50_r10_e12_t-1_int A2R2T faces=26 us=24 
+fbox50_50_50_r10_e12_t-2_arc A2R2T faces=52 us=89 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox50_50_50_r10_e12_t-2_int A2R2T faces=26 us=23 
+fbox50_50_50_r10_e12_t1_arc A2R2T faces=26 us=20 
+fbox50_50_50_r10_e12_t1_int A2R2T faces=26 us=21 
+fbox50_50_50_r10_e12_nurbs_t-1_arc A2R2T faces=52 us=81 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox50_50_50_r10_e12_nurbs_t-1_int A2R2T faces=26 us=28 
+fbox50_50_50_r10_e12_nurbs_t-2_arc A2R2T faces=52 us=82 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox50_50_50_r10_e12_nurbs_t-2_int A2R2T faces=26 us=25 
+fbox50_50_50_r10_e12_nurbs_t1_arc A2R2T faces=26 us=25 
+fbox50_50_50_r10_e12_nurbs_t1_int 
+fbox50_50_50_r10_e12_rot_t-1_arc A2R2T faces=52 us=88 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox50_50_50_r10_e12_rot_t-1_int A2R2T faces=26 us=22 
+fbox50_50_50_r10_e12_rot_t-2_arc A2R2T faces=52 us=91 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fbox50_50_50_r10_e12_rot_t-2_int A2R2T faces=26 us=21 
+fbox50_50_50_r10_e12_rot_t1_arc A2R2T faces=26 us=24 
+fbox50_50_50_r10_e12_rot_t1_int A2R2T faces=26 us=24 
+fcyl20_30_r3_both_t-1_arc A2R2T faces=10 us=23 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fcyl20_30_r3_both_t-1_int A2R2T faces=5 us=11 
+fcyl20_30_r3_both_t-2_arc A2R2T faces=10 us=20 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fcyl20_30_r3_both_t-2_int A2R2T faces=5 us=11 
+fcyl20_30_r3_both_t1_arc A2R2T faces=9 us=21 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fcyl20_30_r3_both_t1_int A2R2T faces=9 us=21 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fcyl20_30_r3_both_nurbs_t-1_arc 
+fcyl20_30_r3_both_nurbs_t-1_int 
+fcyl20_30_r3_both_nurbs_t-2_arc 
+fcyl20_30_r3_both_nurbs_t-2_int 
+fcyl20_30_r3_both_nurbs_t1_arc 
+fcyl20_30_r3_both_nurbs_t1_int 
+fcyl20_30_r3_both_rot_t-1_arc A2R2T faces=10 us=22 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fcyl20_30_r3_both_rot_t-1_int A2R2T faces=5 us=14 
+fcyl20_30_r3_both_rot_t-2_arc A2R2T faces=10 us=22 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fcyl20_30_r3_both_rot_t-2_int A2R2T faces=5 us=11 
+fcyl20_30_r3_both_rot_t1_arc A2R2T faces=9 us=17 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fcyl20_30_r3_both_rot_t1_int A2R2T faces=9 us=18 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fcyl20_30_r3_top_t-1_arc A2R2T faces=8 us=17 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fcyl20_30_r3_top_t-1_int A2R2T faces=4 us=10 
+fcyl20_30_r3_top_t-2_arc A2R2T faces=8 us=20 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fcyl20_30_r3_top_t-2_int A2R2T faces=4 us=10 
+fcyl20_30_r3_top_t1_arc A2R2T faces=8 us=19 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fcyl20_30_r3_top_t1_int A2R2T faces=7 us=16 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fcyl20_30_r3_top_nurbs_t-1_arc 
+fcyl20_30_r3_top_nurbs_t-1_int 
+fcyl20_30_r3_top_nurbs_t-2_arc 
+fcyl20_30_r3_top_nurbs_t-2_int 
+fcyl20_30_r3_top_nurbs_t1_arc 
+fcyl20_30_r3_top_nurbs_t1_int 
+fcyl20_30_r3_top_rot_t-1_arc A2R2T faces=8 us=19 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fcyl20_30_r3_top_rot_t-1_int A2R2T faces=4 us=9 
+fcyl20_30_r3_top_rot_t-2_arc A2R2T faces=8 us=19 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+fcyl20_30_r3_top_rot_t-2_int A2R2T faces=4 us=11 
+fcyl20_30_r3_top_rot_t1_arc A2R2T faces=8 us=22 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+fcyl20_30_r3_top_rot_t1_int A2R2T faces=7 us=16 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 

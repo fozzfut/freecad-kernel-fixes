@@ -1,0 +1,520 @@
+From e55a6ba83c150a8d8f54fd95be98f1df09e5948e Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 14:08:11 +0700
+Subject: [PATCH] 034 (TKOffset): BRepOffset never returns a broken offset
+ silently (stage A guard)
+
+The offset of a face whose curvature radius on the offset side is below
+the offset distance folds; OCCT keeps free-form faces untrimmed and
+returned self-intersecting or invalid solids with IsDone() true and no
+error (issue 034, M1/M2). It also reported an empty result as done (M3)
+and returned the input solid itself as a "thick solid" (M4).
+
+- Fold test after a successful MakeOffsetShape: principal offset factors
+  1 - d*k on each non-planar face (one sample for cylinder/sphere, a v
+  line for cones/tori/revolutions, a grid refined by pattern search for
+  free-form faces; poles skipped). Planar-only shapes cost nothing.
+- Only when some face can fold is the result checked: BRepCheck +
+  BOPAlgo self-interference, and for a plain offset the distance
+  criterion (no point of a correct offset is closer than |offset| to the
+  input). A failed check -> IsDone false, Error CannotTrimEdges; a result
+  that passes is returned unchanged.
+- Empty result -> not done (UnknownError). MakeThickSolid NbOF == NbF:
+  the input returned as the thick solid -> not done (UnknownError); a
+  glued plate that came out inside out (negative volume) is reversed.
+
+No header, member or export change (exports == weekly 480).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepOffset/BRepOffset_MakeOffset.cxx      | 444 ++++++++++++++++++
+ 1 file changed, 444 insertions(+)
+
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+index 75132843..db3b3a57 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+@@ -94,7 +94,17 @@
+ #include <NCollection_DynamicArray.hxx>
+ #include <NCollection_IncAllocator.hxx>
+ //
++#include <BOPAlgo_ArgumentAnalyzer.hxx>
++#include <BOPAlgo_CheckResult.hxx>
+ #include <BOPAlgo_MakerVolume.hxx>
++#include <Bnd_Box.hxx>
++#include <BRepAdaptor_Surface.hxx>
++#include <BRepBndLib.hxx>
++#include <BRepExtrema_DistShapeShape.hxx>
++#include <Geom_BSplineSurface.hxx>
++#include <Standard_ErrorHandler.hxx>
++#include <algorithm>
++#include <cmath>
+ #include <BOPTools_AlgoTools.hxx>
+ 
+ #include <cstdio>
+@@ -245,6 +255,380 @@ static void normalizeSteps(const double theWhole, NCollection_Array1<double>& th
+ 
+ } // namespace
+ 
++//=======================================================================
++// Issue 034 guard: the offset algorithm must never return a broken
++// result silently.
++//
++// The offset of a face whose curvature radius on the offset side is
++// smaller than the offset distance folds over itself (Farouki 1986,
++// Maekawa 1999, Seong-Elber-Kim 2006). Analytic faces in this state
++// get the status Reversed/Degenerated and are dropped; free-form faces
++// are kept untrimmed (a face is never intersected with itself) and
++// the result can come back self-intersecting or invalid with no error.
++//
++// The guard costs nothing when no face can fold: planar faces are
++// skipped, cylinders and spheres cost one evaluation, other faces a
++// sampled curvature grid. Only when some face can fold is the result
++// checked (BRepCheck + self-interference, and for a plain offset the
++// distance of the result to the input). A check that fails turns the
++// result into an error; a result that passes is returned unchanged.
++//
++// Structural cases, independent of folds: an empty result is an error
++// (it was reported as done); a thick solid glued from the input faces
++// and an offset shell that is the input itself is an error (it was
++// returned as the thick solid); a glued plate that comes out inside out
++// is reversed.
++//=======================================================================
++namespace
++{
++//! Offset factors below this value trigger the check of the result.
++//! A factor 1 - d*k <= 0 is a fold; the margin covers sampling.
++const double THE_FOLD_TRIGGER_034 = 0.05;
++//! A sample of the result closer to the input than this share of the
++//! offset distance proves a wrong piece.
++const double THE_CLOSE_FACTOR_034 = 0.99;
++
++//! Record of the fold test of the last MakeOffsetShape() of an object,
++//! read back by MakeThickSolid() of the same object (no new members:
++//! the class layout stays that of OCCT 8.0.1).
++struct FoldRecord034
++{
++  const void* Owner = nullptr;
++  bool        Fold  = false;
++};
++
++thread_local FoldRecord034 THE_FOLD_RECORD_034;
++
++//! Smallest principal offset factor min(1 - d*k1, 1 - d*k2) at (u, v);
++//! d is the signed offset along the natural normal Su x Sv.
++//! Returns false at a singular point: normal undefined, or one derivative
++//! vanishing against the other over the face ranges theRU x theRV (a pole
++//! of a surface of revolution / degenerate B-spline edge, where the
++//! curvature formula is only round-off).
++static bool offsetFactor034(const Geom_Surface& theS,
++                            const double        theU,
++                            const double        theV,
++                            const double        theRU,
++                            const double        theRV,
++                            const double        theD,
++                            double&             theF)
++{
++  gp_Pnt aP;
++  gp_Vec aSu, aSv, aSuu, aSvv, aSuv;
++  theS.D2(theU, theV, aP, aSu, aSv, aSuu, aSvv, aSuv);
++  gp_Vec       aN   = aSu.Crossed(aSv);
++  const double aNm  = aN.Magnitude();
++  const double anE  = aSu.SquareMagnitude();
++  const double aG   = aSv.SquareMagnitude();
++  const double aF   = aSu.Dot(aSv);
++  const double aDen = anE * aG - aF * aF;
++  const double aLU  = std::sqrt(anE) * theRU;
++  const double aLV  = std::sqrt(aG) * theRV;
++  if (aNm < 1.e-300 || aNm <= 1.e-9 * std::sqrt(anE * aG) || aDen <= 0.
++      || std::min(aLU, aLV) <= 1.e-6 * std::max(aLU, aLV))
++  {
++    return false;
++  }
++  aN.Divide(aNm);
++  const double aL    = aSuu.Dot(aN);
++  const double aM    = aSuv.Dot(aN);
++  const double aNN   = aSvv.Dot(aN);
++  const double aK    = (aL * aNN - aM * aM) / aDen;
++  const double aH    = (anE * aNN + aG * aL - 2. * aF * aM) / (2. * aDen);
++  const double aDisc = std::sqrt(std::max(aH * aH - aK, 0.));
++  theF               = std::min(1. - theD * (aH + aDisc), 1. - theD * (aH - aDisc));
++  return true;
++}
++
++//! True if the offset of the face by theOffset (along the outward normal of
++//! the face in its shape) can fold, i.e. some sampled offset factor is below
++//! THE_FOLD_TRIGGER_034. Exceptions count as "can fold" (the result is checked).
++static bool faceMayFold034(const TopoDS_Face& theF, const double theOffset)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    TopLoc_Location                  aLoc;
++    const occ::handle<Geom_Surface>& aS = BRep_Tool::Surface(theF, aLoc);
++    if (aS.IsNull() || std::abs(theOffset) <= Precision::Confusion())
++    {
++      return false;
++    }
++    const GeomAdaptor_Surface aGAS(aS);
++    const GeomAbs_SurfaceType aType = aGAS.GetType();
++    if (aType == GeomAbs_Plane)
++    {
++      return false;
++    }
++    const double aD = (theF.Orientation() == TopAbs_REVERSED) ? -theOffset : theOffset;
++    double       aU0, aU1, aV0, aV1;
++    BRepTools::UVBounds(theF, aU0, aU1, aV0, aV1);
++    if (aU1 < aU0 || aV1 < aV0)
++    {
++      return true;
++    }
++    // number of grid steps in each direction (0 = one sample in the middle)
++    int aNU = 16, aNV = 16;
++    switch (aType)
++    {
++      case GeomAbs_Cylinder:
++      case GeomAbs_Sphere:
++        aNU = aNV = 0; // constant curvature
++        break;
++      case GeomAbs_Cone: {
++        // the apex inside the face: the offset towards the axis always folds
++        const gp_Cone aCone = aGAS.Cone();
++        const double  aR0   = aCone.RefRadius() + aV0 * std::sin(aCone.SemiAngle());
++        const double  aR1   = aCone.RefRadius() + aV1 * std::sin(aCone.SemiAngle());
++        if (aR0 * aR1 <= 0.)
++        {
++          return true;
++        }
++        aNU = 0; // curvature depends on v only
++        break;
++      }
++      case GeomAbs_Torus:
++      case GeomAbs_SurfaceOfRevolution:
++        aNU = 0; // curvature depends on v only
++        break;
++      case GeomAbs_SurfaceOfExtrusion:
++        aNV = 0; // curvature depends on u only
++        break;
++      case GeomAbs_BSplineSurface: {
++        // at least two samples per knot span, at most 64 steps
++        const occ::handle<Geom_BSplineSurface> aBS = aGAS.BSpline();
++        int                                    aSU = 0, aSV = 0;
++        for (int i = aBS->FirstUKnotIndex(); i < aBS->LastUKnotIndex(); ++i)
++        {
++          if (aBS->UKnot(i + 1) > aU0 && aBS->UKnot(i) < aU1)
++          {
++            ++aSU;
++          }
++        }
++        for (int i = aBS->FirstVKnotIndex(); i < aBS->LastVKnotIndex(); ++i)
++        {
++          if (aBS->VKnot(i + 1) > aV0 && aBS->VKnot(i) < aV1)
++          {
++            ++aSV;
++          }
++        }
++        aNU = std::min(std::max(aNU, 2 * aSU), 64);
++        aNV = std::min(std::max(aNV, 2 * aSV), 64);
++        break;
++      }
++      default:
++        break;
++    }
++    const double aDU  = aNU > 0 ? (aU1 - aU0) / aNU : 0.;
++    const double aDV  = aNV > 0 ? (aV1 - aV0) / aNV : 0.;
++    double       aMin = RealLast(), aMinU = 0.5 * (aU0 + aU1), aMinV = 0.5 * (aV0 + aV1);
++    for (int i = 0; i <= aNU; ++i)
++    {
++      const double aU = aNU > 0 ? aU0 + aDU * i : 0.5 * (aU0 + aU1);
++      for (int j = 0; j <= aNV; ++j)
++      {
++        const double aV = aNV > 0 ? aV0 + aDV * j : 0.5 * (aV0 + aV1);
++        double       aFct;
++        if (!offsetFactor034(*aS, aU, aV, aU1 - aU0, aV1 - aV0, aD, aFct))
++        {
++          continue;
++        }
++        if (aFct < THE_FOLD_TRIGGER_034)
++        {
++          return true;
++        }
++        if (aFct < aMin)
++        {
++          aMin  = aFct;
++          aMinU = aU;
++          aMinV = aV;
++        }
++      }
++    }
++    // a thin tight band between the samples: pattern search from the
++    // tightest sample (only where the curvature radius is already below
++    // four offset distances)
++    if (aMin < 0.75 && (aNU > 0 || aNV > 0))
++    {
++      static const int THE_DIRS[8][2] =
++        {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
++      double aHU = aDU, aHV = aDV;
++      for (int anIter = 0; anIter < 64 && (aHU > aDU / 512. || aHV > aDV / 512.); ++anIter)
++      {
++        bool isMoved = false;
++        for (int k = 0; k < 8; ++k)
++        {
++          const double aU = std::min(std::max(aMinU + THE_DIRS[k][0] * aHU, aU0), aU1);
++          const double aV = std::min(std::max(aMinV + THE_DIRS[k][1] * aHV, aV0), aV1);
++          double       aFct;
++          if (!offsetFactor034(*aS, aU, aV, aU1 - aU0, aV1 - aV0, aD, aFct))
++          {
++            continue;
++          }
++          if (aFct < THE_FOLD_TRIGGER_034)
++          {
++            return true;
++          }
++          if (aFct < aMin)
++          {
++            aMin    = aFct;
++            aMinU   = aU;
++            aMinV   = aV;
++            isMoved = true;
++          }
++        }
++        if (!isMoved)
++        {
++          aHU *= 0.5;
++          aHV *= 0.5;
++        }
++      }
++    }
++    return false;
++  }
++  catch (Standard_Failure const&)
++  {
++    return true;
++  }
++}
++
++//! True if the offset of some face of theFaces can fold.
++static bool offsetMayFold034(
++  const TopoDS_Shape&                                                       theFaces,
++  const double                                                              theOffset,
++  const NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>& theFaceOffset)
++{
++  for (TopExp_Explorer anExp(theFaces, TopAbs_FACE); anExp.More(); anExp.Next())
++  {
++    const TopoDS_Face& aF       = TopoDS::Face(anExp.Current());
++    const double*      anOffset = theFaceOffset.Seek(aF);
++    if (faceMayFold034(aF, anOffset ? *anOffset : theOffset))
++    {
++      return true;
++    }
++  }
++  return false;
++}
++
++//! True if the result is proven broken: BRepCheck invalid, or its faces
++//! self-interfere (BOPAlgo self-interference check). An exception inside
++//! the check proves nothing (the result is kept).
++static bool resultIsBroken034(const TopoDS_Shape& theRes)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    if (!BRepCheck_Analyzer(theRes).IsValid())
++    {
++      return true;
++    }
++    BOPAlgo_ArgumentAnalyzer anAnalyzer;
++    anAnalyzer.SetShape1(theRes);
++    anAnalyzer.SelfInterMode()     = true;
++    anAnalyzer.StopOnFirstFaulty() = true;
++    anAnalyzer.Perform();
++    for (NCollection_List<BOPAlgo_CheckResult>::Iterator anIt(anAnalyzer.GetCheckResult());
++         anIt.More();
++         anIt.Next())
++    {
++      if (anIt.Value().GetCheckStatus() == BOPAlgo_SelfIntersect)
++      {
++        return true;
++      }
++    }
++  }
++  catch (Standard_Failure const&)
++  {
++  }
++  return false;
++}
++
++//! Distance criterion (Seong-Elber-Kim 2006): every point of a correct
++//! offset lies at least |offset| away from the boundary of the input (both
++//! join types; the arc join gives exactly |offset|, the intersection join
++//! more at sharp edges). True if a sample inside a face of the result is
++//! clearly closer: a piece of the wrong side was kept.
++static bool resultTooClose034(const TopoDS_Shape& theRes,
++                              const TopoDS_Shape& theInput,
++                              const double        theAbsOffset,
++                              const double        theTol)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    BRep_Builder    aBB;
++    TopoDS_Compound aBnd, aPts;
++    aBB.MakeCompound(aBnd);
++    aBB.MakeCompound(aPts);
++    for (TopExp_Explorer anExp(theInput, TopAbs_FACE); anExp.More(); anExp.Next())
++    {
++      aBB.Add(aBnd, anExp.Current());
++    }
++    int aNbPts = 0;
++    for (TopExp_Explorer anExp(theRes, TopAbs_FACE); anExp.More(); anExp.Next())
++    {
++      const TopoDS_Face&  aF = TopoDS::Face(anExp.Current());
++      BRepAdaptor_Surface aBAS(aF, false);
++      double              aU0, aU1, aV0, aV1;
++      BRepTools::UVBounds(aF, aU0, aU1, aV0, aV1);
++      IntTools_FClass2d aCls(aF, Precision::PConfusion());
++      for (int i = 1; i < 5; ++i)
++      {
++        for (int j = 1; j < 5; ++j)
++        {
++          const gp_Pnt2d aUV(aU0 + (aU1 - aU0) * i / 5., aV0 + (aV1 - aV0) * j / 5.);
++          if (aCls.Perform(aUV) != TopAbs_IN)
++          {
++            continue;
++          }
++          aBB.Add(aPts, BRepLib_MakeVertex(aBAS.Value(aUV.X(), aUV.Y())).Vertex());
++          ++aNbPts;
++        }
++      }
++    }
++    if (aNbPts == 0 || aBnd.NbChildren() == 0)
++    {
++      return false;
++    }
++    BRepExtrema_DistShapeShape aDist(aPts, aBnd);
++    return aDist.IsDone() && aDist.Value() < THE_CLOSE_FACTOR_034 * theAbsOffset - theTol;
++  }
++  catch (Standard_Failure const&)
++  {
++    return false;
++  }
++}
++
++//! True if the two solids coincide: same volume and same bounding box.
++static bool sameSolid034(const TopoDS_Shape& theA, const TopoDS_Shape& theB)
++{
++  GProp_GProps aPA, aPB;
++  BRepGProp::VolumeProperties(theA, aPA);
++  BRepGProp::VolumeProperties(theB, aPB);
++  const double aVA = std::abs(aPA.Mass()), aVB = std::abs(aPB.Mass());
++  if (std::abs(aVA - aVB) > 1.e-7 * std::max(aVA, aVB))
++  {
++    return false;
++  }
++  Bnd_Box aBA, aBB;
++  BRepBndLib::Add(theA, aBA, false);
++  BRepBndLib::Add(theB, aBB, false);
++  if (aBA.IsVoid() || aBB.IsVoid())
++  {
++    return false;
++  }
++  const double aTol = 1.e-6 * std::sqrt(aBA.SquareExtent()) + Precision::Confusion();
++  return aBA.CornerMin().Distance(aBB.CornerMin()) <= aTol
++         && aBA.CornerMax().Distance(aBB.CornerMax()) <= aTol;
++}
++
++//! True if the shape holds no face.
++static bool hasNoFace034(const TopoDS_Shape& theS)
++{
++  return theS.IsNull() || !TopExp_Explorer(theS, TopAbs_FACE).More();
++}
++} // namespace
++
+ //=======================================================================
+ // static methods
+ //=======================================================================
+@@ -1075,6 +1459,41 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+     }
+   }
+ 
++  // Issue 034 guard. An empty result is not a success.
++  if (hasNoFace034(myOffsetShape))
++  {
++    myError = BRepOffset_UnknownError;
++    return;
++  }
++  // Can the offset of some face fold? Then check the result: for a plain
++  // offset here, for a thick solid in MakeThickSolid() after the caps.
++  const bool isFold         = offsetMayFold034(myFaceComp, myOffset, myFaceOffset);
++  THE_FOLD_RECORD_034.Owner = this;
++  THE_FOLD_RECORD_034.Fold  = isFold;
++  if (isFold && myFaces.IsEmpty())
++  {
++    bool isBroken = resultIsBroken034(myOffsetShape);
++    if (!isBroken && !myThickening)
++    {
++      double aMinAbs = std::abs(myOffset);
++      bool   isSame  = true;
++      for (NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>::Iterator anIt(
++             myFaceOffset);
++           anIt.More();
++           anIt.Next())
++      {
++        isSame  = isSame && (anIt.Value() * myOffset > 0.);
++        aMinAbs = std::min(aMinAbs, std::abs(anIt.Value()));
++      }
++      isBroken = isSame && resultTooClose034(myOffsetShape, myShape, aMinAbs, myTol);
++    }
++    if (isBroken)
++    {
++      myError = BRepOffset_CannotTrimEdges;
++      return;
++    }
++  }
++
+   myDone = true;
+ }
+ 
+@@ -1164,7 +1583,23 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     }
+     if (NbOF == NbF)
+     {
++      // Issue 034 guard: no offset shell was built when the solid glued
++      // from the input faces and the offset shell is the input itself.
++      if (sameSolid034(myOffsetShape, myInitialShape))
++      {
++        myDone  = false;
++        myError = BRepOffset_UnknownError;
++        return;
++      }
+       myOffset = 0;
++      // Issue 034 guard: the solid is not reversed below (offset 0); an
++      // outward plate glued here comes out inside out (negative volume).
++      GProp_GProps aProps;
++      BRepGProp::VolumeProperties(myOffsetShape, aProps);
++      if (aProps.Mass() < 0.)
++      {
++        myOffsetShape.Reverse();
++      }
+     }
+   }
+ 
+@@ -1173,6 +1608,15 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     myOffsetShape.Reverse();
+   }
+ 
++  // Issue 034 guard: some offset face can fold -> check the thick solid.
++  if (THE_FOLD_RECORD_034.Owner == this && THE_FOLD_RECORD_034.Fold
++      && resultIsBroken034(myOffsetShape))
++  {
++    myDone  = false;
++    myError = BRepOffset_CannotTrimEdges;
++    return;
++  }
++
+   myDone = true;
+ }
+ 
+-- 
+2.52.0.windows.1
+

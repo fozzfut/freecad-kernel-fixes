@@ -1,0 +1,12 @@
+CHANGED box_plate_thk+1 a[done=1 err=0 exc=- grade=OK bop=- nf=6 vol=-600.0000] b[done=1 err=0 exc=- grade=OK bop=- nf=6 vol=600.0000]  
+CHANGED box_off-3 a[done=1 err=0 exc=- grade=ERR bop=- nf=0 vol=0.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED cyl_off-6 a[done=1 err=0 exc=- grade=ERR bop=- nf=0 vol=0.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED bfil_off-2.5 a[done=1 err=0 exc=- grade=NOSOLID bop=2x36, nf=6 vol=1386.6667] b[done=0 err=6 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED bfil_thk-2.5 a[done=1 err=0 exc=- grade=OK bop=- nf=26 vol=3839.0324] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED bfiln_off-2.5 a[done=1 err=0 exc=- grade=BOP bop=2x85, nf=26 vol=1117.3215] b[done=0 err=6 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED bfiln_thk-2.5 a[done=1 err=0 exc=- grade=BOP bop=2x85, nf=26 vol=1117.3215] b[done=0 err=6 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED vr6_off-0.2 a[done=1 err=0 exc=- grade=ERR bop=- nf=0 vol=0.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED vr6_thk-0.2 a[done=1 err=0 exc=- grade=OK bop=- nf=31 vol=68854.0072] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED top_off+0.5 a[done=1 err=0 exc=- grade=ERR bop=- nf=0 vol=0.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED top_off-0.5 a[done=1 err=0 exc=- grade=ERR bop=- nf=0 vol=0.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CMP same=42 changed=11 BOP->ERR:2 ERR->ERR:5 NOSOLID->ERR:1 OK->ERR:2 OK->OK:1

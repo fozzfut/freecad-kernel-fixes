@@ -1,0 +1,6 @@
+lwalln_thk+0.4_int RES op=thick t=0.4 join=int inter=0 self=0 done=0 err=6 exc=- ms=1236 grade=ERR bop=- nf=0 vol0=760.5365 vol=0.0000 chkus=-1 bopus=-1 foldFaces=0 minJ=0.2 peakMB=25 removed=1, folds=[] 
+stepn_off+0.9_int RES op=offset t=0.9 join=int inter=0 self=0 done=0 err=6 exc=- ms=649 grade=ERR bop=- nf=0 vol0=3002.1460 vol=0.0000 chkus=-1 bopus=-1 foldFaces=0 minJ=0.1 peakMB=19 removed=- folds=[] 
+pocketn_off+0.5_int RES op=offset t=0.5 join=int inter=0 self=0 done=0 err=6 exc=- ms=2977 grade=ERR bop=- nf=0 vol0=3413.0649 vol=0.0000 chkus=-1 bopus=-1 foldFaces=0 minJ=0.25 peakMB=35 removed=- folds=[] 
+pocketn_off-0.5_int RES op=offset t=-0.5 join=int inter=0 self=0 done=0 err=6 exc=- ms=3285 grade=ERR bop=- nf=0 vol0=3413.0649 vol=0.0000 chkus=-1 bopus=-1 foldFaces=0 minJ=1 peakMB=34 removed=- folds=[] 
+bfiln_off-1_int RES op=offset t=-1 join=int inter=0 self=0 done=1 err=0 exc=- ms=2712 grade=OK bop=- nf=26 vol0=3839.0324 vol=2555.5693 chkus=23202 bopus=3131568 foldFaces=0 minJ=0.25 peakMB=46 removed=- folds=[] 
+bfiln_off+1_int RES op=offset t=1 join=int inter=0 self=0 done=1 err=0 exc=- ms=2744 grade=OK bop=- nf=26 vol0=3839.0324 vol=5411.5220 chkus=25152 bopus=2646979 foldFaces=0 minJ=1 peakMB=45 removed=- folds=[] 

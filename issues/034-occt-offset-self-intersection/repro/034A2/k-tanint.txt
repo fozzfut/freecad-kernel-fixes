@@ -1,0 +1,6 @@
+lwalln_thk+0.4_int /c/dev/occt8-mig/offset-study/cases/lwall_r05_nurbs.brep thick 0.4 int 0 0 1
+stepn_off+0.9_int /c/dev/occt8-mig/offset-study/cases/step_r1_nurbs.brep offset 0.9 int 0 0 none
+pocketn_off+0.5_int /c/dev/occt8-mig/offset-study/cases/pocket_r1_nurbs.brep offset 0.5 int 0 0 none
+pocketn_off-0.5_int /c/dev/occt8-mig/offset-study/cases/pocket_r1_nurbs.brep offset -0.5 int 0 0 none
+bfiln_off-1_int /c/dev/occt8-mig/offset-034/cases/box_fillet_r2_nurbs.brep offset -1 int 0 0 none
+bfiln_off+1_int /c/dev/occt8-mig/offset-034/cases/box_fillet_r2_nurbs.brep offset 1 int 0 0 none

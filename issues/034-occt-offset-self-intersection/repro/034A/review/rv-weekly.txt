@@ -1,0 +1,13 @@
+5829_in1_default value=1 mode=Skin rev=True join=Arc BOP isValid=True check=FAULTS[BOP check found the following errors:|Error in Face: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Edge: BOPAlgo SelfIntersect|Error in ] vol=19565.4719 faces=59 solids=1 fillet_faces=30 0.99s
+5829_rectoverso1 value=1 mode=RectoVerso rev=True join=Arc BOP isValid=True check=FAULTS[BOP check found the following errors:|Error in Face: BOPAlgo SelfIntersect|Error in Face: BOPAlgo SelfIntersect|Error in Face: BOPAlgo SelfIntersect|Error in Fa] vol=19915.2510 faces=59 solids=1 fillet_faces=30 1.25s
+5829_in0.3 value=0.3 mode=Skin rev=True join=Arc OK isValid=True check=clean vol=5942.8592 faces=59 solids=1 fillet_faces=30 0.53s
+5829_in0.5 value=0.5 mode=Skin rev=True join=Arc BOP isValid=True check=FAULTS[BOP check found the following errors:|Error in Face: BOPAlgo SelfIntersect|Error in Face: BOPAlgo SelfIntersect|Error in Face: BOPAlgo SelfIntersect|Error in Fa] vol=9869.7975 faces=59 solids=1 fillet_faces=30 0.85s
+5829_in2 value=2 mode=Skin rev=True join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid fillet_faces=30 0.02s
+5829_out1 value=1 mode=Skin rev=False join=Arc BOP isValid=True check=FAULTS[BOP check found the following errors:|Error in Face: BOPAlgo SelfIntersect|Error in Face: BOPAlgo SelfIntersect|Error in Face: BOPAlgo SelfIntersect|Error in Fa] vol=20268.0983 faces=59 solids=1 fillet_faces=30 1.06s
+5829_in1_intersection value=1 mode=Skin rev=True join=Intersection BOP isValid=True check=FAULTS[BOP check found the following errors:|Error in Vertex: BOPAlgo SelfIntersect|Error in Edge: BOPAlgo SelfIntersect|Error in Face: BOPAlgo SelfIntersect|Error in ] vol=19749.0836 faces=59 solids=1 fillet_faces=30 0.93s
+encl_r5_in2 box=100x60x40 r=5 value=2 rev=True join=Arc INV isValid=False check=FAULTS[Bad orientation of sub-shape|No error|Undetermined error|] vol=40755.6335 faces=52 solids=1 0.03s
+encl_r5_in1 box=100x60x40 r=5 value=1 rev=True join=Arc INV isValid=False check=FAULTS[Bad orientation of sub-shape|No error|No error|] vol=20962.1530 faces=52 solids=1 0.05s
+encl_r2_in3 box=100x60x40 r=2 value=3 rev=True join=Arc OK isValid=True check=clean vol=239323.9880 faces=26 solids=1 0.04s
+encl_r3_out1 box=80x50x30 r=3 value=1 rev=False join=Arc INV isValid=False check=FAULTS[Bad orientation of sub-shape|No error|No error|] vol=118800.0527 faces=26 solids=1 0.02s
+encl_r8_in1.5 box=120x80x50 r=8 value=1.5 rev=True join=Arc INV isValid=False check=FAULTS[Bad orientation of sub-shape|No error|No error|] vol=48572.9014 faces=52 solids=1 0.03s
+RV034-DONE

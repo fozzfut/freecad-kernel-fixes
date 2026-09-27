@@ -1,0 +1,4 @@
+CHANGED box_plate_thk-5 a[done=1 err=0 exc=- grade=INV bop=2x5,11x1, nf=7 vol=800.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED bfil_thk-1 a[done=1 err=0 exc=- grade=INV bop=2x8,11x1, nf=52 vol=1198.1298] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED plate1024_off+0.2 a[done=1 err=0 exc=- grade=OK bop=- nf=3098 vol=360961.1919] b[done=? err=? exc=? grade=HANG bop=? nf=? vol=?]  
+CMP same=50 changed=3 INV->ERR:2 OK->HANG:1

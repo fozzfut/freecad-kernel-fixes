@@ -1,0 +1,20 @@
+box_plate_thk-1 A2R2T faces=6 us=18 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+box_plate_thk+1 A2R2T faces=6 us=23 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+box_plate_thk-5 A2R2T faces=7 us=17 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+box_plate_thk-1_int A2R2T faces=6 us=18 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+box_thk-1 A2R2T faces=11 us=25 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+box_thk+1_int A2R2T faces=11 us=22 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+cyl_thk-1 A2R2T faces=5 us=14 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+cyl_thk+1 A2R2T faces=6 us=17 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+bfil_thk-1 A2R2T faces=52 us=86 A2R2 shells=2 bound=1 broken=1 proven=0 path=WALL 
+bfil_thk-2.5 A2R2T faces=26 us=27 
+bfiln_thk-1 
+bfiln_thk-2.5 
+vr6_thk+0.5 A2R2T faces=114 us=461 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+vr6_thk-0.2 A2R2T faces=31 us=32 
+oring_thk+1_int A2R2T faces=19 us=36 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+top_thk-1 
+top_thk+1 
+boxchf_thk-1 A2R2T faces=19 us=34 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+per_thk-0.5 A2R2T faces=5 us=15 A2R2 shells=1 bound=1 broken=0 proven=1 path=LE-BOUND 
+loft_thk-0.5 

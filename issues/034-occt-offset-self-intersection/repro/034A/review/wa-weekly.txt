@@ -1,0 +1,5 @@
+a_fillet8_then_shell t=-1 valid=True check=clean vol=17396.5632 shells=1 faces=35
+a_fillet8_then_shell t=-2 valid=True check=clean vol=34083.1264 shells=1 faces=35
+b_shell_then_fillet t=-1 edges=8 valid=False check=FAULTS vol=15832.4801 shells=1 faces=23
+b_shell_then_fillet t=-2 edges=8 valid=True check=FAULTS vol=33220.4801 shells=1 faces=23
+WA-DONE

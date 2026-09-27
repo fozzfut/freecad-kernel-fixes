@@ -1,0 +1,5 @@
+CHANGED c031_m2s10_obl_c1_r1_thk0.3r_arc a[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000] b[done=0 err=6 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED c031_m2s10_obl_c1_r1_off0.3r_arc a[done=0 err=6 exc=- grade=ERR bop=- nf=0 vol=0.0000] b[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED c031_m2s10_sq_c08_r15_off0.3r_arc a[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000] b[done=0 err=6 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CHANGED c031_m2s10_sq_c15_r1_off0.3r_arc a[done=0 err=1 exc=- grade=ERR bop=- nf=0 vol=0.0000] b[done=0 err=6 exc=- grade=ERR bop=- nf=0 vol=0.0000]  
+CMP same=125 changed=4 ERR->ERR:4

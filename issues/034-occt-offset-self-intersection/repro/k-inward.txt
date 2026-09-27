@@ -1,0 +1,8 @@
+lwall_thk-2.5_arc /c/dev/occt8-mig/offset-study/cases/lwall_r05.brep thick -2.5 arc 0 0 1
+pocket_off-0.5_arc /c/dev/occt8-mig/offset-study/cases/pocket_r1.brep offset -0.5 arc 0 0 none
+lwalln_thk-2.5_arc /c/dev/occt8-mig/offset-study/cases/lwall_r05_nurbs.brep thick -2.5 arc 0 0 1
+pocketn_off-0.5_arc /c/dev/occt8-mig/offset-study/cases/pocket_r1_nurbs.brep offset -0.5 arc 0 0 none
+corp_loft_off-0.5 /c/dev/occt8-mig/corpus/spline_loft_shell.brep offset -0.5 arc 0 0 none
+corp_oring_off-0.5 /c/dev/occt8-mig/corpus/owner_oring.step offset -0.5 arc 0 0 none
+corp_oring_thk-1 /c/dev/occt8-mig/corpus/owner_oring.step thick -1 arc 0 0 largest
+corp_vr6p4_thk-1 /c/dev/occt8-mig/corpus/VR6-350-new-part4.step thick -1 arc 0 0 largest

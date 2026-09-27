@@ -1,0 +1,29 @@
+--- C:/dev/occt-801-034/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx	2026-09-27 20:30:11.357633600 +0700
++++ mut/m1/BRepOffset_MakeOffset.cxx	2026-09-27 19:21:12.904026000 +0700
+@@ -663,7 +663,7 @@
+ static void collectEdgeUses034(
+   const TopoDS_Shape&                                            theS,
+   NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theEdges,
+-  NCollection_DynamicArray<EdgeUses034>&                         theUses)
++  NCollection_DynamicArray<EdgeUses034>&                               theUses)
+ {
+   int aFaceIdx = 0;
+   for (TopExp_Explorer aFExp(theS, TopAbs_FACE); aFExp.More(); aFExp.Next())
+@@ -712,7 +712,7 @@
+     for (TopExp_Explorer aShExp(aSoExp.Current(), TopAbs_SHELL); aShExp.More(); aShExp.Next())
+     {
+       NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> anEdges;
+-      NCollection_DynamicArray<EdgeUses034>                         aUses;
++      NCollection_DynamicArray<EdgeUses034>                               aUses;
+       collectEdgeUses034(aShExp.Current(), anEdges, aUses);
+       for (int i = 0; i < aUses.Length(); ++i)
+       {
+@@ -1999,7 +1999,7 @@
+     }
+     if (solidShellsBroken034(myOffsetShape) || aThickShells.Broken
+         || (aNbShells > maxThickShells034(myShape) && !aThickShells.Proven
+-            && resultIsBroken034(myOffsetShape)))
++            && false /*MUTANT m1: no fallback*/))
+     {
+       myDone  = false;
+       myError = BRepOffset_UnknownError;

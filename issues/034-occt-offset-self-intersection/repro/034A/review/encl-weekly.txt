@@ -1,0 +1,10 @@
+OCC 8.0.1 FC ['26', '3', '0']
+box 100x60x40 r=5 t=-1 join=0 valid=False vol=20962.1530 faces=52 check=Bad orientation of sub-shape|No error|Undetermined error| bad=F29:Plane shells=2 shellsValid=[True, False]
+box 100x60x40 r=5 t=-1 join=2 valid=True vol=235875.3676 faces=26 check=clean bad=
+box 100x60x40 r=5 t=-2 join=0 valid=False vol=40755.6335 faces=52 check=Bad orientation of sub-shape|No error|Undetermined error| bad=F30:Plane shells=2 shellsValid=[True, False]
+box 100x60x40 r=5 t=-2 join=2 valid=True vol=235875.3676 faces=26 check=clean bad=
+box 120x80x50 r=8 t=-1.5 join=0 valid=False vol=48572.9014 faces=52 check=Bad orientation of sub-shape|No error|Undetermined error| bad=F30:Plane shells=2 shellsValid=[True, False]
+box 120x80x50 r=8 t=-1.5 join=2 valid=True vol=466951.1704 faces=26 check=clean bad=
+box 100x60x40 r=5 t=1 join=0 valid=False vol=235875.3676 faces=26 check=Bad orientation of sub-shape|No error|No error| bad=F26:Plane shells=1 shellsValid=[False]
+box 100x60x40 r=5 t=1 join=2 valid=False vol=235875.3676 faces=26 check=Bad orientation of sub-shape|No error|No error| bad=F26:Plane shells=1 shellsValid=[False]
+ENCL-DONE

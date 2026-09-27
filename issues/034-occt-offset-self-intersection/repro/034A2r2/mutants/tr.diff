@@ -1,0 +1,67 @@
+--- C:/dev/occt-801-034/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx	2026-09-27 20:30:11.357633600 +0700
++++ mut/tr/BRepOffset_MakeOffset.cxx	2026-09-27 20:09:15.725957200 +0700
+@@ -41,6 +41,8 @@
+ #include <TopoDS_Shape.hxx>
+ #include <TopTools_ShapeMapHasher.hxx>
+ #include <NCollection_Map.hxx>
++#include <cstdio>
++#include <chrono>
+ #include <NCollection_DataMap.hxx>
+ #include <BRepOffset_Inter2d.hxx>
+ #include <BRepOffset_Inter3d.hxx>
+@@ -108,6 +110,7 @@
+ #include <BOPTools_AlgoTools.hxx>
+ 
+ #include <cstdio>
++#include <chrono>
+ // POP for NT
+ #ifdef OCCT_DEBUG
+   #include <OSD_Chronometer.hxx>
+@@ -663,7 +666,7 @@
+ static void collectEdgeUses034(
+   const TopoDS_Shape&                                            theS,
+   NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theEdges,
+-  NCollection_DynamicArray<EdgeUses034>&                         theUses)
++  NCollection_DynamicArray<EdgeUses034>&                               theUses)
+ {
+   int aFaceIdx = 0;
+   for (TopExp_Explorer aFExp(theS, TopAbs_FACE); aFExp.More(); aFExp.Next())
+@@ -712,7 +715,7 @@
+     for (TopExp_Explorer aShExp(aSoExp.Current(), TopAbs_SHELL); aShExp.More(); aShExp.Next())
+     {
+       NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> anEdges;
+-      NCollection_DynamicArray<EdgeUses034>                         aUses;
++      NCollection_DynamicArray<EdgeUses034>                               aUses;
+       collectEdgeUses034(aShExp.Current(), anEdges, aUses);
+       for (int i = 0; i < aUses.Length(); ++i)
+       {
+@@ -1932,7 +1935,15 @@
+     }
+     Res.Closed(true);
+     myOffsetShape = Res;
+-    aThickShells = thickShells034(Res, myShape, Glue, myInitOffsetFace, myFaces);
++    {
++      const auto aT0 = std::chrono::steady_clock::now();
++      aThickShells = thickShells034(Res, myShape, Glue, myInitOffsetFace, myFaces);
++      int aNbFT = 0;
++      for (TopExp_Explorer aFT(Res, TopAbs_FACE); aFT.More(); aFT.Next())
++        ++aNbFT;
++      fprintf(stderr, "A2R2T faces=%d us=%lld\n", aNbFT,
++              (long long)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - aT0).count());
++    }
+ 
+     // Test of Validity of the result of thick Solid
+     // more face than the initial solid.
+@@ -1997,6 +2008,12 @@
+     {
+       ++aNbShells;
+     }
++    {
++      const bool aX = aNbShells > maxThickShells034(myShape);
++      fprintf(stderr, "A2R2 shells=%d bound=%d broken=%d proven=%d path=%s\n", aNbShells, maxThickShells034(myShape),
++              (int)aThickShells.Broken, (int)aThickShells.Proven,
++              aThickShells.Broken ? "WALL" : !aX ? "LE-BOUND" : aThickShells.Proven ? "CAVITY-PROVEN" : "FALLBACK");
++    }
+     if (solidShellsBroken034(myOffsetShape) || aThickShells.Broken
+         || (aNbShells > maxThickShells034(myShape) && !aThickShells.Proven
+             && resultIsBroken034(myOffsetShape)))

@@ -1,0 +1,99 @@
+== ctl_stepn_off+0.9 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=0.9 join=arc
+STOCK done=1 err=0 exc=- ms=53 grade=OK bop=- nsol=1 nf=38 vol=4388.41149 oracle S=0 OFF=38 WALL=0 MIX=0 offDev=4.95e-06 mixWorst=0 mix=[]
+== ctl_step_off+0.9 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=0.9 join=arc
+STOCK done=1 err=0 exc=- ms=26 grade=OK bop=- nsol=1 nf=38 vol=4388.41150 oracle S=0 OFF=38 WALL=0 MIX=0 offDev=2.00e-15 mixWorst=0 mix=[]
+== step_off+1.1 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=1.1 join=arc
+STOCK done=0 err=1 exc=- ms=18 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== step_off+1.5 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=1.5 join=arc
+STOCK done=0 err=1 exc=- ms=17 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== step_thk+1.5 rc=0
+IN nf=9 vol0=3002.14602 op=thick t=1.5 join=arc
+STOCK done=0 err=1 exc=- ms=20 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== stepn_off+1.1 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=1.1 join=arc
+STOCK done=0 err=6 exc=- ms=2061 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== stepn_off+1.5 rc=0
+IN nf=9 vol0=3002.14602 op=offset t=1.5 join=arc
+STOCK done=0 err=6 exc=- ms=2169 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== stepn_thk+1.5 rc=0
+IN nf=9 vol0=3002.14602 op=thick t=1.5 join=arc
+STOCK done=0 err=6 exc=- ms=3273 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== lwall_thk+1 rc=0
+IN nf=9 vol0=760.53650 op=thick t=1 join=arc
+STOCK done=0 err=6 exc=- ms=45 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== lwall_off+1 rc=0
+IN nf=9 vol0=760.53650 op=offset t=1 join=arc
+STOCK done=0 err=1 exc=- ms=17 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== lwalln_thk+1 rc=0
+IN nf=9 vol0=760.53650 op=thick t=1 join=arc
+STOCK done=0 err=6 exc=- ms=189 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== lwalln_off+1 rc=0
+IN nf=9 vol0=760.53650 op=offset t=1 join=arc
+STOCK done=0 err=6 exc=- ms=2145 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== pocket_off+1.5 rc=0
+IN nf=23 vol0=3413.06490 op=offset t=1.5 join=arc
+STOCK done=0 err=6 exc=- ms=377 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== pocket_thk+1.5 rc=0
+IN nf=23 vol0=3413.06490 op=thick t=1.5 join=arc
+STOCK done=0 err=1 exc=- ms=22 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== pocketn_off+1.5 rc=0
+IN nf=23 vol0=3413.06490 op=offset t=1.5 join=arc
+STOCK done=0 err=6 exc=- ms=8016 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== pocketn_thk+1.5 rc=0
+IN nf=23 vol0=3413.06490 op=thick t=1.5 join=arc
+STOCK done=0 err=6 exc=- ms=17878 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== bfil_off-2.5 rc=0
+IN nf=26 vol0=3839.03240 op=offset t=-2.5 join=arc
+STOCK done=0 err=6 exc=- ms=20 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== bfil_thk-2.5 rc=0
+IN nf=26 vol0=3839.03240 op=thick t=-2.5 join=arc
+STOCK done=0 err=1 exc=- ms=32 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== bfiln_off-2.5 rc=0
+IN nf=26 vol0=3839.03240 op=offset t=-2.5 join=arc
+STOCK done=0 err=6 exc=- ms=13099 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== bfiln_thk-2.5 rc=0
+IN nf=26 vol0=3839.03240 op=thick t=-2.5 join=arc
+STOCK done=0 err=6 exc=- ms=483 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031owner_thk+0.1 rc=0
+IN nf=29 vol0=75276.15523 op=thick t=0.1 join=arc
+STOCK done=0 err=1 exc=- ms=369 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031owner_thk+0.3 rc=0
+IN nf=29 vol0=75276.15523 op=thick t=0.3 join=arc
+STOCK done=0 err=1 exc=- ms=566 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031owner_thk-0.3 rc=0
+IN nf=29 vol0=75276.15523 op=thick t=-0.3 join=arc
+STOCK done=0 err=1 exc=- ms=513 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031sq15_thk+0.1 rc=0
+IN nf=18 vol0=75535.41314 op=thick t=0.1 join=arc
+STOCK done=0 err=6 exc=- ms=2373 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031sq15_thk+0.3 rc=0
+IN nf=18 vol0=75535.41314 op=thick t=0.3 join=arc
+STOCK done=0 err=1 exc=- ms=521 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031sq08_thk+0.15 rc=0
+IN nf=18 vol0=75335.92745 op=thick t=0.15 join=arc
+STOCK done=0 err=6 exc=- ms=2191 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031sq08_thk+0.45 rc=0
+IN nf=18 vol0=75335.92745 op=thick t=0.45 join=arc
+STOCK done=0 err=1 exc=- ms=558 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031hex_thk+0.1 rc=0
+IN nf=22 vol0=24374.82418 op=thick t=0.1 join=arc
+STOCK done=0 err=6 exc=- ms=1958 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031hex_thk+0.3 rc=0
+IN nf=22 vol0=24374.82418 op=thick t=0.3 join=arc
+STOCK done=0 err=1 exc=- ms=457 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031obl_thk+0.1 rc=0
+IN nf=18 vol0=32343.42066 op=thick t=0.1 join=arc
+STOCK done=0 err=6 exc=- ms=2253 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c031obl_thk+0.3 rc=0
+IN nf=18 vol0=32343.42066 op=thick t=0.3 join=arc
+STOCK done=0 err=1 exc=- ms=459 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c5829_thk-1 rc=0
+IN nf=30 vol0=367718.70847 op=thick t=-1 join=arc
+STOCK done=0 err=6 exc=- ms=11583 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]
+== c5829_thk-0.5 rc=0
+IN nf=30 vol0=367718.70847 op=thick t=-0.5 join=arc
+STOCK done=0 err=6 exc=- ms=8259 grade=ERR bop=- nsol=0 nf=0 vol=0.00000 oracle S=0 OFF=0 WALL=0 MIX=0 offDev=0.00e+00 mixWorst=0 mix=[]

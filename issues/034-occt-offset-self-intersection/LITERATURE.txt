@@ -1,0 +1,251 @@
+Issue 034 - OCCT BRepOffset local self-intersection: literature pass (step STUDY, 27.09.2026)
+Rule: C:/dev/cad-perf-research/_workflows/AGENT-RULES.md "LITERATURE FIRST" (IF >= 5, or specialist CAD/geometry
+journals counted as full sources). Mark: [OA] open full text found, [ABS] abstract/publisher page only.
+
+1. T. Maekawa, "An overview of offset curves and surfaces", Computer-Aided Design 31(3) 165-173, 1999,
+   doi:10.1016/S0010-4485(99)00013-5. Venue: CAD (specialist, full source). [ABS]
+   Idea: an offset at distance d folds locally where d exceeds the radius of curvature on the concave side
+   (cusps / swallowtails), and self-intersects globally where distant parts come closer than 2d.
+   Applied: the fold predictor of the study (Jacobian of P + dN changes sign) = mechanism M1; explains every
+   BOP/INV result of the study except M5.
+2. R.T. Farouki, "The approximation of non-degenerate offset surfaces", Computer Aided Geometric Design 3(1)
+   15-43, 1986, doi:10.1016/0167-8396(86)90022-1. Venue: CAGD (specialist). [ABS]
+   Idea: offset surfaces are "non-degenerate" only while |d| stays below the smallest principal radius on the
+   offset side; approximation schemes are valid only there.
+   Applied: the regularity condition behind the pre-check proposed for step (a).
+3. J. Wallner, T. Sakkalis, T. Maekawa, H. Pottmann, G. Yu, "Self-intersections of offset curves and surfaces",
+   International Journal of Shape Modeling 7(1) 1-21, 2001, doi:10.1142/S0218654301000023. [ABS]
+   (IJSM: specialist shape-modeling journal, IF < 5; counted as a specialist source, flag for reviewer.)
+   Idea: the maximum offset distance with no local AND no global self-intersection, boundary effects included.
+   Applied: candidate for an exact (not sampled) fold bound per face in step (a).
+4. J.-K. Seong, G. Elber, M.-S. Kim, "Trimming local and global self-intersections in offset curves/surfaces using
+   distance maps", Computer-Aided Design 38(3) 183-193, 2006, doi:10.1016/j.cad.2005.09.002. [OA:
+   http://3map.snu.ac.kr/mskim/ftp/cad06.pdf]
+   Idea: a rational distance map between the base surface and its offset; the regions where the squared distance
+   drops below d^2 are exactly the parts to trim (local and global).
+   Applied: the study's "exact-offset distance test" (offstudy inspect) is the sampled form of this criterion; it
+   is the only test here that catches M2 (valid, BOP-clean but wrong body). Route for step (b) trimming.
+5. D. Pekerman, G. Elber, M.-S. Kim, "Self-intersection detection and elimination in freeform curves and
+   surfaces", Computer-Aided Design 40(2) 150-159, 2008, doi:10.1016/j.cad.2007.10.004. [OA: citeseerx copy]
+   Idea: binormal-line criterion + direct algebraic elimination to detect and remove local and global
+   self-intersections of a freeform surface (offsets included).
+   Applied: detection of the fold of a single Geom_OffsetSurface face - the case OCCT never intersects
+   (BRepOffset_Inter3d::FaceInter returns for F1 == F2).
+6. G.V.V. Ravi Kumar, K.G. Shastry, B.G. Prakash, "Computing non-self-intersecting offsets of NURBS surfaces",
+   Computer-Aided Design 34(3) 209-228, 2002, ScienceDirect PII S0010448501000811. [ABS]
+   Idea: compute NURBS offsets and remove self-intersecting parts before use in modelling.
+   Applied: confirms that trimming belongs to face construction, before the B-rep assembly (step (b) placement).
+7. Q. Hong, Y. Park, M.-S. Kim, G. Elber, "Trimming offset surface self-intersections around near-singular
+   regions", Computers & Graphics 82 84-94, 2019 (SMI 2019), ScienceDirect PII S0097849319300779. [ABS]
+   (SMI proceedings: specialist geometry venue.)
+   Idea: robust trimming where the offset is near-singular (J close to 0) - exactly the threshold region
+   (step NURBS 0.9 vs 1.1) measured here.
+   Applied: warns that a sampled J test needs a margin near J = 0; the step (a) guard must not flip on J ~ 0.
+8. (authors not verified), "Offsetting operations on non-manifold topological models", Computer-Aided Design (2009-2010),
+   ScienceDirect PII S0010448509001523. [ABS, publisher page 403 - authors not re-checked]
+   Idea: B-rep solid offset/thickening/shelling as offset faces + gap filling + intersection removal + sewing.
+   Applied: the same pipeline shape as BRepOffset; its intersection-removal stage is what OCCT lacks for curved
+   faces (OCCT does "complete intersection" only for all-planar solids).
+
+9. "Fast Determination and Computation of Self-intersections for NURBS Surfaces", ACM Transactions on Graphics
+   (2025), doi:10.1145/3727620. Venue: ACM TOG (IF >= 5). [ABS; authors not re-checked in this pass]
+   Idea: fast exclusion test + computation of NURBS surface self-intersection curves.
+   Applied: candidate for the fold/self-intersection test of a single offset face in step (a)/(b) when the
+   sampled Jacobian is inconclusive (M5, near-singular J ~ 0).
+
+Combination for the next steps (decision input, not yet a design):
+- step (a) never silent: Farouki/Maekawa regularity bound per offset face (sampled J with a margin per 7, or the
+  exact bound of 3) -> error instead of a folded face; plus API honesty (null result -> not done; NbOF == NbF must
+  prove an offset shell exists) and a distance/volume sanity check derived from 4.
+- step (b) trimming: 4 + 5 (distance map / algebraic self-intersection of the one face) to trim the folded region
+  of each offset face before Inter3d, then the existing neighbour intersection closes the gap.
+
+==== Stage A (guard, 27.09.2026, commit e55a6ba8) - how the sources are applied ====
+Full list: C:/dev/occt8-mig/lit-offset/LITERATURE.txt (20 sources, 7 read in full). Applied in stage A:
+- Farouki 1986 / Maekawa 1999 (CAD 31(3), specialist journal): offset regularity = every principal factor 1 - d*k_i > 0.
+  APPLIED as the fold test (principal factors from D2, not the Jacobian product: the product misses umbilic double
+  inversion, e.g. a sphere shrunk past its centre has J > 0).
+- Wallner, Sakkalis, Maekawa, Pottmann, Yu 2001 (exact regularity bound): NOT applied (needs a certified curvature
+  bound per patch); sampled grid + pattern search instead, with a 0.05 margin. Upgrade path: Li-Jia-Chen, ACM TOG 2025
+  (certified NURBS self-intersection exclusion test).
+- Seong, Elber, Kim 2006 (CAD, specialist): distance-map criterion - a correct offset lies >= |d| from the input.
+  APPLIED as the post-check for plain offsets (catches M2: valid clean body of the wrong piece, vol 0.70 vs ~5579).
+- Pekerman, Elber, Kim 2008; Hong, Park, Kim, Elber 2019; Park et al. 2021: trimming of the fold - stage B, not A.
+- (Review offset-A, 27.09: an earlier line here cited the Parasolid offsetting chapter as the source of the policy.
+  That document is quarantined under the owner IP rule and is NOT a source. The policy "an error, never a silent
+  broken body" is the owner's own rule (27.09, AGENT-RULES "never silent wrong geometry"); no design element of
+  stage A comes from that document - see the provenance log in README.md, section "Этап A".)
+- OCCT 8.0.1 header BRepOffsetAPI_MakeOffsetShape.hxx 91-96 (documentation): the limitation the guard closes.
+Better-known method check: no journal source gives a cheaper sufficient detector than curvature sampling for the
+common case; certified tests (Wallner 2001, TOG 2025) are stronger and slower - kept as the upgrade.
+
+==== Stage B (trimming research + harness prototypes, 27.09.2026) - sources added and how they are applied ====
+Pass done BEFORE the prototypes; base = C:/dev/occt8-mig/lit-offset/LITERATURE.txt (20 sources, P1..P6 ranking).
+Added (DOIs checked by web search 27.09):
+B1. Rossignac J.R., Requicha A.A.G. Offsetting operations in solid modelling. Computer Aided Geometric Design
+    3(2):129-148, 1986. doi:10.1016/0167-8396(86)90017-8. Venue: CAGD (specialist). [ABS]
+    Idea: the offset of a solid is its Minkowski sum with a ball = the solid united with the swept faces, edge
+    cylinders and vertex balls; constant-radius rounds/fillets are offset-of-offset (opening/closing).
+    Applied: (i) E4/E5-union = union of slabs + edge tubes + vertex balls; (ii) the exactness condition of E1
+    (removing blends then offsetting): exact only when the blend is a closing/opening of the sharp solid, i.e. a
+    closed blend network; own derivation from the ball semigroup property: dilate_d(close_r X) = dilate_d X for
+    d >= r (dilate_r X is r-open). Open-ended fillets (fillet ends on convex faces) are NOT closings -> E1 wrong
+    there (measured, runs/eval-db.txt).
+B2. Zhu H., Menq C.-H. B-rep model simplification by automatic fillet/round suppressing for efficient automatic
+    feature recognition. Computer-Aided Design 34(2):109-123, 2002. doi:10.1016/S0010-4485(01)00056-2. Venue: CAD. [ABS]
+    Idea: recognise blend faces (chains, disks) and suppress them by extending the neighbours.
+    Applied: E1 uses OCCT's existing BRepAlgoAPI_Defeaturing (the same operation) on the folding faces.
+B3. Jacobson A., Kavan L., Sorkine-Hornung O. Robust inside-outside segmentation using generalized winding numbers.
+    ACM TOG 32(4), 2013. doi:10.1145/2461912.2461916. Venue: TOG (IF ~7). [ABS]
+    Idea: the winding number classifies inside/outside for self-intersecting (and open) surfaces.
+    Applied: E5 classifies every split face by signed ray crossings (integer winding numbers of closed element sets).
+B4. Zhou Q., Grinspun E., Zorin D., Jacobson A. Mesh arrangements for solid geometry. ACM TOG 35(4), 2016.
+    doi:10.1145/2897824.2925901. Venue: TOG (IF ~7). [ABS + author page]
+    Idea: resolve all intersections (arrangement), propagate winding numbers across patches, extract
+    {w >= 1} = regularized self-union of a self-intersecting input.
+    Applied: E2/E3 (MakerVolume cells + propagation) and E5 (General Fuse split faces + ray winding): the raw
+    offset shell of the stock result, or the union of elements, is resolved by the arrangement and its w >= 1
+    region kept. This replaces "decide what to trim by distance" (Autodesk EP4530910A1 design-around, IP.txt).
+Re-used from the base file: Seong-Elber-Kim 2006 (distance criterion - here ONLY the test oracle and the
+stage-A control), Farouki 1986 / Maekawa 1999 (fold factor 1 - d*k), Lee 2009 (union construction = P6),
+Hong 2019 / Park 2021 (the ends of the self-intersection curve are numerically unstable - observed here as the
+sliver faces that break E5 on stepn and the tolerance blow-up on 5829/031).
+Better-known method check: for exact B-rep trimming the literature has no method cheaper than tracing the
+self-intersection curves (Seong-Elber-Kim; Park 2021 BVH + miter handling); arrangement + winding is the general
+robust method for meshes (B3, B4). Neither is available in OCCT 8.0.1 in a robust form: the General Fuse fails or
+blows tolerances up on raw offsets with cusps/tangent folds (stage B evidence).
+
+==== Stage A2 (structural guard of thick solids / offsets, 27.09.2026) - sources added and how they are applied ====
+Pass done BEFORE the code (DOIs/venues checked by web search 27.09). Question: what is the cheapest complete
+set of TOPOLOGICAL conditions that every valid shelled/offset solid satisfies, so that a result breaking one of
+them is provably invalid (error), without always paying a full BRepCheck/BOP check?
+A2-1. Requicha A.A.G. Representations for rigid solids: theory, methods, and systems. ACM Computing Surveys
+     12(4):437-464, 1980. doi:10.1145/356827.356833. Venue: ACM CSUR (IF ~16). [full text, open PDF]
+     Idea: an r-set's boundary representation is valid only if its boundary is a closed, orientable 2-manifold;
+     combinatorially: every edge bounds exactly two faces of a shell and is traversed by them in opposite
+     directions (the "Moebius rule").
+     Applied: solidShellsBroken034 = the edge-use test per shell of every solid of the result (edge used once
+     -> open; used by two faces in the same direction -> incoherent). It is exactly the manifold part of
+     BRepCheck_Shell::Closed/Orientation, so only results BRepCheck rejects can change; O(E) with one hash map.
+A2-2. Forsyth M. Shelling and offsetting bodies. Proc. 3rd ACM Symposium on Solid Modeling and Applications
+     (SMA '95 = SPM series), 373-381, 1995. doi:10.1145/218013.218088. Venue: SPM (specialist). [ABS]
+     Idea: shelling = offset of the kept faces + the rim that joins each opening to its offset; the topology of
+     the shelled body follows from the kept faces and the openings.
+     Applied (own derivation from this construction): each connected piece of the kept faces that has a free
+     boundary (an opening) is joined to its offset into ONE shell; a closed piece (e.g. the wall of an inner
+     void) keeps its shell and gets a second one -> the thick solid has at most sum(1 or 2) shells
+     (maxThickShells034, union-find over faces, O(E)). The owner-relevant failure (box filleted on all 12
+     edges, top removed: the opening is not cut, the offset shell stays closed and apart) breaks this bound.
+A2-3. Gu H., Chase T.R., Cheney D.C., Bailey T., Johnson D. Identifying, correcting, and avoiding errors in
+     computer-aided design models which affect interoperability. J. Computing and Information Science in
+     Engineering 1(2):156-166, 2001. doi:10.1115/1.1384887. Venue: JCISE (specialist). [ABS]
+     Idea: classification of B-rep defects (free edges/gaps, inconsistent face orientation, extra or
+     unconnected shells, self-intersections) and detecting them by cheap topological tests before costly
+     geometric ones.
+     Applied: the order of the guard - O(E) topology first (always on), geometric checks (BRepCheck + BOP
+     self-interference) only when a cheap condition says the geometry is at risk.
+A2-4. Bischoff S., Kobbelt L. Structure preserving CAD model repair. Computer Graphics Forum 24(3):527-536, 2005
+     (Eurographics 2005). Venue: CGF (specialist). [author PDF; DOI not returned by the search]
+     Idea: CAD defects concentrate where adjacent patches meet tangentially or nearly so (gaps, overlaps that
+     topology alone cannot see).
+     Applied: the second trigger of the geometric check - a TANGENT edge (BRepOffset_Analyse: ChFiDS_Tangential)
+     of a FREE-FORM face under the INTERSECTION join, where the two offset surfaces are tangent and their
+     intersection is ill-conditioned (measured, runs/tanint-*.txt: 4 of 6 NURBS cases came back BRepCheck-valid
+     but self-intersecting, e.g. NURBS box r5 on 8 edges thick +1 -> volume 7140 instead of 18119 of the analytic
+     twin). Analytic faces are excluded: OCCT resolves their tangency exactly (analytic twins all correct).
+     REJECTED variant (measured, runs/time-corp.txt of the intermediate build): the same trigger for the ARC join
+     when a tangent free-form face contracts (factor < 0.75) caught M5 (pocketn +0.5) but made ordinary valid
+     NURBS fillet offsets 35 -> 1673 ms and 47 -> 4488 ms (bfiln -1): a noticeable slowdown of common offsets, so
+     M5 stays for stage B2 (free-form local self-intersection class).
+Re-used: Farouki 1986 / Maekawa 1999 (stage A fold trigger, unchanged), Seong-Elber-Kim 2006 (distance control of
+stage A, unchanged; A2 adds no distance test).
+Better-known method check: a full BRepCheck of every result (Mantyla-style validity) is the complete method but
+doubles the offset time (stage A measurement); the Euler-Poincare formula V-E+F-(L-F)=2(S-G) was considered and
+NOT used - it is always satisfiable by some genus G for a combinatorially closed shell and adds no power beyond
+the edge-use test. Certified intersection tests (stage A upgrade path) remain the stronger/slower option.
+
+==== Lane A3 (CLASS: thick solids whose removed faces are G1-tangent to their neighbours, 27.09.2026) ====
+Pass done BEFORE the code (web search 27.09; venues checked; Parasolid quarantine not opened). Question: what is the
+rim of an opening when the removed face meets the kept faces tangentially, and why does OCCT's rule (extend the
+offset of every neighbour to the removed face and trim it there) fail for exactly that condition?
+A3-1. Forsyth M. Shelling and offsetting bodies. Proc. 3rd ACM Symp. Solid Modeling and Applications (SPM series),
+     373-381, 1995. doi:10.1145/218013.218088. Venue: SPM (specialist). [ABS] (re-used from A2)
+     Idea: a shelled body = kept faces + their offsets + rim faces that join each opening edge to its offset.
+     Applied: the rim is built per opening EDGE (not per removed face), so one removed face can have edges of two
+     kinds; round 1 implements removed faces whose edges are all tangent, the mixed kind is detected (next round).
+A3-2. Rossignac J.R., Requicha A.A.G. Offsetting operations in solid modelling. CAGD 3(2):129-148, 1986.
+     doi:10.1016/0167-8396(86)90017-8. Venue: CAGD (specialist). [ABS] (re-used from stage B)
+     Idea: offset = union of face slabs, edge tubes and vertex balls; along a G1 edge the two face slabs share the
+     offset edge and no tube exists.
+     Applied (own derivation): along a G1 edge E between a kept face F and a removed face C (offset 0), the offset
+     of F at E is E + t*n where n is ALSO the normal of C; so offset(F) is parallel to C at distance |t| near E and
+     does not cross the surface of C there. The rim along E is the ruled strip {P + s*t*n(P), P in E, s in [0,1]}
+     (the slab side of F at a boundary edge). A vertex of such an edge whose faces are all G1 there has ONE offset
+     point, even when it lies on the opening (free edges carry no normal).
+A3-3. Ye X., Maekawa T. Differential geometry of intersection curves of two surfaces. CAGD 16(8):767-788, 1999.
+     doi:10.1016/S0167-8396(99)00018-7. Venue: CAGD (specialist). [ABS]
+     Idea: at a tangential contact of two surfaces the intersection is singular (parallel normals; the curve is not
+     given by first-order data); transversal and tangential intersections need different treatment.
+     Applied: explains the stock failure: ToContext/ExtentFace intersects offset(F) with C; at a tangent edge the
+     two surfaces are parallel at |t| (inward: no intersection at all - the OCCT source itself notes it in
+     BRepOffset_Tool::ExtentFace; outward: an unrelated far crossing). Hence tangent edges must not go through the
+     context intersection at all - a classification, not a tolerance tweak.
+A3-4. Lee S.H. Offsetting operations on non-manifold topological models. Computer-Aided Design 41(11):830-846, 2009
+     (ScienceDirect pii S0010448509001523). Venue: CAD (specialist). [ABS]
+     Idea: thickening of a sheet = offset faces + side faces at the free boundary edges, the side face generated by
+     the boundary edge and its offset along the normal; shelling and thickening share one construction.
+     Applied: along tangent opening edges the kept faces are treated as a sheet with a free boundary and OCCT's own
+     thickening wall construction (BRepOffset_MakeOffset::MakeMissingWalls, LGPL) builds the rim; the removed face
+     is dropped (it has no ring: the ring width F_t-to-C is zero along a tangent edge).
+A3-5. Ravi Kumar G.V.V. et al. Computing constant offsets of a NURBS B-Rep. Computer-Aided Design 35(10), 2003
+     (pii S0010448502002105). Venue: CAD. [ABS]
+     Idea: offset each face, then remove gaps/overlaps between offset faces, then sew; faces meeting G1 need no gap
+     filling because their offsets share the offset edge.
+     Applied: the same sharing rule for the offset VERTEX of a tangent fan on the opening (tangentFan034): the stock
+     code shared it only when every edge at the vertex was tangent, so vertices on the opening got one copy per
+     face (open wires, BRepCheck NotClosed) although the geometry was right.
+Better-known method check: a general shelling by Booleans (Yan, Zhang, Yong, Peng, Sun, "Shelling algorithm in
+solid modeling", CIS 2004, LNCS 3314, doi:10.1007/978-3-540-30497-5_46 - conference, not IF>=5; [ABS]) = offset
+solid + regularized Boolean; it needs a correct closed offset and a robust Boolean with thin walls, and it does not
+define the rim either. The edge-wise rim classification above is cheaper (no Boolean) and exact.
+
+==== Stage A2 round 2 (legal extra shells = cavities of the hollow, 27.09.2026) - sources added and how they are applied ====
+Pass done BEFORE the code (venues/DOIs checked by web search 27.09). Question from review A2 r1: when is a thick solid
+with MORE shells than the pieces of the kept faces correct (the offset pinches off at a neck thinner than 2|t|), and
+what topological condition separates it from the broken "opening not cut" result, without a full BRepCheck/BOP run?
+A2R2-1. Rossignac J.R., Requicha A.A.G. Offsetting operations in solid modelling. Computer Aided Geometric Design
+     3(2):129-148, 1986. doi:10.1016/0167-8396(86)90017-8. Venue: CAGD (specialist, full source). [ABS + citations]
+     Idea: offsetting is defined on the point set (S grown/shrunk by r, regularized); a shell (hollow) is the set
+     difference of the solid and its inner offset; the offset operators do NOT preserve topology - the inner offset
+     can split into several components (and components can vanish).
+     Applied: a thick solid's boundary = kept faces + offset of the kept faces + walls on the removed faces. A
+     component of the hollow that no opening reaches is a closed CAVITY bounded by offset faces only (neck thinner
+     than 2|t| inward; outward: a slot narrower than 2t sealed around a chamber). So extra shells are legal exactly
+     when they are such cavities (thickShells034).
+A2R2-2. Lee S.H. Offsetting operations on non-manifold topological models. Computer-Aided Design 41(11):830-846,
+     2009 (ScienceDirect PII S0010448509001523; the DOI was not returned by the search). Venue: CAD (specialist, full
+     source). [ABS]
+     Idea: the offset model is built from offset elements generated by faces, edges and vertices of the input,
+     and the topology of the result (shells, cavities) is derived from which input element generated each part.
+     Applied: every face of the result is classified by its GENERATOR, read from the offset's own history
+     (myInitOffsetFace roots: kept face / edge / vertex -> offset; removed face -> wall; glued input face -> kept),
+     never from geometry. A shell is ANCHORED (holds kept faces) or a CAVITY (offset faces only).
+A2R2-3. Mantyla M. An Introduction to Solid Modeling. Computer Science Press, 1988, ISBN 0-88175-108-1. [book]
+     Idea: a solid's boundary = one outer shell + one inner shell per cavity; shells are independent components of
+     the boundary (Euler operators add a shell per void).
+     Applied: counting shells alone (A2 r1 bound "1 per open piece, 2 per closed piece") cannot see cavities, which
+     are a legal extra shell each; the count stays only as the cheap gate for the proof below.
+Re-used: Requicha 1980 (A2-1, closed coherent shells: check (1) unchanged), Forsyth 1995 (A2-2, the wall of an
+opening joins the kept piece to its offset), Gu et al. 2001 (A2-3, topology first, geometry only when needed).
+Own derivation (not in the sources): the wall of an opening is the band of the removed face between its rim (edges
+shared with kept faces) and the offset, so every piece of it touches the rim -> lies in an anchored shell and meets
+an offset face. Therefore (i) a shell without kept faces that holds a wall is impossible (the offset shell was closed
+across the opening) -> error, always, O(F+E); (ii) more shells than pieces are accepted without any check when every
+shell without kept faces is made of known offset faces only and every wall meets an offset face; (iii) otherwise
+(faces whose generator the history does not know, e.g. rebuilt after the history was filled, or a wall that meets no
+offset face: an opening closed at the rim) the construction does not explain the extra shell -> the reviewer's safety
+net: BRepCheck + BOP self-interference, error only if it fails.
+Better-known method check: a full BRepCheck + BOP self-interference check of every thick solid is the complete but
+slow method (review r1 fallback: correct, but pays the geometric check on every legal cavity); a point-classification
+test that the cavity lies inside the outer shell (BRepClass3d) was considered and NOT used - it is geometric, the
+generator argument above already fixes where a cavity can come from, and no member of the class needed it.

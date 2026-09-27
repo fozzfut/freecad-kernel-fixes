@@ -1,0 +1,361 @@
+From 045f8515eae3f56790849ab40d2d35b3f075006c Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 18:37:30 +0700
+Subject: [PATCH] 034 A2 (TKOffset): no silent invalid thick solid or offset -
+ structural guard
+
+Stage A caught broken offsets only where a face can fold. Thick solids
+with removed faces tangent to their neighbours (a box filleted on all 12
+edges with the top removed, PartDesign Thickness) still came back with
+two shells and a face of bad orientation, IsDone() true (issue 034 A2).
+
+Always on, pure topology, linear in the number of edges:
+- every shell of a solid of the result is closed and coherently oriented:
+  an edge used once, or by two faces in the same direction, is an error
+  (the manifold part of BRepCheck_Shell Closed/Orientation, so only
+  results BRepCheck rejects can change; Requicha 1980);
+- a thick solid has at most one shell per piece of the remaining input
+  faces that has a free edge and two per closed piece (the opening joins
+  the piece to its offset; Forsyth 1995); more shells = the opening was
+  not cut -> error.
+Only with the intersection join and a tangent edge of a free-form face
+(ill-conditioned intersection of tangent offsets) is the result checked
+like a folding one (BRepCheck + BOP self-interference).
+
+Failure: IsDone() false, UnknownError (structure) or CannotTrimEdges
+(check). No header, member, export or import change (exports 480 =
+weekly, import set = stage A).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepOffset/BRepOffset_MakeOffset.cxx      | 269 +++++++++++++++++-
+ 1 file changed, 264 insertions(+), 5 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+index db3b3a57..f87db873 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+@@ -93,6 +93,7 @@
+ #include <Geom_Line.hxx>
+ #include <NCollection_DynamicArray.hxx>
+ #include <NCollection_IncAllocator.hxx>
++#include <NCollection_Vector.hxx>
+ //
+ #include <BOPAlgo_ArgumentAnalyzer.hxx>
+ #include <BOPAlgo_CheckResult.hxx>
+@@ -295,6 +296,7 @@ struct FoldRecord034
+ {
+   const void* Owner = nullptr;
+   bool        Fold  = false;
++  bool        Check = false; //!< Fold, or a tangent free-form join (A2): check the result
+ };
+ 
+ thread_local FoldRecord034 THE_FOLD_RECORD_034;
+@@ -627,6 +629,233 @@ static bool hasNoFace034(const TopoDS_Shape& theS)
+ {
+   return theS.IsNull() || !TopExp_Explorer(theS, TopAbs_FACE).More();
+ }
++
++//=======================================================================
++// Issue 034 stage A2: structural guard of offset and thick solids.
++//
++// The boundary of a valid solid is a set of closed, coherently oriented
++// 2-manifold shells: every edge of a shell bounds two of its faces and
++// is used by them with opposite orientations (Requicha 1980). A thick
++// solid made with removed faces (shelling, Forsyth 1995)
++// has one more rule: each connected piece of the remaining input faces
++// that has a free boundary (the rim of the opening) is joined to its
++// offset into ONE shell; a piece without free boundary (e.g. the wall
++// of an inner void) keeps its own shell and gets a second one from its
++// offset. So a thick solid never has more shells than
++//   sum over the pieces: 1 (piece with a free boundary) or 2 (closed piece).
++// A result that breaks these counts is broken whatever the geometry:
++// an opening that was not cut leaves the offset shell closed and apart
++// (e.g. a box filleted on all edges with the top face removed).
++// The checks are pure topology, linear in the number of edges.
++//=======================================================================
++
++//! Uses of the edges of one shell: for each non-degenerated edge the
++//! number of FORWARD and REVERSED uses and the first face using it.
++struct EdgeUses034
++{
++  int NbF   = 0;
++  int NbR   = 0;
++  int Face1 = 0;
++  int Face2 = 0; //!< the first face of the second use (0 = none)
++};
++
++//! Collects the edge uses of the FORWARD/REVERSED faces of theS
++//! (orientations composed as in the shape, like BRepCheck_Shell).
++static void collectEdgeUses034(
++  const TopoDS_Shape&                                            theS,
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theEdges,
++  NCollection_Vector<EdgeUses034>&                               theUses)
++{
++  int aFaceIdx = 0;
++  for (TopExp_Explorer aFExp(theS, TopAbs_FACE); aFExp.More(); aFExp.Next())
++  {
++    const TopAbs_Orientation aFOr = aFExp.Current().Orientation();
++    if (aFOr != TopAbs_FORWARD && aFOr != TopAbs_REVERSED)
++    {
++      continue;
++    }
++    ++aFaceIdx;
++    for (TopExp_Explorer anEExp(aFExp.Current(), TopAbs_EDGE); anEExp.More(); anEExp.Next())
++    {
++      const TopoDS_Edge&       anE  = TopoDS::Edge(anEExp.Current());
++      const TopAbs_Orientation anOr = anE.Orientation();
++      if ((anOr != TopAbs_FORWARD && anOr != TopAbs_REVERSED) || BRep_Tool::Degenerated(anE))
++      {
++        continue;
++      }
++      const int anIdx = theEdges.Add(anE); // indices come in order 1, 2, ...
++      if (anIdx > theUses.Length())
++      {
++        theUses.Append(EdgeUses034());
++      }
++      EdgeUses034& aU = theUses.ChangeValue(anIdx - 1);
++      if (aU.NbF + aU.NbR == 0)
++      {
++        aU.Face1 = aFaceIdx;
++      }
++      else if (aU.NbF + aU.NbR == 1)
++      {
++        aU.Face2 = aFaceIdx;
++      }
++      (anOr == TopAbs_FORWARD ? aU.NbF : aU.NbR)++;
++    }
++  }
++}
++
++//! True if a shell of a solid of theS is open or incoherently oriented:
++//! a non-degenerated edge used once (BRepCheck_NotClosed), or used by two
++//! different faces with the same orientation (BRepCheck_BadOrientationOf
++//! Subshape). Edges with more than two uses are left to BRepCheck.
++static bool solidShellsBroken034(const TopoDS_Shape& theS)
++{
++  for (TopExp_Explorer aSoExp(theS, TopAbs_SOLID); aSoExp.More(); aSoExp.Next())
++  {
++    for (TopExp_Explorer aShExp(aSoExp.Current(), TopAbs_SHELL); aShExp.More(); aShExp.Next())
++    {
++      NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> anEdges;
++      NCollection_Vector<EdgeUses034>                               aUses;
++      collectEdgeUses034(aShExp.Current(), anEdges, aUses);
++      for (int i = 0; i < aUses.Length(); ++i)
++      {
++        const EdgeUses034& aU  = aUses.Value(i);
++        const int          aNb = aU.NbF + aU.NbR;
++        if (aNb == 1 || (aNb == 2 && aU.NbF != 1 && aU.Face1 != aU.Face2))
++        {
++          return true;
++        }
++      }
++    }
++  }
++  return false;
++}
++
++//! Largest number of shells a thick solid glued from the faces of theRest
++//! (the input without the removed faces) and their offsets can have: per
++//! connected piece of theRest, 1 if the piece has a free edge, else 2.
++static int maxThickShells034(const TopoDS_Shape& theRest)
++{
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aFaces;
++  for (TopExp_Explorer aFExp(theRest, TopAbs_FACE); aFExp.More(); aFExp.Next())
++  {
++    aFaces.Add(aFExp.Current());
++  }
++  const int aNbF = aFaces.Extent();
++  if (aNbF == 0)
++  {
++    return 0;
++  }
++  // union-find over the faces through their shared edges
++  NCollection_Array1<int> aParent(0, aNbF);
++  for (int i = 0; i <= aNbF; ++i)
++  {
++    aParent(i) = i;
++  }
++  auto aFind = [&aParent](int theI) {
++    while (aParent(theI) != theI)
++    {
++      aParent(theI) = aParent(aParent(theI));
++      theI          = aParent(theI);
++    }
++    return theI;
++  };
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> anEdges;
++  NCollection_Vector<int> anEdgeFace; // first face of an edge
++  NCollection_Vector<int> anEdgeUses;
++  for (int iF = 1; iF <= aNbF; ++iF)
++  {
++    for (TopExp_Explorer anEExp(aFaces(iF), TopAbs_EDGE); anEExp.More(); anEExp.Next())
++    {
++      const TopoDS_Edge& anE = TopoDS::Edge(anEExp.Current());
++      if (BRep_Tool::Degenerated(anE))
++      {
++        continue;
++      }
++      const int anIdx = anEdges.Add(anE); // indices come in order 1, 2, ...
++      if (anIdx > anEdgeFace.Length())
++      {
++        anEdgeFace.Append(iF);
++        anEdgeUses.Append(0);
++      }
++      ++anEdgeUses.ChangeValue(anIdx - 1);
++      const int aR1 = aFind(anEdgeFace.Value(anIdx - 1)), aR2 = aFind(iF);
++      if (aR1 != aR2)
++      {
++        aParent(aR1) = aR2;
++      }
++    }
++  }
++  NCollection_Map<int> anOpenRoots, aRoots;
++  for (int i = 0; i < anEdgeUses.Length(); ++i)
++  {
++    if (anEdgeUses.Value(i) == 1)
++    {
++      anOpenRoots.Add(aFind(anEdgeFace.Value(i)));
++    }
++  }
++  int aMax = 0;
++  for (int iF = 1; iF <= aNbF; ++iF)
++  {
++    const int aR = aFind(iF);
++    if (aRoots.Add(aR))
++    {
++      aMax += anOpenRoots.Contains(aR) ? 1 : 2;
++    }
++  }
++  return aMax;
++}
++
++//! Stage A2: true if the join is the intersection and a free-form face of
++//! theFaces has a tangent edge (BRepOffset_Analyse: ChFiDS_Tangential): the
++//! offsets of the two faces are tangent along the edge and their
++//! intersection is ill-conditioned; the result can come back valid for
++//! BRepCheck but self-intersecting. Such results are checked like the ones
++//! where a face can fold. Analytic faces are left out (their tangency is
++//! handled exactly).
++static bool tangentFreeFormJoin034(const TopoDS_Shape&       theFaces,
++                                   const GeomAbs_JoinType    theJoin,
++                                   const BRepOffset_Analyse& theAnalyse)
++{
++  if (theJoin != GeomAbs_Intersection)
++  {
++    return false;
++  }
++  try
++  {
++    OCC_CATCH_SIGNALS
++    NCollection_List<TopoDS_Shape> aTangent;
++    for (TopExp_Explorer aFExp(theFaces, TopAbs_FACE); aFExp.More(); aFExp.Next())
++    {
++      const TopoDS_Face&               aF = TopoDS::Face(aFExp.Current());
++      TopLoc_Location                  aLoc;
++      const occ::handle<Geom_Surface>& aS = BRep_Tool::Surface(aF, aLoc);
++      if (aS.IsNull())
++      {
++        continue;
++      }
++      switch (GeomAdaptor_Surface(aS).GetType())
++      {
++        case GeomAbs_Plane:
++        case GeomAbs_Cylinder:
++        case GeomAbs_Cone:
++        case GeomAbs_Sphere:
++        case GeomAbs_Torus:
++          continue;
++        default:
++          break;
++      }
++      theAnalyse.Edges(aF, ChFiDS_Tangential, aTangent);
++      if (!aTangent.IsEmpty())
++      {
++        return true;
++      }
++    }
++  }
++  catch (Standard_Failure const&)
++  {
++    return true;
++  }
++  return false;
++}
+ } // namespace
+ 
+ //=======================================================================
+@@ -1467,13 +1696,17 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+   }
+   // Can the offset of some face fold? Then check the result: for a plain
+   // offset here, for a thick solid in MakeThickSolid() after the caps.
+-  const bool isFold         = offsetMayFold034(myFaceComp, myOffset, myFaceOffset);
++  const bool isFold = offsetMayFold034(myFaceComp, myOffset, myFaceOffset);
++  // Stage A2: a tangent edge of a free-form face under the intersection
++  // join is checked the same way.
++  const bool isCheck = isFold || tangentFreeFormJoin034(myFaceComp, myJoin, myAnalyse);
+   THE_FOLD_RECORD_034.Owner = this;
+   THE_FOLD_RECORD_034.Fold  = isFold;
+-  if (isFold && myFaces.IsEmpty())
++  THE_FOLD_RECORD_034.Check = isCheck;
++  if (isCheck && myFaces.IsEmpty())
+   {
+     bool isBroken = resultIsBroken034(myOffsetShape);
+-    if (!isBroken && !myThickening)
++    if (!isBroken && isFold && !myThickening)
+     {
+       double aMinAbs = std::abs(myOffset);
+       bool   isSame  = true;
+@@ -1493,6 +1726,13 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+       return;
+     }
+   }
++  // Stage A2: the shells of the solids of the result must be closed and
++  // coherently oriented (the thick solid is checked in MakeThickSolid()).
++  if (myFaces.IsEmpty() && solidShellsBroken034(myOffsetShape))
++  {
++    myError = BRepOffset_UnknownError;
++    return;
++  }
+ 
+   myDone = true;
+ }
+@@ -1608,14 +1848,33 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     myOffsetShape.Reverse();
+   }
+ 
+-  // Issue 034 guard: some offset face can fold -> check the thick solid.
+-  if (THE_FOLD_RECORD_034.Owner == this && THE_FOLD_RECORD_034.Fold
++  // Issue 034 guard: some offset face can fold (or, stage A2, a tangent
++  // free-form join) -> check the thick solid.
++  if (THE_FOLD_RECORD_034.Owner == this && THE_FOLD_RECORD_034.Check
+       && resultIsBroken034(myOffsetShape))
+   {
+     myDone  = false;
+     myError = BRepOffset_CannotTrimEdges;
+     return;
+   }
++  // Issue 034 stage A2: structure of the thick solid. Its shells must be
++  // closed and coherently oriented, and there must be no more of them
++  // than the pieces of the remaining input faces allow (an opening that
++  // was not cut leaves the offset shell closed and apart).
++  if (!myFaces.IsEmpty())
++  {
++    int aNbShells = 0;
++    for (TopExp_Explorer aShExp(myOffsetShape, TopAbs_SHELL); aShExp.More(); aShExp.Next())
++    {
++      ++aNbShells;
++    }
++    if (aNbShells > maxThickShells034(myShape) || solidShellsBroken034(myOffsetShape))
++    {
++      myDone  = false;
++      myError = BRepOffset_UnknownError;
++      return;
++    }
++  }
+ 
+   myDone = true;
+ }
+-- 
+2.52.0.windows.1
+

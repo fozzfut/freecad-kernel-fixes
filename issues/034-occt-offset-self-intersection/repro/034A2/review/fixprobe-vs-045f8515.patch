@@ -1,0 +1,16 @@
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/C:/dev/occt8-mig/offset-034a2/review/fix/BRepOffset_MakeOffset.cxx
+index f87db873..2b3abffd 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/C:/dev/occt8-mig/offset-034a2/review/fix/BRepOffset_MakeOffset.cxx
+@@ -1868,7 +1868,10 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     {
+       ++aNbShells;
+     }
+-    if (aNbShells > maxThickShells034(myShape) || solidShellsBroken034(myOffsetShape))
++    // REVIEW PROBE: more shells than the pieces allow is legal when the offset
++    // pinches off a closed void (a neck thinner than 2|t|): then check the solid.
++    if (solidShellsBroken034(myOffsetShape)
++        || (aNbShells > maxThickShells034(myShape) && resultIsBroken034(myOffsetShape)))
+     {
+       myDone  = false;
+       myError = BRepOffset_UnknownError;

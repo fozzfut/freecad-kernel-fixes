@@ -1,0 +1,5 @@
+vr6_off-1 /c/dev/occt8-mig/corpus/VR6-350-new-part4.step offset -1 arc 0 0 none
+vr6_off-0.3 /c/dev/occt8-mig/corpus/VR6-350-new-part4.step offset -0.3 arc 0 0 none
+vr6_thk-0.3 /c/dev/occt8-mig/corpus/VR6-350-new-part4.step thick -0.3 arc 0 0 largest
+vr6_thk-0.5 /c/dev/occt8-mig/corpus/VR6-350-new-part4.step thick -0.5 arc 0 0 largest
+vr6_thk-1_int /c/dev/occt8-mig/corpus/VR6-350-new-part4.step thick -1 int 0 0 largest

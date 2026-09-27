@@ -1,0 +1,13 @@
+5829_in1_default value=1 mode=Skin rev=True join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid fillet_faces=30 15.51s
+5829_rectoverso1 value=1 mode=RectoVerso rev=True join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid fillet_faces=30 30.74s
+5829_in0.3 value=0.3 mode=Skin rev=True join=Arc OK isValid=True check=clean vol=5942.8592 faces=59 solids=1 fillet_faces=30 15.94s
+5829_in0.5 value=0.5 mode=Skin rev=True join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid fillet_faces=30 7.36s
+5829_in2 value=2 mode=Skin rev=True join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid fillet_faces=30 0.28s
+5829_out1 value=1 mode=Skin rev=False join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid fillet_faces=30 14.92s
+5829_in1_intersection value=1 mode=Skin rev=True join=Intersection ERR state=Touched,Invalid msg=Failed_to_make_thick_solid fillet_faces=30 6.17s
+encl_r5_in2 box=100x60x40 r=5 value=2 rev=True join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid 0.03s
+encl_r5_in1 box=100x60x40 r=5 value=1 rev=True join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid 0.02s
+encl_r2_in3 box=100x60x40 r=2 value=3 rev=True join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid 0.07s
+encl_r3_out1 box=80x50x30 r=3 value=1 rev=False join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid 0.26s
+encl_r8_in1.5 box=120x80x50 r=8 value=1.5 rev=True join=Arc ERR state=Touched,Invalid msg=Failed_to_make_thick_solid 0.02s
+RV034-DONE
