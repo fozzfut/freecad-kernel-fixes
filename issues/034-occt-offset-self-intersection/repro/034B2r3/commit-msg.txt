@@ -1,0 +1,35 @@
+034 B2 r3 (TKOffset): partial folds trimmed along the self-intersection curve, certified, no folded point kept
+
+Class: free-form faces whose offset folds on a part of them only (a principal
+factor 1 - d*k < 0 on a region inside the face or across it: elliptic and
+B-spline profile walls, ridges and bumps of B-spline surfaces).
+
+- Pass order: pass 1 is the flow of rounds 1-2; only when it fails and a face
+  folds partially, pass 2 repeats the operation on the input split along the
+  lenses of those faces. The complete state of pass 1 (error, bad shape,
+  history) is put back when pass 2 fails too; a result of pass 1 is never
+  changed.
+- Pass 2: the self-intersection curve X is traced with the divided difference
+  (O(c + s w) - O(c - s w)) / 2s (pseudo-arclength predictor-corrector), ends
+  at miter points (s -> 0) or at the face boundary; the preimage curves get
+  one parameter (arc length in the tracing variables, smooth through the
+  miter points) and are refined until their offsets coincide within 1e-9 of
+  the face size; the input is split before anything else (lens faces vanish,
+  the pieces share the offset edge X), the thick-solid skin keeps the input
+  faces whole, the history of the input faces/edges is remapped.
+- Certificate: interval bounds of both principal factors (rounded interval
+  arithmetic on Bezier patches) prove every piece that is not a lens regular,
+  except the miter regions; a refuted certificate keeps the pass-1 error.
+- Folded-point check of every result: a folded parameter of a face classified
+  inside one of its image faces proves the result wrong (Maekawa 1999): the
+  pass fails (delivered results that kept a fold - a bump, a thin rod of a
+  thick solid - are now exact or an error).
+- Stage A detection certified for free-form faces with an exact Bezier form
+  (narrow folds between the samples); fold seeds by pattern search.
+- Prolonged rim sections end at computed corners (GeomAPI_IntCS with the
+  removed faces and the other rim offsets) instead of an estimated reach.
+- BRepOffset_Tool: periodic re-alignment of glued pcurves, non-joining pieces
+  reported and exceptions of the same-parameter step caught, all only while
+  the offset is built around vanishing faces or lenses.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

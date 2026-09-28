@@ -1,0 +1,65 @@
+Issue 034 lane B2, round 3 (28.09.2026, continuation after the session restart) - literature and provenance.
+Base: r3/LIT-r3.txt (items 1-15, written by the previous agent of this round; kept). This file adds what the
+continuation designed and records how every design element is sourced. Venue rule: specialist CAD/CAGD journals count
+as full sources; OA = open-access text read, ABS = abstract / known result.
+
+A. Sources re-checked for the continuation
+ A1. Park, Hong, Kim, Elber, CAGD 2021 (S0167839621000248), OA preprint in r3/lit/park2021.pdf (read): miter points
+     are where the two preimage branches of the self-intersection curve join; near them the plain system is
+     singular; a region around each miter point is handled by itself ("regional representation"). APPLIED as:
+     (i) the tracing variables (c, th, s) with the divided difference (r3 item 5); (ii) the edge parameter of X is the
+     arc length of the traced curve in (c, th, s) - both preimages are smooth in it through the miter point, where s
+     passes 0 linearly (own derivation: G is even in s, the branch is regular in s^2, so c(s^2), th(s^2), s is a
+     regular curve in s); (iii) the certificate accepts unresolved boxes only in a neighbourhood of each miter point
+     whose radius tends to 0 with the box size (the "miter region"), D-B2r3-4.
+ A2. Hu, Patrikalakis, Ye, CAD 28(10) 1996; Hu, Maekawa, Patrikalakis, Ye, CAD 29(9) 1997 (ABS): rounded interval
+     arithmetic (r3 item 14) - REUSED for the certificate (both principal factors bounded away from 0 on a Bezier
+     patch box: trace and determinant of sigma I - dW positive).
+ A3. Maekawa, CAD 31(3) 1999 (r3 item 1): a point with a negative principal factor is closer than |d| to nearby
+     points of the face, hence never on the offset. APPLIED twice: (i) the certificate (the kept pieces must have
+     positive factors); (ii) the folded-point check of every result (a folded parameter classified inside an image
+     face proves the result wrong).
+ A4. Allgower-Georg 1990 (r3 item 7): pseudo-arclength continuation; the refinement adds exact points with the same
+     corrector on the hyperplane through the middle of a chord.
+ A5. Elber, Grandine, Kim, CAD 41(12) 2009 (ABS) and ACM TOG 2025 doi 10.1145/3727620 (ABS, "Fast determination and
+     computation of self-intersections for NURBS surfaces"): both isolate self-intersection regions of freeform
+     surfaces with bounding-volume / osculating-patch tests before solving. Compared: our certificate plays the
+     analogous role for the OFFSET folds (a regular region is proven, the rest must be inside a lens or a miter
+     region). A better-known complete method for GLOBAL self-intersections (TOG 2025) is not implemented (out of
+     this round, recorded as remaining).
+ A6. Rossignac-Requicha CAGD 1986 (erosion = complement of dilation of the complement): used only on the TEST side for
+     the exact references of prism members (ref/ellref.py, ref/profref.py: disc under the graph, dilation = product of
+     the 2D dilation and the ball in the third axis).
+
+B. Own derivations of the continuation (no external source)
+ B1. Stock-first pass order with state snapshot (OffsetState034c): pass 1 = the flow of rounds 1-2, pass 2 only after
+     pass 1 fails; a failed pass 2 puts the complete state of pass 1 back (error, bad shape, history).
+ B2. Split-first: the lens split replaces the input before the planar substitution / analysis (the planar faces
+     next to a split face then follow the split); history of the input faces and edges remapped after pass 2
+     (face substitution map for faces whose edges were split; images of the pieces for split faces and edges).
+ B3. Thick-solid skin: the kept input faces are glued whole (edge splits only), not the pieces.
+ B4. Adaptive refinement of the lens preimage curves: interpolate both with the common parameter, measure the
+     distance of the offsets of the two interpolants in the middle of every interval, insert exact points until it is
+     below 1e-9 of the face size (near a miter point, where the corrector is singular, 20x that is accepted and kept
+     as edge tolerance).
+ B5. Certificate on the pieces (exact B-rep domains): Bezier patches of the surface (exact B-spline form of
+     extrusions/revolutions of B-spline curves and conics, parameters checked), boxes outside the piece skipped
+     (distance of the box middle to the boundary polylines with their chord sagitta, then the 2D classifier),
+     boxes proven regular, others cut; unresolved boxes only in the miter regions.
+ B6. Folded-point check of every result (pass 1 included): folded grid samples of a face classified in its image
+     faces (same parameters when the image surface is the offset of the face surface in its parameters - checked on
+     three points; otherwise the offset point is projected: an error-raising control).
+ B7. Exact corners for the prolonged rim sections (review r2 MAJOR "reach"): the curve that carries the section is
+     intersected with the removed faces of the set and with the offsets of the other rim faces (GeomAPI_IntCS); the
+     section is prolonged to the nearest such corner beyond its end plus a crossing margin (1e-3 |d| + 10 tol,
+     numerical only); no corner in the curve domain -> not prolonged (open loop -> error). The arc-length reach
+     "set diagonal + |d|" is no longer used for prolongation; it remains only as the enlargement of the copies of rim
+     pairs WITHOUT an edge on the removed face and of the rim boxes for culling (an estimate, not a bound: a copy that
+     does not reach the corner leaves the loop open -> error, never silent; recorded as remaining).
+
+C. IP (EP4530910A1 design-around, issue 034 IP.txt): the continuation adds no distance evaluation that decides WHAT
+   is built or trimmed: the certificate and the folded-point check use curvature (principal factors) and parameters;
+   the only distance-like step (projection of an offset point on an image surface of another parametrisation) is in
+   the folded-point CHECK, which can only raise an error. The exact corners are curve/surface intersections of the
+   geometry being built (as the stock BRepOffset intersections). Verdict unchanged: no obstacle found for RU/EAEU;
+   attorney check before any EU/US release.

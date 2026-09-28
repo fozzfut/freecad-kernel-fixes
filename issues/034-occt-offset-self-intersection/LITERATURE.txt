@@ -355,3 +355,8 @@ Maekawa 1999 CAD, Sederberg-Meyers 1988 CAGD, Hu-Maekawa-Patrikalakis-Ye 1997 CA
 sections: own derivation on the round-1 rim lemma, Forsyth 1995, Rossignac-Requicha 1986; C partial folds studied, not
 implemented: Park-Hong-Kim-Elber CAGD 2021, ACM TOG 2025 doi 10.1145/3727620, Pekerman-Elber-Kim CAD 2008,
 Seong-Elber-Kim CAD 2006 (distance maps - not applied, IP), Hong 2019).
+Lane B2 round 3 (28.09.2026): repro/034B2r3/LIT-r3-first-part.txt (items 1-15: Maekawa 1999, Patrikalakis-Maekawa
+2002, Aomura-Uehara 1990, Maekawa-Cho-Patrikalakis 1997, Park-Hong-Kim-Elber CAGD 2021 (read, OA), Hong 2019,
+Allgower-Georg 1990, Elber-Grandine-Kim 2009, Pekerman-Elber-Kim 2008, Seong-Elber-Kim 2006 (not applied, IP),
+Hu-Patrikalakis-Ye 1996/1997) and repro/034B2r3/LIT-r3c.txt (continuation: miter regions, rounded intervals for the
+certificate, folded-point check, exact corners; TOG 2025 10.1145/3727620 compared, not implemented).

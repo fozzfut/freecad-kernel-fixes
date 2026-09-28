@@ -1,0 +1,4278 @@
+From 0476266c61335f85fbded749b0a068875adbc075 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Mon, 28 Sep 2026 12:33:41 +0700
+Subject: [PATCH 7/7] 034 B2 r3 (TKOffset): partial folds trimmed along the
+ self-intersection curve, certified, no folded point kept
+
+Class: free-form faces whose offset folds on a part of them only (a principal
+factor 1 - d*k < 0 on a region inside the face or across it: elliptic and
+B-spline profile walls, ridges and bumps of B-spline surfaces).
+
+- Pass order: pass 1 is the flow of rounds 1-2; only when it fails and a face
+  folds partially, pass 2 repeats the operation on the input split along the
+  lenses of those faces. The complete state of pass 1 (error, bad shape,
+  history) is put back when pass 2 fails too; a result of pass 1 is never
+  changed.
+- Pass 2: the self-intersection curve X is traced with the divided difference
+  (O(c + s w) - O(c - s w)) / 2s (pseudo-arclength predictor-corrector), ends
+  at miter points (s -> 0) or at the face boundary; the preimage curves get
+  one parameter (arc length in the tracing variables, smooth through the
+  miter points) and are refined until their offsets coincide within 1e-9 of
+  the face size; the input is split before anything else (lens faces vanish,
+  the pieces share the offset edge X), the thick-solid skin keeps the input
+  faces whole, the history of the input faces/edges is remapped.
+- Certificate: interval bounds of both principal factors (rounded interval
+  arithmetic on Bezier patches) prove every piece that is not a lens regular,
+  except the miter regions; a refuted certificate keeps the pass-1 error.
+- Folded-point check of every result: a folded parameter of a face classified
+  inside one of its image faces proves the result wrong (Maekawa 1999): the
+  pass fails (delivered results that kept a fold - a bump, a thin rod of a
+  thick solid - are now exact or an error).
+- Stage A detection certified for free-form faces with an exact Bezier form
+  (narrow folds between the samples); fold seeds by pattern search.
+- Prolonged rim sections end at computed corners (GeomAPI_IntCS with the
+  removed faces and the other rim offsets) instead of an estimated reach.
+- BRepOffset_Tool: periodic re-alignment of glued pcurves, non-joining pieces
+  reported and exceptions of the same-parameter step caught, all only while
+  the offset is built around vanishing faces or lenses.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepOffset/BRepOffset_MakeOffset.cxx      | 3710 ++++++++++++++++-
+ .../TKOffset/BRepOffset/BRepOffset_Tool.cxx   |   86 +-
+ 2 files changed, 3668 insertions(+), 128 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+index 8cdd991605..6fabaf9567 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+@@ -110,13 +110,25 @@
+ #include <Geom_BezierSurface.hxx>
+ #include <BRep_CurveRepresentation.hxx>
+ #include <GCPnts_AbscissaPoint.hxx>
++#include <GeomAPI_IntCS.hxx>
+ #include <GeomAdaptor_Curve.hxx>
+ #include <memory>
+ #include <BRepOffset.hxx>
+ #include <Geom_RectangularTrimmedSurface.hxx>
+ #include <GeomAPI_ProjectPointOnSurf.hxx>
+ #include <GeomConvert_BSplineSurfaceToBezierSurface.hxx>
++#include <GeomConvert.hxx>
+ #include <GeomConvert_SurfToAnaSurf.hxx>
++#include <BOPAlgo_BuilderFace.hxx>
++#include <BOPTools_AlgoTools3D.hxx>
++#include <IntTools_Context.hxx>
++#include <BRepTools_ReShape.hxx>
++#include <Geom2dAPI_Interpolate.hxx>
++#include <Geom2dAPI_ProjectPointOnCurve.hxx>
++#include <NCollection_HArray1.hxx>
++#include <NCollection_Sequence.hxx>
++#include <NCollection_IndexedDataMap.hxx>
++#include <TopExp.hxx>
+ 
+ #include <cstdio>
+ // POP for NT
+@@ -352,9 +364,15 @@ static bool offsetFactor034(const Geom_Surface& theS,
+   return true;
+ }
+ 
++static int certifyFoldTrigger034c(const TopoDS_Face&               theF,
++                                  const occ::handle<Geom_Surface>& theS,
++                                  const double                     theDD);
++
+ //! True if the offset of the face by theOffset (along the outward normal of
+ //! the face in its shape) can fold, i.e. some sampled offset factor is below
+-//! THE_FOLD_TRIGGER_034. Exceptions count as "can fold" (the result is checked).
++//! THE_FOLD_TRIGGER_034 (round 3 of lane B2: or, for a free-form face with an
++//! exact Bezier form, the interval bound cannot show every factor above it).
++//! Exceptions count as "can fold" (the result is checked).
+ static bool faceMayFold034(const TopoDS_Face& theF, const double theOffset)
+ {
+   try
+@@ -496,6 +514,29 @@ static bool faceMayFold034(const TopoDS_Face& theF, const double theOffset)
+         }
+       }
+     }
++    // Issue 034 lane B2 round 3: a narrow fold between the samples (a crest
++    // of a B-spline profile, a small bump) is caught by the interval bound of
++    // the principal factors on the Bezier patches of the face
++    switch (aType)
++    {
++      case GeomAbs_BSplineSurface:
++      case GeomAbs_BezierSurface:
++      case GeomAbs_SurfaceOfExtrusion:
++      case GeomAbs_SurfaceOfRevolution: {
++        occ::handle<Geom_Surface> aB = aS;
++        while (!occ::down_cast<Geom_RectangularTrimmedSurface>(aB).IsNull())
++        {
++          aB = occ::down_cast<Geom_RectangularTrimmedSurface>(aB)->BasisSurface();
++        }
++        if (certifyFoldTrigger034c(theF, aB, aD) == 0)
++        {
++          return true;
++        }
++        break;
++      }
++      default:
++        break;
++    }
+     return false;
+   }
+   catch (Standard_Failure const&)
+@@ -1083,42 +1124,62 @@ static double faceTolerance034b(const TopoDS_Face& theF)
+ // conversions) is decided by the analytic rule of BRepOffset::Surface.
+ //=======================================================================
+ 
+-//! Closed interval (plain double arithmetic; the proofs require a margin
+-//! of 1e-10 relative to the magnitude of the terms, far above the rounding
+-//! error of the few dozen operations, about 1e-14).
++//! Closed interval with outward rounding (round 3, review r2 finding 6):
++//! every bound computed in round-to-nearest double arithmetic is moved one
++//! unit in the last place outwards, which contains the exact result of the
++//! operation (Hu-Patrikalakis-Ye CAD 1996, rounded interval arithmetic).
++//! The input nets carry their own error bound (patchErr034b). The margin of
++//! 1e-10 on the final values is kept on top (conservative only).
+ struct Itv034b
+ {
+   double Lo;
+   double Hi;
+ };
+ 
++inline double rdn034b(const double theX)
++{
++  return std::nextafter(theX, -RealLast());
++}
++
++inline double rup034b(const double theX)
++{
++  return std::nextafter(theX, RealLast());
++}
++
+ inline Itv034b operator+(const Itv034b& theA, const Itv034b& theB)
+ {
+-  return {theA.Lo + theB.Lo, theA.Hi + theB.Hi};
++  return {rdn034b(theA.Lo + theB.Lo), rup034b(theA.Hi + theB.Hi)};
+ }
+ 
+ inline Itv034b operator-(const Itv034b& theA, const Itv034b& theB)
+ {
+-  return {theA.Lo - theB.Hi, theA.Hi - theB.Lo};
++  return {rdn034b(theA.Lo - theB.Hi), rup034b(theA.Hi - theB.Lo)};
+ }
+ 
+ inline Itv034b operator*(const Itv034b& theA, const Itv034b& theB)
+ {
+   const double a = theA.Lo * theB.Lo, b = theA.Lo * theB.Hi;
+   const double c = theA.Hi * theB.Lo, e = theA.Hi * theB.Hi;
+-  return {std::min(std::min(a, b), std::min(c, e)), std::max(std::max(a, b), std::max(c, e))};
++  return {rdn034b(std::min(std::min(a, b), std::min(c, e))),
++          rup034b(std::max(std::max(a, b), std::max(c, e)))};
+ }
+ 
+ inline Itv034b operator*(const double theS, const Itv034b& theA)
+ {
+-  return theS >= 0. ? Itv034b{theS * theA.Lo, theS * theA.Hi}
+-                    : Itv034b{theS * theA.Hi, theS * theA.Lo};
++  return theS >= 0. ? Itv034b{rdn034b(theS * theA.Lo), rup034b(theS * theA.Hi)}
++                    : Itv034b{rdn034b(theS * theA.Hi), rup034b(theS * theA.Lo)};
+ }
+ 
+ //! theA / theB for theB.Lo > 0
+ inline Itv034b divPos034b(const Itv034b& theA, const Itv034b& theB)
+ {
+-  return theA * Itv034b{1. / theB.Hi, 1. / theB.Lo};
++  return theA * Itv034b{rdn034b(1. / theB.Hi), rup034b(1. / theB.Lo)};
++}
++
++//! the interval widened by theE on both sides (outward rounded)
++inline Itv034b widened034b(const Itv034b& theA, const double theE)
++{
++  return {rdn034b(theA.Lo - theE), rup034b(theA.Hi + theE)};
+ }
+ 
+ inline double mag034b(const Itv034b& theA)
+@@ -1166,6 +1227,17 @@ struct Patch034b
+   int                 NU = 0, NV = 0, Depth = 0;
+   std::vector<double> Net;
+   double              U0 = 0., U1 = 1., V0 = 0., V1 = 1.;
++  double              Err = 0.; //!< bound of the rounding error of every net value (round 3)
++
++  double MaxAbs() const
++  {
++    double aM = 0.;
++    for (const double aX : Net)
++    {
++      aM = std::max(aM, std::abs(aX));
++    }
++    return aM;
++  }
+ 
+   double* Q(const int i, const int j) { return &Net[((size_t)i * (NV + 1) + j) * 4]; }
+ 
+@@ -1202,11 +1274,23 @@ static Itv034b hodoHull034b(const Patch034b& theP, const int theA, const int the
+       aR.Hi = std::max(aR.Hi, aV);
+     }
+   }
+-  return aR;
++  // round 3: the combination of at most 9 net values (<= 4 rounding steps
++  // each, relative 2^-53) and the error theP.Err of each net value
++  double aMaxAbs = 0.;
++  for (int i = 0; i <= theP.NU; ++i)
++  {
++    for (int j = 0; j <= theP.NV; ++j)
++    {
++      aMaxAbs = std::max(aMaxAbs, std::abs(theP.Q(i, j)[theC]));
++    }
++  }
++  const double aE = aFa * aFb * (1 << (theA + theB)) * (theP.Err + 16. * RealEpsilon() * aMaxAbs);
++  return widened034b(aR, aE);
+ }
+ 
+-//! Test of one patch: 1 proven vanishing, 0 not proven, -1 no bound (a
+-//! weight or the normal may vanish on the patch).
++//! Test of one patch: 1 proven vanishing, 2 proven regular (round 3: both
++//! factors above the limit), 0 not proven, -1 no bound (a weight or the
++//! normal may vanish on the patch).
+ static int patchVanishes034b(const Patch034b& thePatch, const double theD, const double theSigma)
+ {
+   // The factors do not change under a rotation: the net is expressed in a
+@@ -1233,6 +1317,11 @@ static int patchVanishes034b(const Patch034b& thePatch, const double theD, const
+       theP.Net[k + 1] = aX.Dot(aE2);
+       theP.Net[k + 2] = aX.Dot(aE3);
+     }
++    // round 3: a rotated value carries the error of its three inputs plus
++    // three products and two sums; the frame vectors are exact unit
++    // vectors up to rounding (the factors are invariant: a slightly
++    // different orthonormal frame is still a rigid motion within 1e-15)
++    theP.Err = std::sqrt(3.) * thePatch.Err + 8. * RealEpsilon() * theP.MaxAbs();
+   }
+   Itv034b  aW{RealLast(), -RealLast()};
+   IVec034b aS;
+@@ -1259,6 +1348,18 @@ static int patchVanishes034b(const Patch034b& thePatch, const double theD, const
+       }
+     }
+   }
++  // round 3: the net errors (weights and Cartesian values, P / w with
++  // w >= aW.Lo) and the rounding of the quotients
++  aW = widened034b(aW, theP.Err);
++  if (!(aW.Lo > 0.))
++  {
++    return -1;
++  }
++  for (int c = 0; c < 3; ++c)
++  {
++    const double aMagS = std::max(std::abs(aS.C[c].Lo), std::abs(aS.C[c].Hi));
++    aS.C[c]            = widened034b(aS.C[c], theP.Err * (1. + aMagS) / aW.Lo + 4. * RealEpsilon() * aMagS);
++  }
+   IVec034b aPd[3][3];
+   Itv034b  aWd[3][3];
+   for (int a = 0; a <= 2; ++a)
+@@ -1298,7 +1399,7 @@ static int patchVanishes034b(const Patch034b& thePatch, const double theD, const
+   {
+     return -1; // the normal may vanish on the patch (a pole): no bound
+   }
+-  const Itv034b aNm{std::sqrt(aN2.Lo), std::sqrt(aN2.Hi)};
++  const Itv034b aNm{rdn034b(std::sqrt(aN2.Lo)), rup034b(std::sqrt(aN2.Hi))};
+   const Itv034b anE = dot034b(aSs, aSs), aF = dot034b(aSs, aSt), aG = dot034b(aSt, aSt);
+   const Itv034b aLuu = dot034b(aSss, aN), aLuv = dot034b(aSst, aN), aLvv = dot034b(aStt, aN);
+   const Itv034b aJ   = anE * aLvv + aG * aLuu - 2. * (aF * aLuv);
+@@ -1312,7 +1413,13 @@ static int patchVanishes034b(const Patch034b& thePatch, const double theD, const
+   const double  aM2  = 1.e-10
+                      * (theSigma * theSigma * mag034b(aN4) + std::abs(theSigma * theD) * mag034b(aNJ)
+                         + theD * theD * mag034b(aQ));
+-  return (aC1.Hi < -aM1 || aC2.Hi < -aM2) ? 1 : 0;
++  if (aC1.Hi < -aM1 || aC2.Hi < -aM2)
++  {
++    return 1;
++  }
++  // round 3: both factors above the limit on the whole patch (the trace and
++  // the determinant of sigma I - dW positive): proven regular
++  return (aC1.Lo > aM1 && aC2.Lo > aM2) ? 2 : 0;
+ }
+ 
+ //! Splits the patch at the middle of s (theU) or t (de Casteljau).
+@@ -1356,6 +1463,9 @@ static void split034b(const Patch034b& theP, const bool theU, Patch034b& theA, P
+   {
+     theA.V1 = theB.V0 = 0.5 * (theP.V0 + theP.V1);
+   }
++  // round 3: each of the aN averaging levels adds at most one rounding step
++  const double anErr = theP.Err + (aN + 1.) * 2. * RealEpsilon() * theP.MaxAbs();
++  theA.Err = theB.Err = anErr;
+ }
+ 
+ //! Largest norm of the second differences of the Cartesian net along s
+@@ -1439,6 +1549,10 @@ static bool bezierPatch034b(const occ::handle<Geom_BezierSurface>& theBz,
+       q[3]            = aW;
+     }
+   }
++  // the Bezier poles come from knot insertion (each a convex combination
++  // computed in double, at most 2 * degree rounding steps per insertion
++  // level) and are centred and weighted here: a bound far above that error
++  theP.Err = 256. * RealEpsilon() * theP.MaxAbs() * (1. + theP.NU + theP.NV);
+   return true;
+ }
+ 
+@@ -1931,16 +2045,31 @@ static TopoDS_Face enlargedCopy034b(const TopoDS_Face& theF, const double theExt
+ }
+ 
+ 
+-//! Copy of the section edge theNE (a rim offset face on a removed face)
+-//! prolonged along its curve by the arc length theLen at its first and/or last
+-//! end; the other end keeps its vertex (it is shared with the section of the
+-//! face that does not vanish there: a tube, a surviving blend, another removed
+-//! face). The prolongation stays inside the parameter bounds of the 3D curve
+-//! and of the pcurves. Null if no end can be prolonged.
+-static TopoDS_Edge prolongedSection034b(const TopoDS_Edge& theNE,
+-                                        const bool         theAtFirst,
+-                                        const bool         theAtLast,
+-                                        const double       theLen)
++//! A surface the section of a rim face must reach across a vanished set: a
++//! removed face (not offset) or the offset of another rim face of the set.
++struct RimTarget034b
++{
++  TopoDS_Shape              Face;    //!< the initial face (for exclusions)
++  occ::handle<Geom_Surface> Surface; //!< its surface (removed face) or offset surface, in world coordinates
++};
++
++//! Copy of the section edge theNE (a rim offset face on a removed face, or
++//! two rim offsets across a sharp edge) prolonged along its curve at its
++//! first and/or last end up to the corner where it meets the nearest of the
++//! surfaces theTargets beyond that end (issue 034 B2 round 3: the corner is
++//! computed, GeomAPI_IntCS on the curve that carries the section, instead of
++//! an estimated reach), plus theMargin of arc length so that the corner is
++//! an intersection inside the edge for the 2D intersections. The other end
++//! keeps its vertex (it is shared with the section of the face that does not
++//! vanish there: a tube, a surviving blend, another removed face). The
++//! prolongation stays inside the parameter bounds of the 3D curve and of the
++//! pcurves; an end whose curve meets no target there is not prolonged (the
++//! loops then stay open: an error). Null if no end is prolonged.
++static TopoDS_Edge prolongedSection034b(const TopoDS_Edge&                      theNE,
++                                        const bool                              theAtFirst,
++                                        const bool                              theAtLast,
++                                        const NCollection_List<RimTarget034b>& theTargets,
++                                        const double                            theMargin)
+ {
+   TopoDS_Edge aNE = theNE;
+   aNE.Orientation(TopAbs_FORWARD);
+@@ -1948,7 +2077,7 @@ static TopoDS_Edge prolongedSection034b(const TopoDS_Edge& theNE,
+   double                        aF, aL;
+   occ::handle<Geom_Curve>       aC  = BRep_Tool::Curve(aNE, aLoc, aF, aL);
+   const occ::handle<BRep_TEdge> aTE = occ::down_cast<BRep_TEdge>(aNE.TShape());
+-  if (aC.IsNull() || aTE.IsNull() || !(aL > aF) || !(theLen > 0.))
++  if (aC.IsNull() || aTE.IsNull() || !(aL > aF) || theTargets.IsEmpty())
+   {
+     return TopoDS_Edge();
+   }
+@@ -2003,28 +2132,64 @@ static TopoDS_Edge prolongedSection034b(const TopoDS_Edge& theNE,
+     aBF = std::max(aBF, aF - 0.25 * aRest);
+     aBL = std::min(aBL, aL + 0.25 * aRest);
+   }
+-  // parameter at the arc length theLen from the end (at most the bound)
+-  const GeomAdaptor_Curve aGC(aC);
+-  auto                    aReach = [&](const double theEnd, const double theBound) {
++  // parameter of the nearest corner beyond the end (a target met by the
++  // curve between the end and the bound), moved on by the margin
++  const GeomAdaptor_Curve       aGC(aC);
++  const occ::handle<Geom_Curve> aCW =
++    aLoc.IsIdentity() ? aC : occ::down_cast<Geom_Curve>(aC->Transformed(aLoc.Transformation()));
++  auto aReach = [&](const double theEnd, const double theBound) {
+     if (std::abs(theBound - theEnd) <= Precision::PConfusion())
+     {
+       return theEnd;
+     }
++    const bool isFwd   = theBound > theEnd;
++    double     aCorner = theBound;
++    bool       isFound = false;
++    for (NCollection_List<RimTarget034b>::Iterator anIt(theTargets); anIt.More(); anIt.Next())
++    {
++      try
++      {
++        OCC_CATCH_SIGNALS
++        GeomAPI_IntCS anInt(aCW, anIt.Value().Surface);
++        if (!anInt.IsDone())
++        {
++          continue;
++        }
++        for (int i = 1; i <= anInt.NbPoints(); ++i)
++        {
++          double aU, aV, aW;
++          anInt.Parameters(i, aU, aV, aW);
++          const bool isBeyond = isFwd ? (aW > theEnd + Precision::PConfusion() && aW <= theBound)
++                                      : (aW < theEnd - Precision::PConfusion() && aW >= theBound);
++          if (isBeyond && (!isFound || (isFwd ? aW < aCorner : aW > aCorner)))
++          {
++            aCorner = aW;
++            isFound = true;
++          }
++        }
++      }
++      catch (Standard_Failure const&)
++      {
++      }
++    }
++    if (!isFound)
++    {
++      return theEnd;
++    }
+     try
+     {
+       OCC_CATCH_SIGNALS
+-      GCPnts_AbscissaPoint anAP(aGC, theBound > theEnd ? theLen : -theLen, theEnd);
++      GCPnts_AbscissaPoint anAP(aGC, isFwd ? theMargin : -theMargin, aCorner);
+       if (anAP.IsDone())
+       {
+         const double aP = anAP.Parameter();
+-        return theBound > theEnd ? std::min(std::max(aP, theEnd), theBound)
+-                                 : std::max(std::min(aP, theEnd), theBound);
++        return isFwd ? std::min(std::max(aP, aCorner), theBound) : std::max(std::min(aP, aCorner), theBound);
+       }
+     }
+     catch (Standard_Failure const&)
+     {
+     }
+-    return theEnd;
++    return aCorner;
+   };
+   const double aNF = theAtFirst ? aReach(aF, aBF) : aF;
+   const double aNL = theAtLast ? aReach(aL, aBL) : aL;
+@@ -2096,8 +2261,19 @@ struct VanishRecord034b
+   //! rim faces of sets that reach a removed face -> how far their offsets
+   //! reach across the set (size of the set + |offset|)
+   NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher> RimMargin;
++  //! round 3: rim faces of sets that reach a removed face -> the surfaces
++  //! their sections meet across the set (the removed faces of the set, the
++  //! offsets of the other rim faces), the corners the sections are prolonged to
++  NCollection_DataMap<TopoDS_Shape, NCollection_List<RimTarget034b>, TopTools_ShapeMapHasher> RimTargets;
++  double                                                                                        Offset = 0.;
+   //! vertices of the vanishing faces
+   NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> SetVertices;
++  //! round 3: lens faces (initial faces whose offset is trimmed away), the
++  //! partner edges C1 <-> C2 of each lens (their offsets are one edge), and
++  //! the input face each split face comes from
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>                   LensFaces;
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher> LensPartner;
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher> LensOrigin;
+ };
+ 
+ //! The record of the MakeOffsetShape() running on this thread (nesting-safe).
+@@ -2110,113 +2286,3178 @@ public:
+   VanishScope034b(VanishRecord034b* theRec)
+       : myPrev(THE_VANISH_034B)
+   {
+-    THE_VANISH_034B = theRec;
++    THE_VANISH_034B = theRec;
++  }
++
++  ~VanishScope034b() { THE_VANISH_034B = myPrev; }
++
++private:
++  VanishRecord034b* myPrev;
++};
++} // namespace
++
++//! Issue 034 lane B2, for BRepOffset_Inter3d (internal, not exported): true
++//! while the MakeOffsetShape() running on this thread builds its offset
++//! around vanishing faces (the stock flow is unchanged otherwise).
++bool BRepOffset_VanishActive034b()
++{
++  return THE_VANISH_034B != nullptr && !THE_VANISH_034B->Faces.IsEmpty();
++}
++
++//! Issue 034 lane B2 (internal, also used by BRepOffset_Inter3d): true if the
++//! removed face theCap and the initial face theF are a rim pair of the running
++//! offset (theF is a rim face next to a vanishing set that reaches theCap):
++//! their intersection is computed on enlarged copies in Intersection3D(), not
++//! from the offset edges of theF on theCap, which end where the set was.
++bool BRepOffset_RimCap034b(const TopoDS_Shape& theCap, const TopoDS_Shape& theF)
++{
++  if (!BRepOffset_VanishActive034b())
++  {
++    return false;
++  }
++  for (NCollection_List<RimPair034b>::Iterator anIt(THE_VANISH_034B->RimPairs); anIt.More();
++       anIt.Next())
++  {
++    if (anIt.Value().IsCapA && anIt.Value().A.IsSame(theCap) && anIt.Value().B.IsSame(theF))
++    {
++      return true;
++    }
++  }
++  return false;
++}
++
++//! Issue 034 lane B2 (internal, used by BRepOffset_Inter3d::ConnexIntByArc):
++//! the sections theLInt1 / theLInt2 of the offsets of the two faces of the
++//! sharp edge theE are prolonged at the ends that lie at a vertex of a
++//! vanishing set when one of the faces is a rim face of a set that reaches a
++//! removed face: the two rim offsets meet that removed face (which is not
++//! offset) across the set, beyond the stock end of their section. The other
++//! ends are kept.
++void BRepOffset_ProlongRimSections034b(const TopoDS_Shape&             theE,
++                                       const TopoDS_Shape&             theF1,
++                                       const TopoDS_Shape&             theF2,
++                                       NCollection_List<TopoDS_Shape>& theLInt1,
++                                       NCollection_List<TopoDS_Shape>& theLInt2)
++{
++  if (!BRepOffset_VanishActive034b() || theLInt1.IsEmpty())
++  {
++    return;
++  }
++  // the corners: the surfaces the section meets across the set (the removed
++  // faces, the offsets of the other rim faces), the two faces themselves out
++  NCollection_List<RimTarget034b> aTargets;
++  for (const TopoDS_Shape* aF : {&theF1, &theF2})
++  {
++    if (const NCollection_List<RimTarget034b>* aTg = THE_VANISH_034B->RimTargets.Seek(*aF))
++    {
++      for (NCollection_List<RimTarget034b>::Iterator anItT(*aTg); anItT.More(); anItT.Next())
++      {
++        if (!anItT.Value().Face.IsSame(theF1) && !anItT.Value().Face.IsSame(theF2))
++        {
++          aTargets.Append(anItT.Value());
++        }
++      }
++    }
++  }
++  TopoDS_Vertex aVa, aVb;
++  TopExp::Vertices(TopoDS::Edge(theE), aVa, aVb);
++  const bool isA = THE_VANISH_034B->SetVertices.Contains(aVa);
++  const bool isB = THE_VANISH_034B->SetVertices.Contains(aVb);
++  if (aTargets.IsEmpty() || (!isA && !isB) || aVa.IsNull() || aVb.IsNull())
++  {
++    return;
++  }
++  const gp_Pnt aPa = BRep_Tool::Pnt(aVa), aPb = BRep_Tool::Pnt(aVb);
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher> aNew;
++  for (NCollection_List<TopoDS_Shape>::Iterator anIt(theLInt1); anIt.More(); anIt.Next())
++  {
++    const TopoDS_Edge& aSE = TopoDS::Edge(anIt.Value());
++    TopoDS_Vertex      aN1, aN2;
++    TopExp::Vertices(TopoDS::Edge(aSE.Oriented(TopAbs_FORWARD)), aN1, aN2);
++    if (aN1.IsNull() || aN2.IsNull() || aNew.IsBound(aSE))
++    {
++      continue;
++    }
++    const gp_Pnt aP1 = BRep_Tool::Pnt(aN1), aP2 = BRep_Tool::Pnt(aN2);
++    const bool   isSwap =
++      aP1.Distance(aPb) + aP2.Distance(aPa) < aP1.Distance(aPa) + aP2.Distance(aPb);
++    const TopoDS_Edge aProl = prolongedSection034b(
++      aSE,
++      isSwap ? isB : isA,
++      isSwap ? isA : isB,
++      aTargets,
++      10. * BRep_Tool::Tolerance(aSE) + 1.e-3 * std::abs(THE_VANISH_034B->Offset));
++    if (!aProl.IsNull())
++    {
++      aNew.Bind(aSE, aProl);
++    }
++  }
++  if (aNew.IsEmpty())
++  {
++    return;
++  }
++  for (NCollection_List<TopoDS_Shape>* aL : {&theLInt1, &theLInt2})
++  {
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt(*aL); anIt.More(); anIt.Next())
++    {
++      if (const TopoDS_Shape* aP = aNew.Seek(anIt.Value()))
++      {
++        // the prolonged copy has the parametrisation of the old edge
++        anIt.ChangeValue() = aP->Oriented(anIt.Value().Orientation());
++      }
++    }
++  }
++}
++
++#ifdef OCCT034B2_TRACE
++  #include <cstdio>
++  #define LENS034C_TRACE(...) (std::printf(__VA_ARGS__), std::fflush(stdout))
++#else
++  #define LENS034C_TRACE(...) ((void)0)
++#endif
++#define LENS034C_FAIL(theV) (LENS034C_TRACE("lens034c: out of scope at line %d\n", __LINE__), theV)
++
++//=======================================================================
++// Issue 034 lane B2 round 3: PARTIAL FOLDS of free-form faces.
++//
++// Class: a free-form face whose offset folds on a part of it only (a
++// principal offset factor 1 - d*k < 0 on a region that ends inside the face
++// or crosses it), e.g. an elliptic wall offset past b^2/a, a ridge or a
++// saddle of a NURBS wall offset past its crest radius. The folded part is
++// never on the offset (Maekawa 1999: a factor <= 0 puts the offset point
++// closer than |d| to nearby points); the two regular sheets on both sides of
++// the fold cross each other along the local self-intersection curve X
++// (Aomura-Uehara CAD 1990; Maekawa-Cho-Patrikalakis JMD 1997), which ends at
++// the miter (swallowtail) points on the fold curve (Park-Hong-Kim-Elber CAGD
++// 2021) or leaves the face. The exact offset is the offset trimmed along X.
++//
++// Method (own formulation of the cited ideas; no distance evaluation - IP
++// design-around of EP4530910A1, issue 034 IP.txt):
++//  1. fold samples: the curvature factor on a grid of the face (the same
++//     criterion as the stage A guard); a face with no fold sample, or folding
++//     at every sample (a vanishing face, rounds 1-2), is left alone;
++//  2. X is traced with the divided-difference system
++//       p = c + s w(th), q = c - s w(th),
++//       G(c, th, s) = (O(p) - O(q)) / (2 s) = 0     (3 equations, 4 unknowns),
++//     which is regular at p = q: its branch s = 0 is the fold curve with w the
++//     null direction, and X reaches s = 0 at the miter points (a pseudo-arc-
++//     length predictor-corrector, Allgower-Georg 1990; seed on the fold
++//     cross-section through a fold sample);
++//  3. every fold sample must lie inside a lens (the region between the two
++//     preimage curves C1 = {p}, C2 = {q} of X), else the face is out of scope
++//     (stock flow + stage A guard: an error, never a silent result);
++//  4. the INPUT face is split along C1, C2 (and along a line from a miter
++//     point to the boundary when the lens does not cut the face in two):
++//     the lens becomes a face whose offset vanishes (rounds 1-2 machinery),
++//     the pieces on both sides share ONE offset edge X: the offsets of their
++//     edges C1 and C2 are the same curve (MakeOffsetFaces binds them).
++//=======================================================================
++namespace
++{
++struct OffEval034c
++{
++  gp_Pnt O;
++  gp_Vec Ou, Ov;
++  bool   Ok = false;
++};
++
++//! offset point O = S + dd N and its first derivatives (dd along Su x Sv)
++static OffEval034c offD1034c(const Geom_Surface& theS, const double theU, const double theV, const double theDD)
++{
++  OffEval034c aR;
++  gp_Pnt      aP;
++  gp_Vec      aSu, aSv, aSuu, aSvv, aSuv;
++  theS.D2(theU, theV, aP, aSu, aSv, aSuu, aSvv, aSuv);
++  const gp_Vec anN  = aSu.Crossed(aSv);
++  const double aNm  = anN.Magnitude();
++  if (aNm < 1.e-300)
++  {
++    return aR;
++  }
++  const gp_Vec aN  = anN / aNm;
++  const gp_Vec aNu = aSuu.Crossed(aSv) + aSu.Crossed(aSuv);
++  const gp_Vec aNv = aSuv.Crossed(aSv) + aSu.Crossed(aSvv);
++  aR.O             = aP.Translated(aN * theDD);
++  aR.Ou            = aSu + (aNu - aN * aN.Dot(aNu)) * (theDD / aNm);
++  aR.Ov            = aSv + (aNv - aN * aN.Dot(aNv)) * (theDD / aNm);
++  aR.Ok            = true;
++  return aR;
++}
++
++//! Folding factor g = 1 - dd*k (k: the principal curvature with the largest
++//! dd*k) and its principal direction (eu, ev) in UV. False at a singular point.
++static bool foldFactor034c(const Geom_Surface& theS,
++                           const double        theU,
++                           const double        theV,
++                           const double        theDD,
++                           double&             theG,
++                           double&             theEU,
++                           double&             theEV)
++{
++  gp_Pnt aP;
++  gp_Vec aSu, aSv, aSuu, aSvv, aSuv;
++  theS.D2(theU, theV, aP, aSu, aSv, aSuu, aSvv, aSuv);
++  gp_Vec       aN   = aSu.Crossed(aSv);
++  const double aNm  = aN.Magnitude();
++  const double anE  = aSu.SquareMagnitude();
++  const double aG   = aSv.SquareMagnitude();
++  const double aF   = aSu.Dot(aSv);
++  const double aDen = anE * aG - aF * aF;
++  if (aNm < 1.e-300 || aDen <= 0. || aNm <= 1.e-9 * std::sqrt(anE * aG))
++  {
++    return false;
++  }
++  aN.Divide(aNm);
++  const double aL   = aSuu.Dot(aN);
++  const double aM   = aSuv.Dot(aN);
++  const double aNN  = aSvv.Dot(aN);
++  const double aW11 = (aG * aL - aF * aM) / aDen;
++  const double aW12 = (aG * aM - aF * aNN) / aDen;
++  const double aW21 = (anE * aM - aF * aL) / aDen;
++  const double aW22 = (anE * aNN - aF * aM) / aDen;
++  const double aH   = 0.5 * (aW11 + aW22);
++  const double aK   = aW11 * aW22 - aW12 * aW21;
++  const double aDsc = std::sqrt(std::max(aH * aH - aK, 0.));
++  const double aK1 = aH + aDsc, aK2 = aH - aDsc;
++  const double aKf = (theDD * aK1 >= theDD * aK2) ? aK1 : aK2;
++  theG             = 1. - theDD * aKf;
++  const double aA1 = aW12, aB1 = aKf - aW11, aA2 = aKf - aW22, aB2 = aW21;
++  if (aA1 * aA1 + aB1 * aB1 >= aA2 * aA2 + aB2 * aB2)
++  {
++    theEU = aA1;
++    theEV = aB1;
++  }
++  else
++  {
++    theEU = aA2;
++    theEV = aB2;
++  }
++  if (theEU * theEU + theEV * theEV < 1.e-300)
++  {
++    theEU = 1.;
++    theEV = 0.;
++  }
++  return true;
++}
++
++//! small dense solver (n <= 4, augmented column n); false if singular
++static bool solve034c(const int theN, double theA[4][5])
++{
++  for (int i = 0; i < theN; ++i)
++  {
++    int aPiv = i;
++    for (int r = i + 1; r < theN; ++r)
++    {
++      if (std::abs(theA[r][i]) > std::abs(theA[aPiv][i]))
++      {
++        aPiv = r;
++      }
++    }
++    if (!(std::abs(theA[aPiv][i]) > 1.e-300))
++    {
++      return false;
++    }
++    if (aPiv != i)
++    {
++      for (int k = 0; k <= theN; ++k)
++      {
++        std::swap(theA[i][k], theA[aPiv][k]);
++      }
++    }
++    for (int r = 0; r < theN; ++r)
++    {
++      if (r == i)
++      {
++        continue;
++      }
++      const double aF = theA[r][i] / theA[i][i];
++      for (int k = i; k <= theN; ++k)
++      {
++        theA[r][k] -= aF * theA[i][k];
++      }
++    }
++  }
++  for (int i = 0; i < theN; ++i)
++  {
++    theA[i][theN] /= theA[i][i];
++  }
++  return true;
++}
++
++//! one point of a traced self-intersection curve
++struct XPt034c
++{
++  double   C[4];   //!< cu, cv, th, s
++  gp_Pnt2d P, Q;   //!< preimages (unwrapped UV)
++  gp_Pnt   O;      //!< the point of X
++  double   L = 0.; //!< parameter of the edge X (length along the traced curve, scaled variables)
++};
++
++//! Tracer of the local self-intersection of the offset of one surface.
++class XTracer034c
++{
++public:
++  XTracer034c(const occ::handle<Geom_Surface>& theS,
++              const double                     theDD,
++              const double theU0, const double theU1, const double theV0, const double theV1)
++      : myS(theS), myDD(theDD), myU0(theU0), myU1(theU1), myV0(theV0), myV1(theV1)
++  {
++    myUPer = theS->IsUPeriodic();
++    myVPer = theS->IsVPeriodic();
++  }
++
++  //! frame of the direction variable: w(th) = cos(th) A + sin(th) B
++  void SetFrame(const double theAu, const double theAv, const double theBu, const double theBv,
++                const double theSU, const double theSV, const double theEll)
++  {
++    myAu = theAu; myAv = theAv; myBu = theBu; myBv = theBv;
++    mySc[0] = theSU; mySc[1] = theSV; mySc[2] = theEll; mySc[3] = 1.;
++  }
++
++  bool InBox(const gp_Pnt2d& theP) const
++  {
++    return (myUPer || (theP.X() >= myU0 && theP.X() <= myU1))
++           && (myVPer || (theP.Y() >= myV0 && theP.Y() <= myV1));
++  }
++
++  //! G and its Jacobian with respect to (cu, cv, th, s)
++  bool Eval(const double theX[4], double theG[3], double theJ[3][4], XPt034c* thePt = nullptr) const
++  {
++    const double aC = std::cos(theX[2]), aSn = std::sin(theX[2]);
++    const double aWu = aC * myAu + aSn * myBu, aWv = aC * myAv + aSn * myBv;
++    const double aDu = -aSn * myAu + aC * myBu, aDv = -aSn * myAv + aC * myBv;
++    const double aS  = theX[3];
++    if (!(std::abs(aS) > 1.e-300))
++    {
++      return false;
++    }
++    const gp_Pnt2d    aP(theX[0] + aS * aWu, theX[1] + aS * aWv);
++    const gp_Pnt2d    aQ(theX[0] - aS * aWu, theX[1] - aS * aWv);
++    const OffEval034c anEp = offD1034c(*myS, aP.X(), aP.Y(), myDD);
++    const OffEval034c anEq = offD1034c(*myS, aQ.X(), aQ.Y(), myDD);
++    if (!anEp.Ok || !anEq.Ok)
++    {
++      return false;
++    }
++    const gp_Vec aD(anEq.O, anEp.O);
++    const double aI2s = 0.5 / aS;
++    theG[0] = aD.X() * aI2s;
++    theG[1] = aD.Y() * aI2s;
++    theG[2] = aD.Z() * aI2s;
++    const gp_Vec aJwp = anEp.Ou * aWu + anEp.Ov * aWv;
++    const gp_Vec aJwq = anEq.Ou * aWu + anEq.Ov * aWv;
++    const gp_Vec aJdp = anEp.Ou * aDu + anEp.Ov * aDv;
++    const gp_Vec aJdq = anEq.Ou * aDu + anEq.Ov * aDv;
++    const gp_Vec aCols[4] = {(anEp.Ou - anEq.Ou) * aI2s,
++                             (anEp.Ov - anEq.Ov) * aI2s,
++                             (aJdp + aJdq) * 0.5,
++                             ((aJwp + aJwq) - gp_Vec(theG[0], theG[1], theG[2]) * 2.) * aI2s};
++    for (int k = 0; k < 4; ++k)
++    {
++      theJ[0][k] = aCols[k].X();
++      theJ[1][k] = aCols[k].Y();
++      theJ[2][k] = aCols[k].Z();
++    }
++    if (thePt != nullptr)
++    {
++      for (int k = 0; k < 4; ++k)
++      {
++        thePt->C[k] = theX[k];
++      }
++      thePt->P = aP;
++      thePt->Q = aQ;
++      thePt->O = anEp.O;
++    }
++    return true;
++  }
++
++  //! unit tangent of the solution curve in the scaled variables
++  bool Tangent(const double theX[4], double theT[4]) const
++  {
++    double aG[3], aJ[3][4];
++    if (!Eval(theX, aG, aJ))
++    {
++      return false;
++    }
++    double aJy[3][4];
++    for (int i = 0; i < 3; ++i)
++    {
++      for (int k = 0; k < 4; ++k)
++      {
++        aJy[i][k] = aJ[i][k] / mySc[k];
++      }
++    }
++    double aN = 0.;
++    for (int k = 0; k < 4; ++k)
++    {
++      int aCc[3], m = 0;
++      for (int j = 0; j < 4; ++j)
++      {
++        if (j != k)
++        {
++          aCc[m++] = j;
++        }
++      }
++      const double aDet =
++        aJy[0][aCc[0]] * (aJy[1][aCc[1]] * aJy[2][aCc[2]] - aJy[1][aCc[2]] * aJy[2][aCc[1]])
++        - aJy[0][aCc[1]] * (aJy[1][aCc[0]] * aJy[2][aCc[2]] - aJy[1][aCc[2]] * aJy[2][aCc[0]])
++        + aJy[0][aCc[2]] * (aJy[1][aCc[0]] * aJy[2][aCc[1]] - aJy[1][aCc[1]] * aJy[2][aCc[0]]);
++      theT[k] = ((k % 2) ? -1. : 1.) * aDet;
++      aN += theT[k] * theT[k];
++    }
++    aN = std::sqrt(aN);
++    if (!(aN > 1.e-300))
++    {
++      return false;
++    }
++    for (int k = 0; k < 4; ++k)
++    {
++      theT[k] /= aN;
++    }
++    return true;
++  }
++
++  //! corrector: G = 0 on the hyperplane t.(y - yp) = 0 (scaled variables)
++  bool Correct(double theX[4], const double theT[4], const double theYp[4], int& theIt, const double theTol) const
++  {
++    for (theIt = 0; theIt < 10; ++theIt)
++    {
++      double aG[3], aJ[3][4];
++      if (!Eval(theX, aG, aJ))
++      {
++        return false;
++      }
++      double aA[4][5];
++      double aR4 = 0.;
++      for (int k = 0; k < 4; ++k)
++      {
++        for (int i = 0; i < 3; ++i)
++        {
++          aA[i][k] = aJ[i][k] / mySc[k];
++        }
++        aA[3][k] = theT[k];
++        aR4 += theT[k] * (theX[k] * mySc[k] - theYp[k]);
++      }
++      for (int i = 0; i < 3; ++i)
++      {
++        aA[i][4] = -aG[i];
++      }
++      aA[3][4] = -aR4;
++      if (!solve034c(4, aA))
++      {
++        return false;
++      }
++      double aDn = 0.;
++      for (int k = 0; k < 4; ++k)
++      {
++        theX[k] += aA[k][4] / mySc[k];
++        aDn += aA[k][4] * aA[k][4];
++      }
++      const double aGn = std::sqrt(aG[0] * aG[0] + aG[1] * aG[1] + aG[2] * aG[2]);
++      if (std::sqrt(aDn) < theTol && aGn < theTol)
++      {
++        return true;
++      }
++    }
++    return false;
++  }
++
++  //! Traces from theX in the direction theDir; appends the points (not theX).
++  //! Returns 1: miter end (s -> 0, last point extrapolated to s = 0);
++  //! 2: a preimage left the box (last point outside); 3: closed; 0: failure.
++  int Trace(const double theX[4], const double theDir, const double theH0, const double theHMax,
++            const double theTol, NCollection_Sequence<XPt034c>& theOut) const
++  {
++    double aX[4], aT[4];
++    for (int k = 0; k < 4; ++k)
++    {
++      aX[k] = theX[k];
++    }
++    if (!Tangent(aX, aT))
++    {
++      return 0;
++    }
++    for (int k = 0; k < 4; ++k)
++    {
++      aT[k] *= theDir;
++    }
++    double aH = theH0, aSMax = std::abs(aX[3]), aTravel = 0.;
++    for (int aStep = 0; aStep < 4000; ++aStep)
++    {
++      double aXn[4], aYp[4];
++      for (int k = 0; k < 4; ++k)
++      {
++        aYp[k] = aX[k] * mySc[k] + aH * aT[k];
++        aXn[k] = aYp[k] / mySc[k];
++      }
++      int    anIt = 0;
++      bool   isOk = Correct(aXn, aT, aYp, anIt, theTol);
++      double aTn[4];
++      if (isOk)
++      {
++        isOk = Tangent(aXn, aTn);
++      }
++      if (isOk)
++      {
++        double aCs = 0.;
++        for (int k = 0; k < 4; ++k)
++        {
++          aCs += aTn[k] * aT[k];
++        }
++        if (aCs < 0.)
++        {
++          for (int k = 0; k < 4; ++k)
++          {
++            aTn[k] = -aTn[k];
++          }
++          aCs = -aCs;
++        }
++        isOk = aCs > 0.996; // at most ~5 degrees per step
++      }
++      if (!isOk)
++      {
++        aH *= 0.5;
++        if (aH < 1.e-3 * aSMax && std::abs(aX[3]) < 0.05 * aSMax)
++        {
++          return MiterEnd(theOut) ? 1 : 0;
++        }
++        if (aH < 1.e-9 * (1. + aSMax))
++        {
++          return 0;
++        }
++        continue;
++      }
++      if (aXn[3] * aX[3] <= 0.)
++      {
++        // s crossed zero: the miter point between the two points
++        const double aA = aX[3] / (aX[3] - aXn[3]);
++        XPt034c      aM;
++        for (int k = 0; k < 4; ++k)
++        {
++          aM.C[k] = aX[k] + aA * (aXn[k] - aX[k]);
++        }
++        aM.C[3] = 0.;
++        aM.P = aM.Q = gp_Pnt2d(aM.C[0], aM.C[1]);
++        const OffEval034c anE = offD1034c(*myS, aM.C[0], aM.C[1], myDD);
++        if (!anE.Ok)
++        {
++          return 0;
++        }
++        aM.O = anE.O;
++        theOut.Append(aM);
++        return 1;
++      }
++      XPt034c aPt;
++      double  aG[3], aJ[3][4];
++      if (!Eval(aXn, aG, aJ, &aPt))
++      {
++        return 0;
++      }
++      theOut.Append(aPt);
++      if (!InBox(aPt.P) || !InBox(aPt.Q))
++      {
++        return 2;
++      }
++      aTravel += aH;
++      double aDst = 0.;
++      for (int k = 0; k < 4; ++k)
++      {
++        aDst += (aXn[k] - theX[k]) * (aXn[k] - theX[k]) * mySc[k] * mySc[k];
++      }
++      if (aTravel > 4. * aH && std::sqrt(aDst) < 1.5 * aH)
++      {
++        return 3;
++      }
++      for (int k = 0; k < 4; ++k)
++      {
++        aX[k] = aXn[k];
++        aT[k] = aTn[k];
++      }
++      aSMax = std::max(aSMax, std::abs(aX[3]));
++      if (std::abs(aX[3]) < 2.e-3 * aSMax)
++      {
++        return MiterEnd(theOut) ? 1 : 0;
++      }
++      if (anIt <= 2)
++      {
++        aH = std::min(aH * 1.5, theHMax);
++      }
++    }
++    return 0;
++  }
++
++  //! scale of the variable k (cu, cv, th, s) in the tracing metric
++  double Scale(const int theK) const { return mySc[theK]; }
++
++  //! the variables (c, th, s) of the preimage pair (theP, theQ): c the middle,
++  //! s w(th) the half difference, th the branch nearest to theThNear, s > 0
++  bool FrameCoords(const gp_Pnt2d& theP, const gp_Pnt2d& theQ, const double theThNear, double theC[4]) const
++  {
++    const double aHu = 0.5 * (theP.X() - theQ.X()), aHv = 0.5 * (theP.Y() - theQ.Y());
++    const double aDet = myAu * myBv - myAv * myBu;
++    if (!(std::abs(aDet) > 1.e-300))
++    {
++      return false;
++    }
++    const double aX = (aHu * myBv - aHv * myBu) / aDet, aY = (myAu * aHv - myAv * aHu) / aDet;
++    theC[0]         = 0.5 * (theP.X() + theQ.X());
++    theC[1]         = 0.5 * (theP.Y() + theQ.Y());
++    theC[3]         = std::sqrt(aX * aX + aY * aY);
++    double aTh      = std::atan2(aY, aX);
++    aTh += 2. * M_PI * std::round((theThNear - aTh) / (2. * M_PI));
++    theC[2] = aTh;
++    return theC[3] > 0.;
++  }
++
++  //! Newton on (alpha, th, s) with c = theC0 + alpha * (theEu, theEv)
++  bool Seed(const gp_Pnt2d& theC0, const double theEu, const double theEv, const double theAlpha0,
++            const double theS0, const double theTol, double theX[4]) const
++  {
++    double anAl = theAlpha0, aTh = 0., aS = theS0;
++    for (int anIt = 0; anIt < 50; ++anIt)
++    {
++      double aX[4] = {theC0.X() + anAl * theEu, theC0.Y() + anAl * theEv, aTh, aS};
++      double aG[3], aJ[3][4];
++      if (!Eval(aX, aG, aJ))
++      {
++        return false;
++      }
++      double aA[4][5];
++      for (int i = 0; i < 3; ++i)
++      {
++        aA[i][0] = aJ[i][0] * theEu + aJ[i][1] * theEv;
++        aA[i][1] = aJ[i][2];
++        aA[i][2] = aJ[i][3];
++        aA[i][3] = -aG[i];
++      }
++      if (!solve034c(3, aA))
++      {
++        return false;
++      }
++      const double aLim = 0.5 * std::max(aS, theS0 * 0.1);
++      const double aSc  = std::max(
++        {std::abs(aA[0][3]) / aLim, std::abs(aA[2][3]) / aLim, std::abs(aA[1][3]) / 0.5, 1.});
++      anAl += aA[0][3] / aSc;
++      aTh += aA[1][3] / aSc;
++      aS += aA[2][3] / aSc;
++      const double aGn = std::sqrt(aG[0] * aG[0] + aG[1] * aG[1] + aG[2] * aG[2]);
++      if (aGn < theTol && std::abs(aA[0][3]) + std::abs(aA[2][3]) < theTol && aSc == 1.)
++      {
++        for (int k = 0; k < 4; ++k)
++        {
++          theX[k] = aX[k];
++        }
++        return aX[3] > 0.;
++      }
++    }
++    return false;
++  }
++
++private:
++  //! extrapolates the last two points to s = 0 in sigma = s^2 (the curve is
++  //! regular in sigma at the miter point)
++  bool MiterEnd(NCollection_Sequence<XPt034c>& theOut) const
++  {
++    if (theOut.Length() < 2)
++    {
++      return false;
++    }
++    const XPt034c& aA  = theOut.Value(theOut.Length() - 1);
++    const XPt034c& aB  = theOut.Last();
++    const double   aSa = aA.C[3] * aA.C[3], aSb = aB.C[3] * aB.C[3];
++    if (!(aSa > aSb))
++    {
++      return false;
++    }
++    const double aF = aSb / (aSa - aSb);
++    XPt034c      aM = aB;
++    aM.C[0]         = aB.C[0] + (aB.C[0] - aA.C[0]) * aF;
++    aM.C[1]         = aB.C[1] + (aB.C[1] - aA.C[1]) * aF;
++    aM.C[3]         = 0.;
++    aM.P = aM.Q = gp_Pnt2d(aM.C[0], aM.C[1]);
++    const OffEval034c anE = offD1034c(*myS, aM.C[0], aM.C[1], myDD);
++    if (!anE.Ok)
++    {
++      return false;
++    }
++    aM.O = anE.O;
++    theOut.Append(aM);
++    return true;
++  }
++
++  occ::handle<Geom_Surface> myS;
++  double                    myDD;
++  double                    myU0, myU1, myV0, myV1;
++  bool                      myUPer = false, myVPer = false;
++  double                    myAu = 1., myAv = 0., myBu = 0., myBv = 1.;
++  double                    mySc[4] = {1., 1., 1., 1.};
++};
++} // namespace
++
++namespace
++{
++//! a boundary point of a lens (an exit): the preimage that left the face lies
++//! exactly on the boundary edge Edge at parameter T
++struct LensExit034c
++{
++  TopoDS_Edge Edge;
++  double      T      = 0.;
++  bool        IsP    = true;  //!< the P preimage is on the boundary (else Q)
++  bool        Both   = false; //!< the other preimage is on the boundary too (Edge2, T2)
++  TopoDS_Edge Edge2;
++  double      T2 = 0.;
++};
++
++//! one lens of a face: the kept run of X and its two ends
++struct Lens034c
++{
++  NCollection_Sequence<XPt034c> Pts;       //!< from end 0 to end 1 (UV already shifted into the face range)
++  bool                          Miter[2];  //!< end is a miter point (else an exit)
++  LensExit034c                  Exit[2];
++  NCollection_Sequence<gp_Pnt2d> Poly;     //!< closed boundary polygon (unwrapped UV) for point tests
++  gp_Pnt2d                      Inner;     //!< a fold sample inside the lens (identifies the lens face)
++};
++
++//! point in polygon (even-odd)
++static bool inPoly034c(const NCollection_Sequence<gp_Pnt2d>& thePoly, const gp_Pnt2d& theP)
++{
++  bool      isIn = false;
++  const int aN   = thePoly.Length();
++  for (int a = 1, b = aN; a <= aN; b = a++)
++  {
++    const gp_Pnt2d& aP1 = thePoly.Value(a);
++    const gp_Pnt2d& aP2 = thePoly.Value(b);
++    if ((aP1.Y() > theP.Y()) != (aP2.Y() > theP.Y())
++        && theP.X() < (aP2.X() - aP1.X()) * (theP.Y() - aP1.Y()) / (aP2.Y() - aP1.Y()) + aP1.X())
++    {
++      isIn = !isIn;
++    }
++  }
++  return isIn;
++}
++
++//! proper intersection of the open segments (a1, a2) and (b1, b2)
++static bool segCross034c(const gp_Pnt2d& theA1, const gp_Pnt2d& theA2, const gp_Pnt2d& theB1, const gp_Pnt2d& theB2)
++{
++  auto anOrient = [](const gp_Pnt2d& theP, const gp_Pnt2d& theQ, const gp_Pnt2d& theR) {
++    return (theQ.X() - theP.X()) * (theR.Y() - theP.Y()) - (theQ.Y() - theP.Y()) * (theR.X() - theP.X());
++  };
++  const double d1 = anOrient(theB1, theB2, theA1), d2 = anOrient(theB1, theB2, theA2);
++  const double d3 = anOrient(theA1, theA2, theB1), d4 = anOrient(theA1, theA2, theB2);
++  return ((d1 > 0. && d2 < 0.) || (d1 < 0. && d2 > 0.)) && ((d3 > 0. && d4 < 0.) || (d3 < 0. && d4 > 0.));
++}
++
++//! The face-domain helper of the lens search: UV box, periodic shifts and
++//! classification.
++class LensFace034c
++{
++public:
++  LensFace034c(const TopoDS_Face& theF, const occ::handle<Geom_Surface>& theS)
++      : myF(theF), myS(theS), myCls(theF, Precision::PConfusion())
++  {
++    BRepTools::UVBounds(theF, myU0, myU1, myV0, myV1);
++    myUPer = theS->IsUPeriodic() ? theS->UPeriod() : 0.;
++    myVPer = theS->IsVPeriodic() ? theS->VPeriod() : 0.;
++  }
++
++  //! the UV point moved by whole periods into the parametric box of the face
++  gp_Pnt2d Wrap(const gp_Pnt2d& theP) const
++  {
++    double aU = theP.X(), aV = theP.Y();
++    if (myUPer > 0.)
++    {
++      aU = myU0 + std::fmod(std::fmod(aU - myU0, myUPer) + myUPer, myUPer);
++    }
++    if (myVPer > 0.)
++    {
++      aV = myV0 + std::fmod(std::fmod(aV - myV0, myVPer) + myVPer, myVPer);
++    }
++    return gp_Pnt2d(aU, aV);
++  }
++
++  //! IN or ON the face
++  bool IsIn(const gp_Pnt2d& theP) const
++  {
++    const gp_Pnt2d aP = Wrap(theP);
++    if (myUPer > 0. && aP.X() > myU1)
++    {
++      return LENS034C_FAIL(false); // the periodic face does not cover the whole period
++    }
++    if (myVPer > 0. && aP.Y() > myV1)
++    {
++      return LENS034C_FAIL(false);
++    }
++    return const_cast<IntTools_FClass2d&>(myCls).Perform(aP) != TopAbs_OUT;
++  }
++
++  //! boundary edge nearest to theP and the parameter of the projection
++  bool Project(const gp_Pnt2d& theP, TopoDS_Edge& theE, double& theT, double& theDist) const
++  {
++    theDist = RealLast();
++    for (TopExp_Explorer anExp(myF.Oriented(TopAbs_FORWARD), TopAbs_EDGE); anExp.More(); anExp.Next())
++    {
++      const TopoDS_Edge& anE = TopoDS::Edge(anExp.Current());
++      if (BRep_Tool::Degenerated(anE))
++      {
++        continue;
++      }
++      double                          aF, aL;
++      const occ::handle<Geom2d_Curve> aC = BRep_Tool::CurveOnSurface(anE, myF, aF, aL);
++      if (aC.IsNull())
++      {
++        continue;
++      }
++      Geom2dAPI_ProjectPointOnCurve aProj(theP, aC, aF, aL);
++      for (int i = 1; i <= aProj.NbPoints(); ++i)
++      {
++        if (aProj.Distance(i) < theDist)
++        {
++          theDist = aProj.Distance(i);
++          theE    = anE;
++          theT    = aProj.Parameter(i);
++        }
++      }
++      // ends too (the projection can miss them)
++      for (const double aT : {aF, aL})
++      {
++        const double aD = aC->Value(aT).Distance(theP);
++        if (aD < theDist)
++        {
++          theDist = aD;
++          theE    = anE;
++          theT    = aT;
++        }
++      }
++    }
++    return !theE.IsNull();
++  }
++
++  double U0() const { return myU0; }
++  double U1() const { return myU1; }
++  double V0() const { return myV0; }
++  double V1() const { return myV1; }
++  double UPer() const { return myUPer; }
++  double VPer() const { return myVPer; }
++  const TopoDS_Face& Face() const { return myF; }
++
++private:
++  TopoDS_Face               myF;
++  occ::handle<Geom_Surface> myS;
++  IntTools_FClass2d         myCls;
++  double                    myU0 = 0., myU1 = 0., myV0 = 0., myV1 = 0.;
++  double                    myUPer = 0., myVPer = 0.;
++};
++
++//! Moves the preimage of the exit onto the boundary edge exactly: solves
++//! O(c2d_E(t)) = O(q) for (t, q) (3 equations, 3 unknowns) from the guess.
++static bool exitOnEdge034c(const Geom_Surface&     theS,
++                           const double            theDD,
++                           const TopoDS_Edge&      theE,
++                           const TopoDS_Face&      theF,
++                           double&                 theT,
++                           gp_Pnt2d&               theQ,
++                           const double            theTol)
++{
++  double                          aF, aL;
++  const occ::handle<Geom2d_Curve> aC = BRep_Tool::CurveOnSurface(theE, theF, aF, aL);
++  if (aC.IsNull())
++  {
++    return LENS034C_FAIL(false);
++  }
++  double aT = theT, aQu = theQ.X(), aQv = theQ.Y();
++  for (int anIt = 0; anIt < 30; ++anIt)
++  {
++    gp_Pnt2d aP;
++    gp_Vec2d aDP;
++    aC->D1(aT, aP, aDP);
++    const OffEval034c anEp = offD1034c(theS, aP.X(), aP.Y(), theDD);
++    const OffEval034c anEq = offD1034c(theS, aQu, aQv, theDD);
++    if (!anEp.Ok || !anEq.Ok)
++    {
++      return LENS034C_FAIL(false);
++    }
++    const gp_Vec aR(anEq.O, anEp.O);
++    const gp_Vec aJt = anEp.Ou * aDP.X() + anEp.Ov * aDP.Y();
++    double       aA[4][5];
++    const gp_Vec aCols[3] = {aJt, -anEq.Ou, -anEq.Ov};
++    for (int k = 0; k < 3; ++k)
++    {
++      aA[0][k] = aCols[k].X();
++      aA[1][k] = aCols[k].Y();
++      aA[2][k] = aCols[k].Z();
++    }
++    aA[0][3] = -aR.X();
++    aA[1][3] = -aR.Y();
++    aA[2][3] = -aR.Z();
++    if (!solve034c(3, aA))
++    {
++      return LENS034C_FAIL(false);
++    }
++    aT += aA[0][3];
++    aQu += aA[1][3];
++    aQv += aA[2][3];
++    aT = std::min(std::max(aT, aF), aL);
++    if (aR.Magnitude() < theTol && std::abs(aA[0][3]) + std::abs(aA[1][3]) + std::abs(aA[2][3]) < 1.e-12)
++    {
++      theT = aT;
++      theQ = gp_Pnt2d(aQu, aQv);
++      return true;
++    }
++  }
++  return LENS034C_FAIL(false);
++}
++
++//=======================================================================
++// Issue 034 lane B2 round 3: certificate of the lenses of a face.
++//
++// The lens search finds the folds from samples; the certificate proves, with
++// the interval bounds of the round-2 vanishing proof (Bezier patches, rounded
++// interval arithmetic, patchVanishes034b), that BOTH principal offset factors
++// are positive at every point of every piece of a split face that is not a
++// lens (and of every face without fold samples): the offset of the kept
++// pieces is regular (no fold is left in the result). The pieces are exact
++// B-rep faces (bounded by the preimage curves, the rays and the original
++// edges), so the certificate works on their domains. A patch box is
++//  - skipped when it lies outside the piece,
++//  - proven when the factors are bounded away from 0 on the whole box,
++//  - cut in two otherwise.
++// A box that stays unresolved at the depth limit is accepted only in the
++// neighbourhood of a miter point (the end of the self-intersection curve on
++// the fold, where a factor is 0 at a point of the lens boundary: no interval
++// bound can separate it - the miter point region of Park-Hong-Kim-Elber, CAGD
++// 2021). Any other unresolved box refutes the certificate (the face is then
++// out of the scope of the lens pass: an error, never a silent result). A
++// surface without an exact Bezier form in the face parameters is not
++// certified (the lenses rest on the samples, as the stage A guard).
++//=======================================================================
++
++//! Bezier patches of theS over [U0,U1]x[V0,V1]: B-spline / Bezier surfaces
++//! directly, other surfaces through their exact B-spline form (extrusions and
++//! revolutions of B-spline curves and conics). False when there is none.
++static bool bezierPatches034c(const occ::handle<Geom_Surface>& theS,
++                              const double                     theU0,
++                              const double                     theU1,
++                              const double                     theV0,
++                              const double                     theV1,
++                              std::vector<Patch034b>&          thePatches)
++{
++  occ::handle<Geom_Surface> aS = theS;
++  while (!occ::down_cast<Geom_RectangularTrimmedSurface>(aS).IsNull())
++  {
++    aS = occ::down_cast<Geom_RectangularTrimmedSurface>(aS)->BasisSurface();
++  }
++  if (occ::handle<Geom_BezierSurface> aBz = occ::down_cast<Geom_BezierSurface>(aS))
++  {
++    const double aU0 = std::max(theU0, 0.), aU1 = std::min(theU1, 1.);
++    const double aV0 = std::max(theV0, 0.), aV1 = std::min(theV1, 1.);
++    if (!(aU1 > aU0) || !(aV1 > aV0))
++    {
++      return LENS034C_FAIL(false);
++    }
++    occ::handle<Geom_BezierSurface> aSeg = occ::down_cast<Geom_BezierSurface>(aBz->Copy());
++    aSeg->Segment(aU0, aU1, aV0, aV1);
++    Patch034b aP;
++    if (!bezierPatch034b(aSeg, aU0, aU1, aV0, aV1, aP))
++    {
++      return LENS034C_FAIL(false);
++    }
++    thePatches.push_back(std::move(aP));
++    return true;
++  }
++  occ::handle<Geom_BSplineSurface> aBS = occ::down_cast<Geom_BSplineSurface>(aS);
++  if (aBS.IsNull())
++  {
++    const GeomAbs_SurfaceType aT = GeomAdaptor_Surface(aS).GetType();
++    if (aT != GeomAbs_SurfaceOfExtrusion && aT != GeomAbs_SurfaceOfRevolution)
++    {
++      return LENS034C_FAIL(false);
++    }
++    try
++    {
++      OCC_CATCH_SIGNALS
++      double aSU0, aSU1, aSV0, aSV1;
++      aS->Bounds(aSU0, aSU1, aSV0, aSV1);
++      // the face range (inside the bounds; the conversion needs a bounded surface)
++      const double aTU0 = aS->IsUPeriodic() ? theU0 : std::max(theU0, aSU0);
++      const double aTU1 = aS->IsUPeriodic() ? theU1 : std::min(theU1, aSU1);
++      const double aTV0 = aS->IsVPeriodic() ? theV0 : std::max(theV0, aSV0);
++      const double aTV1 = aS->IsVPeriodic() ? theV1 : std::min(theV1, aSV1);
++      if (!(aTU1 > aTU0) || !(aTV1 > aTV0))
++      {
++        return LENS034C_FAIL(false);
++      }
++      aBS = GeomConvert::SurfaceToBSplineSurface(new Geom_RectangularTrimmedSurface(aS, aTU0, aTU1, aTV0, aTV1));
++    }
++    catch (Standard_Failure const&)
++    {
++      return LENS034C_FAIL(false);
++    }
++    if (aBS.IsNull())
++    {
++      return LENS034C_FAIL(false);
++    }
++  }
++  else
++  {
++    aBS = occ::down_cast<Geom_BSplineSurface>(aBS->Copy());
++  }
++  // a periodic form is clamped over one period (the same geometry); the face
++  // range is taken inside the knot range by whole periods
++  double aSU0, aSU1, aSV0, aSV1;
++  aBS->Bounds(aSU0, aSU1, aSV0, aSV1);
++  double aU0 = theU0, aU1 = theU1, aV0 = theV0, aV1 = theV1;
++  double aPerU = 0., aPerV = 0.; // whole periods between the face and the clamped form
++  if (aBS->IsUPeriodic())
++  {
++    const double aT = aBS->UPeriod();
++    const double aK = std::floor((aU0 - aSU0) / aT + Precision::PConfusion());
++    aPerU           = aK * aT;
++    aU0 -= aPerU;
++    aU1 -= aPerU;
++    aBS->SetUNotPeriodic();
++    aBS->Bounds(aSU0, aSU1, aSV0, aSV1);
++    if (aU1 > aSU1 + Precision::PConfusion())
++    {
++      return LENS034C_FAIL(false); // the face crosses the seam of the B-spline form
++    }
++  }
++  if (aBS->IsVPeriodic())
++  {
++    const double aT = aBS->VPeriod();
++    const double aK = std::floor((aV0 - aSV0) / aT + Precision::PConfusion());
++    aPerV           = aK * aT;
++    aV0 -= aPerV;
++    aV1 -= aPerV;
++    aBS->SetVNotPeriodic();
++    aBS->Bounds(aSU0, aSU1, aSV0, aSV1);
++    if (aV1 > aSV1 + Precision::PConfusion())
++    {
++      return LENS034C_FAIL(false);
++    }
++  }
++  aU0 = std::max(aU0, aSU0);
++  aU1 = std::min(aU1, aSU1);
++  aV0 = std::max(aV0, aSV0);
++  aV1 = std::min(aV1, aSV1);
++  if (!(aU1 - aU0 > Precision::PConfusion()) || !(aV1 - aV0 > Precision::PConfusion()))
++  {
++    return LENS034C_FAIL(false);
++  }
++  // parameters of the converted form = parameters of the face (checked on
++  // the middle of the range: the conversion keeps the parametrisation)
++  {
++    const double aUm = 0.5 * (aU0 + aU1), aVm = 0.5 * (aV0 + aV1);
++    const gp_Pnt aP1 = aBS->Value(aUm, aVm), aP2 = theS->Value(aUm + aPerU, aVm + aPerV);
++    if (aP1.Distance(aP2) > 1.e-9 * (1. + aP1.XYZ().Modulus()))
++    {
++      return LENS034C_FAIL(false);
++    }
++  }
++  GeomConvert_BSplineSurfaceToBezierSurface aConv(aBS, aU0, aU1, aV0, aV1, Precision::PConfusion());
++  NCollection_Array1<double> aUK(1, aConv.NbUPatches() + 1), aVK(1, aConv.NbVPatches() + 1);
++  aConv.UKnots(aUK);
++  aConv.VKnots(aVK);
++  // the patch boxes are expressed in the parameters of the face
++  const double aDU = -aPerU, aDV = -aPerV;
++  for (int i = 1; i <= aConv.NbUPatches(); ++i)
++  {
++    for (int j = 1; j <= aConv.NbVPatches(); ++j)
++    {
++      if (!(aUK(i + 1) - aUK(i) > Precision::PConfusion()) || !(aVK(j + 1) - aVK(j) > Precision::PConfusion()))
++      {
++        continue; // an empty patch (a knot at the end of the range): no point of the face
++      }
++      Patch034b aP;
++      if (!bezierPatch034b(aConv.Patch(i, j), aUK(i) - aDU, aUK(i + 1) - aDU, aVK(j) - aDV, aVK(j + 1) - aDV, aP))
++      {
++        return LENS034C_FAIL(false);
++      }
++      thePatches.push_back(std::move(aP));
++    }
++  }
++  return true;
++}
++
++//! Miter points of the lenses of a face (UV in the parameter range of the
++//! face) and the extent of the lenses (UV), for the certificate
++struct LensCert034c
++{
++  NCollection_Sequence<gp_Pnt2d> Miters;
++  double                         Extent = 0.;
++};
++
++//! The certificate on one region of the surface theS: a face theF that holds
++//! no lens (a piece of a split face, or a face without fold samples). theDD:
++//! offset along the natural normal of theS. Returns 1 proven (both principal
++//! factors positive at every point of theF, except in the miter regions),
++//! 0 refuted, -1 not applicable (no exact Bezier form in the parameters of
++//! the face: the lenses then rest on the samples - every fold sample lies
++//! inside a lens).
++static int certifyRegion034c(const TopoDS_Face&               theF,
++                             const occ::handle<Geom_Surface>& theS,
++                             const double                     theDD,
++                             const LensCert034c&              theCert,
++                             const double                     theLimit = 0.,
++                             const int                        theBudget = 32768)
++{
++  double aU0, aU1, aV0, aV1;
++  BRepTools::UVBounds(theF, aU0, aU1, aV0, aV1);
++  std::vector<Patch034b> aStack;
++  if (!bezierPatches034c(theS, aU0, aU1, aV0, aV1, aStack))
++  {
++    LENS034C_TRACE("lens034c: certificate not applicable (no Bezier form)\n");
++    return -1;
++  }
++  // the boundary of the region sampled in UV: a box whose middle is farther
++  // from every sample than its half diagonal plus the sampling gap does not
++  // meet the boundary, and the classifier decides it at its middle
++  // segments of the boundary polylines and the largest distance of a curve
++  // from its chords (measured at the middle of every chord, doubled)
++  NCollection_Sequence<std::pair<gp_Pnt2d, gp_Pnt2d>> aBnd;
++  double                                              aGap    = 0.;
++  bool                                                isBnd   = false; // computed on the first box not proven
++  auto                                                aMakeBnd = [&]() {
++    isBnd = true;
++    for (TopExp_Explorer anExp(theF.Oriented(TopAbs_FORWARD), TopAbs_EDGE); anExp.More(); anExp.Next())
++    {
++      double                          aF, aL;
++      const occ::handle<Geom2d_Curve> aC = BRep_Tool::CurveOnSurface(TopoDS::Edge(anExp.Current()), theF, aF, aL);
++      if (aC.IsNull())
++      {
++        return false;
++      }
++      gp_Pnt2d aPrev = aC->Value(aF);
++      for (int i = 1; i <= 512; ++i)
++      {
++        const gp_Pnt2d aP = aC->Value(aF + (aL - aF) * i / 512.);
++        const gp_Pnt2d aM = aC->Value(aF + (aL - aF) * (i - 0.5) / 512.);
++        aGap = std::max(aGap, 2. * aM.Distance(gp_Pnt2d(0.5 * (aP.X() + aPrev.X()), 0.5 * (aP.Y() + aPrev.Y()))));
++        aBnd.Append(std::make_pair(aPrev, aP));
++        aPrev = aP;
++      }
++    }
++    return true;
++  };
++  auto aSegDist = [](const gp_Pnt2d& theP, const gp_Pnt2d& theA, const gp_Pnt2d& theB) {
++    const gp_Vec2d aAB(theA, theB), aAP(theA, theP);
++    const double   aL2 = aAB.SquareMagnitude();
++    const double   aT  = aL2 > 0. ? std::min(std::max(aAP.Dot(aAB) / aL2, 0.), 1.) : 0.;
++    return theP.Distance(gp_Pnt2d(theA.X() + aT * aAB.X(), theA.Y() + aT * aAB.Y()));
++  };
++  std::unique_ptr<IntTools_FClass2d> aCls;
++  int                                aBudget = theBudget;
++  while (!aStack.empty())
++  {
++    Patch034b aP = std::move(aStack.back());
++    aStack.pop_back();
++    if (--aBudget < 0)
++    {
++      LENS034C_TRACE("lens034c: certificate budget exhausted%s", "\n");
++      return LENS034C_FAIL(0);
++    }
++    const int aRes = patchVanishes034b(aP, theDD, 1. - theLimit);
++    if (aRes == 2)
++    {
++      continue; // both factors above the limit on the box
++    }
++    const gp_Pnt2d aMid(0.5 * (aP.U0 + aP.U1), 0.5 * (aP.V0 + aP.V1));
++    const double   aDiag = std::sqrt((aP.U1 - aP.U0) * (aP.U1 - aP.U0) + (aP.V1 - aP.V0) * (aP.V1 - aP.V0));
++    if (!isBnd && !aMakeBnd())
++    {
++      return LENS034C_FAIL(0);
++    }
++    if (!aCls)
++    {
++      aCls.reset(new IntTools_FClass2d(theF, Precision::PConfusion()));
++    }
++    double aDMin = RealLast();
++    for (int i = 1; i <= aBnd.Length(); ++i)
++    {
++      aDMin = std::min(aDMin, aSegDist(aMid, aBnd.Value(i).first, aBnd.Value(i).second));
++    }
++    if (aDMin > 0.5 * aDiag + aGap && aCls->Perform(aMid) == TopAbs_OUT)
++    {
++      continue; // the box lies outside the region
++    }
++    if (aP.Depth >= THE_VANISH_DEPTH_034B)
++    {
++      // the miter region: the fold curve touches the lens boundary at the
++      // miter point (tangent: the factor grows with the square of the
++      // distance from it, g ~ A dist^2), and an interval bound separates g
++      // from 0 only where g exceeds a multiple of the box size: the
++      // unresolved boxes lie within ~sqrt(box * extent) of it; the factor 4
++      // covers the overestimation of the bounds (decision D-B2r3-4)
++      const double aR = 4. * aDiag + 4. * std::sqrt(aDiag * theCert.Extent);
++      bool         isMiter = false;
++      for (int m = 1; m <= theCert.Miters.Length() && !isMiter; ++m)
++      {
++        const gp_Pnt2d& aM = theCert.Miters.Value(m);
++        const double    aX = std::max({aP.U0 - aM.X(), aM.X() - aP.U1, 0.});
++        const double    aY = std::max({aP.V0 - aM.Y(), aM.Y() - aP.V1, 0.});
++        isMiter            = std::sqrt(aX * aX + aY * aY) <= aR;
++      }
++      if (isMiter)
++      {
++        continue;
++      }
++      LENS034C_TRACE("lens034c: certificate refuted by box (%.6f %.6f)x(%.6f %.6f) result %d\n", aP.U0, aP.U1, aP.V0,
++                     aP.V1, aRes);
++#ifdef OCCT034B2_TRACE
++      {
++        double aG, a1, a2;
++        foldFactor034c(*theS, aMid.X(), aMid.Y(), theDD, aG, a1, a2);
++        LENS034C_TRACE("lens034c:   factor at the middle %.6e, class %d, dmin %.3e diag %.3e gap %.3e\n", aG,
++                       (int)aCls->Perform(aMid), aDMin, aDiag, aGap);
++      }
++#endif
++      return LENS034C_FAIL(0);
++    }
++    const double aBu = bend034b(aP, true), aBv = bend034b(aP, false);
++    const bool   isU = aP.NU > 0 && (aBu >= aBv || aP.NV == 0);
++    Patch034b    aA, aB;
++    split034b(aP, isU, aA, aB);
++    aStack.push_back(std::move(aA));
++    aStack.push_back(std::move(aB));
++  }
++  return 1;
++}
++
++
++//! Stage A detection, certified part (issue 034 B2 round 3): 0 when the
++//! interval bound cannot show both principal factors above the stage A
++//! trigger on the whole face (a narrow fold between the samples, or a factor
++//! close to it: the result is then checked), 1 proven, -1 not applicable (no
++//! exact Bezier form: the samples decide, as before). The budget bounds the
++//! cost; an exhausted budget is "not proven" (a check, never a skipped one).
++static int certifyFoldTrigger034c(const TopoDS_Face& theF, const occ::handle<Geom_Surface>& theS, const double theDD)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    const LensCert034c aNone;
++    return certifyRegion034c(theF, theS, theDD, aNone, THE_FOLD_TRIGGER_034, 4096);
++  }
++  catch (Standard_Failure const&)
++  {
++    return 0;
++  }
++}
++
++//! Parameters of the points of a lens (length along the traced curve in the
++//! scaled variables, in which both preimages are smooth up to the miter
++//! points, where s passes through 0 linearly) and interpolants of the two
++//! preimage curves.
++static bool lensParams034c(const XTracer034c&              theTr,
++                           NCollection_Sequence<XPt034c>& thePts,
++                           occ::handle<Geom2d_Curve>&     theC1,
++                           occ::handle<Geom2d_Curve>&     theC2)
++{
++  const int aN = thePts.Length();
++  if (aN < 2)
++  {
++    return false;
++  }
++  thePts.ChangeValue(1).L = 0.;
++  for (int i = 2; i <= aN; ++i)
++  {
++    double aD = 0.;
++    for (int k = 0; k < 4; ++k)
++    {
++      const double aX = (thePts.Value(i).C[k] - thePts.Value(i - 1).C[k]) * theTr.Scale(k);
++      aD += aX * aX;
++    }
++    aD = std::sqrt(aD);
++    if (!(aD > 0.))
++    {
++      return false;
++    }
++    thePts.ChangeValue(i).L = thePts.Value(i - 1).L + aD;
++  }
++  occ::handle<NCollection_HArray1<gp_Pnt2d>> aP1  = new NCollection_HArray1<gp_Pnt2d>(1, aN);
++  occ::handle<NCollection_HArray1<gp_Pnt2d>> aP2  = new NCollection_HArray1<gp_Pnt2d>(1, aN);
++  occ::handle<NCollection_HArray1<double>>   aPar = new NCollection_HArray1<double>(1, aN);
++  for (int i = 1; i <= aN; ++i)
++  {
++    aP1->SetValue(i, thePts.Value(i).P);
++    aP2->SetValue(i, thePts.Value(i).Q);
++    aPar->SetValue(i, thePts.Value(i).L);
++  }
++  Geom2dAPI_Interpolate anI1(aP1, aPar, false, Precision::PConfusion());
++  Geom2dAPI_Interpolate anI2(aP2, aPar, false, Precision::PConfusion());
++  anI1.Perform();
++  anI2.Perform();
++  if (!anI1.IsDone() || !anI2.IsDone())
++  {
++    return false;
++  }
++  theC1 = anI1.Curve();
++  theC2 = anI2.Curve();
++  return true;
++}
++
++//! Adds exact points of X (corrector of the tracer from the middle of an
++//! interval) where the offsets of the interpolated preimage curves differ by
++//! more than theTol in the middle of the interval. False when a point cannot
++//! be corrected or the refinement does not converge (out of scope).
++static bool refineLens034c(const XTracer034c&              theTr,
++                           const Geom_Surface&             theS,
++                           const double                    theDD,
++                           NCollection_Sequence<XPt034c>& thePts,
++                           const double                    theTol)
++{
++  for (int aRound = 0; aRound < 24; ++aRound)
++  {
++    occ::handle<Geom2d_Curve> aC1, aC2;
++    if (!lensParams034c(theTr, thePts, aC1, aC2))
++    {
++      return LENS034C_FAIL(false);
++    }
++    NCollection_Sequence<XPt034c> aNew;
++    int                           anAdded = 0;
++    double                        aWorst  = 0.;
++    double                        aSMax   = 0.; // largest half distance of the preimages (miter regions: s small)
++    for (int i = 1; i <= thePts.Length(); ++i)
++    {
++      aSMax = std::max(aSMax, thePts.Value(i).C[3]);
++    }
++    aNew.Append(thePts.First());
++    for (int i = 1; i < thePts.Length(); ++i)
++    {
++      const XPt034c&    aA   = thePts.Value(i);
++      const XPt034c&    aB   = thePts.Value(i + 1);
++      const double      aLm  = 0.5 * (aA.L + aB.L);
++      const gp_Pnt2d    aP   = aC1->Value(aLm);
++      const gp_Pnt2d    aQ   = aC2->Value(aLm);
++      const OffEval034c anEp = offD1034c(theS, aP.X(), aP.Y(), theDD);
++      const OffEval034c anEq = offD1034c(theS, aQ.X(), aQ.Y(), theDD);
++      if (!anEp.Ok || !anEq.Ok)
++      {
++        return LENS034C_FAIL(false);
++      }
++      const double aDev = anEp.O.Distance(anEq.O);
++      aWorst            = std::max(aWorst, aDev);
++      if (aDev > theTol)
++      {
++        // the exact point of X near the middle: corrector on the hyperplane
++        // through the middle of the chord, normal to the chord
++        double aX[4], aT[4], aYp[4], aTn = 0.;
++        for (int k = 0; k < 4; ++k)
++        {
++          aX[k]  = 0.5 * (aA.C[k] + aB.C[k]);
++          aT[k]  = (aB.C[k] - aA.C[k]) * theTr.Scale(k);
++          aYp[k] = aX[k] * theTr.Scale(k);
++          aTn += aT[k] * aT[k];
++        }
++        aTn = std::sqrt(aTn);
++        if (!(aTn > 0.))
++        {
++          return LENS034C_FAIL(false);
++        }
++        for (int k = 0; k < 4; ++k)
++        {
++          aT[k] /= aTn;
++        }
++        int    anIt = 0;
++        double aX0[4];
++        for (int k = 0; k < 4; ++k)
++        {
++          aX0[k] = aX[k];
++        }
++        bool isCorr = theTr.Correct(aX, aT, aYp, anIt, 1.e-3 * theTol) && aX[3] > 0.;
++        if (!isCorr)
++        {
++          for (int k = 0; k < 4; ++k)
++          {
++            aX[k] = aX0[k];
++          }
++          isCorr = theTr.Correct(aX, aT, aYp, anIt, theTol) && aX[3] > 0.;
++        }
++        if (!isCorr && std::min(aA.C[3], aB.C[3]) <= 0.05 * aSMax && aDev <= 20. * theTol)
++        {
++          // the interval at a miter point, where the system is singular:
++          // kept as interpolated (the deviation stays in the edge tolerance)
++          aNew.Append(aB);
++          continue;
++        }
++        if (!isCorr)
++        {
++          LENS034C_TRACE("lens034c: refine corrector failed: interval %d of %d s %.3e .. %.3e dev %.3e it %d s* %.3e\n", i,
++                         thePts.Length(), aA.C[3], aB.C[3], aDev, anIt, aX[3]);
++          return LENS034C_FAIL(false);
++        }
++        XPt034c aM;
++        double  aG[3], aJ[3][4];
++        if (!theTr.Eval(aX, aG, aJ, &aM))
++        {
++          return LENS034C_FAIL(false);
++        }
++        aNew.Append(aM);
++        ++anAdded;
++      }
++      aNew.Append(aB);
++    }
++    LENS034C_TRACE("lens034c: refine round %d points %d worst %.3e added %d\n", aRound, thePts.Length(), aWorst,
++                   anAdded);
++    thePts = aNew;
++    if (anAdded == 0)
++    {
++      return true;
++    }
++    if (thePts.Length() > 4000)
++    {
++      return LENS034C_FAIL(false);
++    }
++  }
++  return LENS034C_FAIL(false);
++}
++
++//! Pattern search for a folded point (factor < 0) from theStart, the grid
++//! steps theDU x theDV halved down to 1/1024 (a narrow fold band between the
++//! samples, e.g. a crest of a B-spline profile). Inside [U0,U1]x[V0,V1].
++static bool foldNear034c(const Geom_Surface& theS,
++                         const double        theDD,
++                         const gp_Pnt2d&     theStart,
++                         const double        theDU,
++                         const double        theDV,
++                         const double        theU0,
++                         const double        theU1,
++                         const double        theV0,
++                         const double        theV1,
++                         gp_Pnt2d&           theFound)
++{
++  static const int THE_DIRS[8][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
++  double           aG, a1, a2;
++  if (!foldFactor034c(theS, theStart.X(), theStart.Y(), theDD, aG, a1, a2))
++  {
++    return false;
++  }
++  gp_Pnt2d aP  = theStart;
++  double   aHU = theDU, aHV = theDV;
++  for (int anIt = 0; anIt < 128 && (aHU > theDU / 1024. || aHV > theDV / 1024.); ++anIt)
++  {
++    bool isMoved = false;
++    for (int k = 0; k < 8; ++k)
++    {
++      const gp_Pnt2d aQ(std::min(std::max(aP.X() + THE_DIRS[k][0] * aHU, theU0), theU1),
++                        std::min(std::max(aP.Y() + THE_DIRS[k][1] * aHV, theV0), theV1));
++      double         aGq;
++      if (!foldFactor034c(theS, aQ.X(), aQ.Y(), theDD, aGq, a1, a2))
++      {
++        continue;
++      }
++      if (aGq < aG)
++      {
++        aG      = aGq;
++        aP      = aQ;
++        isMoved = true;
++      }
++    }
++    if (aG < 0.)
++    {
++      theFound = aP;
++      return true;
++    }
++    if (!isMoved)
++    {
++      aHU *= 0.5;
++      aHV *= 0.5;
++    }
++  }
++  return false;
++}
++
++//! Lenses of the offset of a face by theOffset (theOffset along the outward
++//! normal of the face in its shape).
++//! Returns 0: no partial fold (no fold sample, or a fold at every sample: a
++//! vanishing face, rounds 1-2); 1: every fold sample lies in a lens;
++//! -1: out of scope (the offset of the face is left to the stock flow).
++static int findLenses034c(const TopoDS_Face& theF, const double theOffset, NCollection_Sequence<Lens034c>& theLenses)
++{
++  theLenses.Clear();
++  TopLoc_Location                  aLoc;
++  const occ::handle<Geom_Surface>& aS0 = BRep_Tool::Surface(theF, aLoc);
++  if (aS0.IsNull() || std::abs(theOffset) <= Precision::Confusion())
++  {
++    return 0;
++  }
++  if (!aLoc.IsIdentity() && std::abs(aLoc.Transformation().ScaleFactor() - 1.) > 1.e-12)
++  {
++    return LENS034C_FAIL(-1);
++  }
++  occ::handle<Geom_Surface>                   aS = aS0;
++  occ::handle<Geom_RectangularTrimmedSurface> aRT = occ::down_cast<Geom_RectangularTrimmedSurface>(aS);
++  if (!aRT.IsNull())
++  {
++    aS = aRT->BasisSurface();
++  }
++  const GeomAdaptor_Surface aGAS(aS);
++  switch (aGAS.GetType())
++  {
++    case GeomAbs_BSplineSurface:
++    case GeomAbs_BezierSurface:
++    case GeomAbs_SurfaceOfExtrusion:
++    case GeomAbs_SurfaceOfRevolution:
++    case GeomAbs_OffsetSurface:
++      break;
++    default:
++      return 0; // elementary surfaces fold everywhere or nowhere in a direction
++  }
++  const double       aDD = (theF.Orientation() == TopAbs_REVERSED) ? -theOffset : theOffset;
++  const LensFace034c aDom(theF, aS);
++  const double       aU0 = aDom.U0(), aU1 = aDom.U1(), aV0 = aDom.V0(), aV1 = aDom.V1();
++  if (!(aU1 > aU0) || !(aV1 > aV0))
++  {
++    return 0;
++  }
++  // grid: at least 4 samples per knot span, 32..96 steps
++  int aNU = 32, aNV = 32;
++  if (aGAS.GetType() == GeomAbs_BSplineSurface)
++  {
++    const occ::handle<Geom_BSplineSurface> aBS = aGAS.BSpline();
++    int                                    aSU = 0, aSV = 0;
++    for (int i = aBS->FirstUKnotIndex(); i < aBS->LastUKnotIndex(); ++i)
++    {
++      aSU += (aBS->UKnot(i + 1) > aU0 && aBS->UKnot(i) < aU1) ? 1 : 0;
++    }
++    for (int i = aBS->FirstVKnotIndex(); i < aBS->LastVKnotIndex(); ++i)
++    {
++      aSV += (aBS->VKnot(i + 1) > aV0 && aBS->VKnot(i) < aV1) ? 1 : 0;
++    }
++    aNU = std::min(std::max(aNU, 4 * aSU), 96);
++    aNV = std::min(std::max(aNV, 4 * aSV), 96);
++  }
++  NCollection_Sequence<gp_Pnt2d> aFold;
++  int                            aNReg = 0;
++  // cell centres: the samples stay off the boundary of the face
++  for (int i = 0; i < aNU; ++i)
++  {
++    for (int j = 0; j < aNV; ++j)
++    {
++      const gp_Pnt2d aP(aU0 + (aU1 - aU0) * (i + 0.5) / aNU, aV0 + (aV1 - aV0) * (j + 0.5) / aNV);
++      double         aG, aEu, aEv;
++      if (!aDom.IsIn(aP) || !foldFactor034c(*aS, aP.X(), aP.Y(), aDD, aG, aEu, aEv))
++      {
++        continue;
++      }
++      if (aG < 0.)
++      {
++        aFold.Append(aP);
++      }
++      else
++      {
++        ++aNReg;
++      }
++    }
++  }
++  LENS034C_TRACE("lens034c: findLenses grid %dx%d fold %d regular %d dd %g\n", aNU, aNV, aFold.Length(), aNReg, aDD);
++  if (aNReg == 0)
++  {
++    return 0; // folds everywhere: a vanishing face (rounds 1-2 prove it)
++  }
++  if (aFold.IsEmpty())
++  {
++    // a narrow fold between the samples: pattern search from the lowest ones
++    std::vector<std::pair<double, gp_Pnt2d>> aLow;
++    for (int i = 0; i < aNU; ++i)
++    {
++      for (int j = 0; j < aNV; ++j)
++      {
++        const gp_Pnt2d aP(aU0 + (aU1 - aU0) * (i + 0.5) / aNU, aV0 + (aV1 - aV0) * (j + 0.5) / aNV);
++        double         aG, aEu, aEv;
++        if (aDom.IsIn(aP) && foldFactor034c(*aS, aP.X(), aP.Y(), aDD, aG, aEu, aEv) && aG < 0.75)
++        {
++          aLow.push_back(std::make_pair(aG, aP));
++        }
++      }
++    }
++    std::sort(aLow.begin(), aLow.end(), [](const std::pair<double, gp_Pnt2d>& theA,
++                                           const std::pair<double, gp_Pnt2d>& theB) { return theA.first < theB.first; });
++    for (size_t k = 0; k < aLow.size() && k < 8; ++k)
++    {
++      gp_Pnt2d aFound;
++      if (foldNear034c(*aS, aDD, aLow[k].second, (aU1 - aU0) / aNU, (aV1 - aV0) / aNV, aU0, aU1, aV0, aV1, aFound)
++          && aDom.IsIn(aFound))
++      {
++        aFold.Append(aFound);
++      }
++    }
++  }
++  if (aFold.IsEmpty())
++  {
++    const LensCert034c aNoLens;
++    return certifyRegion034c(theF, aS, aDD, aNoLens) != 0 ? 0 : LENS034C_FAIL(-1);
++  }
++  // 3D scale of the face
++  gp_Pnt aPc;
++  gp_Vec aSu, aSv;
++  aS->D1(0.5 * (aU0 + aU1), 0.5 * (aV0 + aV1), aPc, aSu, aSv);
++  Bnd_Box aFBox;
++  BRepBndLib::Add(theF, aFBox, false);
++  const double aSize = aFBox.IsVoid() ? 1. : std::sqrt(aFBox.SquareExtent());
++  const double aTol  = 1.e-12 * std::max(1., aSize);
++  // tracing box: the parametric box of the face with a margin, inside the surface bounds
++  double aSU0, aSU1, aSV0, aSV1;
++  aS->Bounds(aSU0, aSU1, aSV0, aSV1);
++  const double aMu = 0.25 * (aU1 - aU0), aMv = 0.25 * (aV1 - aV0);
++  XTracer034c  aTr(aS,
++                  aDD,
++                  std::max(aU0 - aMu, aSU0),
++                  std::min(aU1 + aMu, aSU1),
++                  std::max(aV0 - aMv, aSV0),
++                  std::min(aV1 + aMv, aSV1));
++  NCollection_Array1<bool> aCovered(1, aFold.Length());
++  aCovered.Init(false);
++  auto isCovered = [&](const gp_Pnt2d& theP) {
++    for (int l = 1; l <= theLenses.Length(); ++l)
++    {
++      for (int aKu = -1; aKu <= 1; ++aKu)
++      {
++        for (int aKv = -1; aKv <= 1; ++aKv)
++        {
++          if ((aKu != 0 && aDom.UPer() == 0.) || (aKv != 0 && aDom.VPer() == 0.))
++          {
++            continue;
++          }
++          const gp_Pnt2d aP(theP.X() + aKu * aDom.UPer(), theP.Y() + aKv * aDom.VPer());
++          if (inPoly034c(theLenses.Value(l).Poly, aP))
++          {
++            return true;
++          }
++        }
++      }
++    }
++    return false;
++  };
++  for (int aFi = 1; aFi <= aFold.Length(); ++aFi)
++  {
++    if (aCovered(aFi) || (aCovered(aFi) = isCovered(aFold.Value(aFi))))
++    {
++      continue;
++    }
++    if (theLenses.Length() >= 16)
++    {
++      return LENS034C_FAIL(-1);
++    }
++    const gp_Pnt2d aG0 = aFold.Value(aFi);
++    double         aG, aEu, aEv;
++    foldFactor034c(*aS, aG0.X(), aG0.Y(), aDD, aG, aEu, aEv);
++    gp_Pnt aP0;
++    gp_Vec aDu, aDv;
++    aS->D1(aG0.X(), aG0.Y(), aP0, aDu, aDv);
++    const gp_Vec anAe = aDu * aEu + aDv * aEv;
++    const double aSp  = anAe.Magnitude();
++    if (!(aSp > 1.e-300))
++    {
++      return LENS034C_FAIL(-1);
++    }
++    aEu /= aSp;
++    aEv /= aSp;
++    double       aBu = -aDv.Dot(anAe), aBv = aDu.Dot(anAe);
++    const double aBsp = (aDu * aBu + aDv * aBv).Magnitude();
++    if (!(aBsp > 1.e-300))
++    {
++      return LENS034C_FAIL(-1);
++    }
++    aBu /= aBsp;
++    aBv /= aBsp;
++    // width of the fold along the principal direction
++    const double aStep = 0.25 * aSize / std::max(aNU, aNV);
++    double       aTp = 0., aTm = 0.;
++    for (int aDir = -1; aDir <= 1; aDir += 2)
++    {
++      double aT = 0.;
++      for (int anIt = 0; anIt < 4 * std::max(aNU, aNV) * 8; ++anIt)
++      {
++        const double   aTn = aT + aDir * aStep;
++        const gp_Pnt2d aPn(aG0.X() + aTn * aEu, aG0.Y() + aTn * aEv);
++        double         aGn, a1, a2;
++        if (!aTr.InBox(aPn) || !foldFactor034c(*aS, aPn.X(), aPn.Y(), aDD, aGn, a1, a2) || aGn >= 0.)
++        {
++          break;
++        }
++        aT = aTn;
++      }
++      (aDir < 0 ? aTm : aTp) = aT + aDir * aStep;
++    }
++    const double aHalf = 0.5 * (aTp - aTm), aMid = 0.5 * (aTp + aTm);
++    double       aX0[4];
++    bool         isSeed = false;
++    for (const double aM : {1.3, 1.8, 2.5, 3.5, 5.0, 7.0})
++    {
++      aTr.SetFrame(aEu, aEv, aBu, aBv, aDu.Magnitude(), aDv.Magnitude(), aM * aHalf);
++      if (!aTr.Seed(aG0, aEu, aEv, aMid, aM * aHalf, aTol, aX0))
++      {
++        continue;
++      }
++      double  aGj[3], aJj[3][4];
++      XPt034c aSeedPt;
++      aTr.Eval(aX0, aGj, aJj, &aSeedPt);
++      double aGp, aGq, a1, a2;
++      if (aX0[3] > 0.9 * aHalf && foldFactor034c(*aS, aSeedPt.P.X(), aSeedPt.P.Y(), aDD, aGp, a1, a2)
++          && foldFactor034c(*aS, aSeedPt.Q.X(), aSeedPt.Q.Y(), aDD, aGq, a1, a2) && aGp > 0. && aGq > 0.)
++      {
++        isSeed = true;
++        break;
++      }
++    }
++    if (!isSeed)
++    {
++      return LENS034C_FAIL(-1);
++    }
++    aTr.SetFrame(aEu, aEv, aBu, aBv, aDu.Magnitude(), aDv.Magnitude(), aX0[3]);
++    const double                  aHMax = std::min(aSize / 60., 2. * aX0[3]);
++    NCollection_Sequence<XPt034c> aFw, aBw;
++    const int                     anE1 = aTr.Trace(aX0, 1., 0.1 * aX0[3], aHMax, aTol, aFw);
++    if (anE1 == 0 || anE1 == 3)
++    {
++      return LENS034C_FAIL(-1);
++    }
++    const int anE0 = aTr.Trace(aX0, -1., 0.1 * aX0[3], aHMax, aTol, aBw);
++    if (anE0 == 0 || anE0 == 3)
++    {
++      return LENS034C_FAIL(-1);
++    }
++    NCollection_Sequence<XPt034c> anAll;
++    for (int i = aBw.Length(); i >= 1; --i)
++    {
++      anAll.Append(aBw.Value(i));
++    }
++    {
++      XPt034c aSeedP;
++      double  aGj[3], aJj[3][4];
++      aTr.Eval(aX0, aGj, aJj, &aSeedP);
++      anAll.Append(aSeedP);
++    }
++    const int aSeedIdx = anAll.Length();
++    for (int i = 1; i <= aFw.Length(); ++i)
++    {
++      anAll.Append(aFw.Value(i));
++    }
++    // the run around the seed with both preimages in the face
++    auto isInPt = [&](const XPt034c& thePt) { return aDom.IsIn(thePt.P) && aDom.IsIn(thePt.Q); };
++    if (!isInPt(anAll.Value(aSeedIdx)))
++    {
++      return LENS034C_FAIL(-1);
++    }
++    int aI0 = aSeedIdx, aI1 = aSeedIdx;
++    while (aI0 > 1 && isInPt(anAll.Value(aI0 - 1)))
++    {
++      --aI0;
++    }
++    while (aI1 < anAll.Length() && isInPt(anAll.Value(aI1 + 1)))
++    {
++      ++aI1;
++    }
++    Lens034c aLens;
++    aLens.Miter[0] = (aI0 == 1 && anE0 == 1);
++    aLens.Miter[1] = (aI1 == anAll.Length() && anE1 == 1);
++    for (int i = aI0; i <= aI1; ++i)
++    {
++      aLens.Pts.Append(anAll.Value(i));
++    }
++    // exits: move the leaving preimage onto the boundary
++    for (int anEnd = 0; anEnd < 2; ++anEnd)
++    {
++      if (aLens.Miter[anEnd])
++      {
++        continue;
++      }
++      const int anIn  = (anEnd == 0) ? aI0 : aI1;
++      const int anOut = (anEnd == 0) ? aI0 - 1 : aI1 + 1;
++      if (anOut < 1 || anOut > anAll.Length())
++      {
++        return LENS034C_FAIL(-1); // the trace ended inside the face
++      }
++      const XPt034c& aA = anAll.Value(anIn);
++      const XPt034c& aB = anAll.Value(anOut);
++      const bool     isPOut = !aDom.IsIn(aB.P);
++      const bool     isQOut = !aDom.IsIn(aB.Q);
++      // bisection of the crossing for each leaving preimage; the earlier one exits
++      double aLamP = 2., aLamQ = 2.;
++      for (int aK = 0; aK < 2; ++aK)
++      {
++        if (!(aK == 0 ? isPOut : isQOut))
++        {
++          continue;
++        }
++        const gp_Pnt2d& aPa = (aK == 0) ? aA.P : aA.Q;
++        const gp_Pnt2d& aPb = (aK == 0) ? aB.P : aB.Q;
++        double          aLo = 0., aHi = 1.;
++        for (int anIt = 0; anIt < 40; ++anIt)
++        {
++          const double aMd = 0.5 * (aLo + aHi);
++          if (aDom.IsIn(gp_Pnt2d(aPa.X() + aMd * (aPb.X() - aPa.X()), aPa.Y() + aMd * (aPb.Y() - aPa.Y()))))
++          {
++            aLo = aMd;
++          }
++          else
++          {
++            aHi = aMd;
++          }
++        }
++        (aK == 0 ? aLamP : aLamQ) = aLo;
++      }
++      const bool   isP  = aLamP <= aLamQ;
++      const double aLam = std::min(aLamP, aLamQ);
++      if (aLam > 1.)
++      {
++        return LENS034C_FAIL(-1);
++      }
++      const gp_Pnt2d aOn((isP ? aA.P : aA.Q).X() + aLam * ((isP ? aB.P : aB.Q).X() - (isP ? aA.P : aA.Q).X()),
++                         (isP ? aA.P : aA.Q).Y() + aLam * ((isP ? aB.P : aB.Q).Y() - (isP ? aA.P : aA.Q).Y()));
++      gp_Pnt2d       anOther((isP ? aA.Q : aA.P).X() + aLam * ((isP ? aB.Q : aB.P).X() - (isP ? aA.Q : aA.P).X()),
++                             (isP ? aA.Q : aA.P).Y() + aLam * ((isP ? aB.Q : aB.P).Y() - (isP ? aA.Q : aA.P).Y()));
++      TopoDS_Edge    aBE;
++      double         aBT = 0., aBD = 0.;
++      const gp_Pnt2d aOnW = aDom.Wrap(aOn);
++      if (!aDom.Project(aOnW, aBE, aBT, aBD))
++      {
++        return LENS034C_FAIL(-1);
++      }
++      // the other preimage in the same periodic frame as the wrapped one
++      anOther.SetCoord(anOther.X() + (aOnW.X() - aOn.X()), anOther.Y() + (aOnW.Y() - aOn.Y()));
++      if (!exitOnEdge034c(*aS, aDD, aBE, theF, aBT, anOther, 1.e-9 * std::max(1., aSize)))
++      {
++        return LENS034C_FAIL(-1);
++      }
++      double                          aCF, aCL;
++      const occ::handle<Geom2d_Curve> aBC = BRep_Tool::CurveOnSurface(aBE, theF, aCF, aCL);
++      const gp_Pnt2d                  anOnExact = aBC->Value(aBT);
++      if (!aDom.IsIn(anOther))
++      {
++        return LENS034C_FAIL(-1);
++      }
++      // the other preimage on the boundary too (a symmetric exit): no chord
++      TopoDS_Edge aBE2;
++      double      aBT2 = 0., aBD2 = 0.;
++      bool        isBoth = false;
++      if (aDom.Project(aDom.Wrap(anOther), aBE2, aBT2, aBD2))
++      {
++        if (aBD2 <= 1.e-9 * std::max(1., aSize))
++        {
++          double                          aF2, aL2;
++          const occ::handle<Geom2d_Curve> aBC2 = BRep_Tool::CurveOnSurface(aBE2, theF, aF2, aL2);
++          const gp_Pnt2d                  aW   = aDom.Wrap(anOther);
++          const gp_Pnt2d                  aOnB = aBC2->Value(aBT2);
++          anOther.SetCoord(anOther.X() + aOnB.X() - aW.X(), anOther.Y() + aOnB.Y() - aW.Y());
++          isBoth = true;
++        }
++        else if (aBD2 <= 1.e-4 * aSize)
++        {
++          return LENS034C_FAIL(-1); // a degenerate chord
++        }
++      }
++      // the exit point, back in the unwrapped frame of the trace
++      XPt034c anX = aA;
++      const gp_Pnt2d aShift(aOn.X() - aOnW.X(), aOn.Y() - aOnW.Y());
++      const gp_Pnt2d aPonU(anOnExact.X() + aShift.X(), anOnExact.Y() + aShift.Y());
++      const gp_Pnt2d anOthU(anOther.X() + aShift.X(), anOther.Y() + aShift.Y());
++      anX.P = isP ? aPonU : anOthU;
++      anX.Q = isP ? anOthU : aPonU;
++      if (!aTr.FrameCoords(anX.P, anX.Q, aA.C[2], anX.C))
++      {
++        return LENS034C_FAIL(-1);
++      }
++      const OffEval034c anEv = offD1034c(*aS, anX.P.X(), anX.P.Y(), aDD);
++      anX.O = anEv.O;
++      if (anEnd == 0)
++      {
++        aLens.Pts.Prepend(anX);
++      }
++      else
++      {
++        aLens.Pts.Append(anX);
++      }
++      aLens.Exit[anEnd].Edge = aBE;
++      aLens.Exit[anEnd].T    = aBT;
++      aLens.Exit[anEnd].IsP  = isP;
++      aLens.Exit[anEnd].Both = isBoth;
++      aLens.Exit[anEnd].Edge2 = aBE2;
++      aLens.Exit[anEnd].T2    = aBT2;
++    }
++    if (aLens.Pts.Length() < 3)
++    {
++      return LENS034C_FAIL(-1);
++    }
++    // the two preimage curves are interpolated with one parameter (the edge
++    // X has one parameter on both sides): points are added until the offsets
++    // of the two interpolants coincide within the tolerance between the
++    // traced points too
++    if (!refineLens034c(aTr, *aS, aDD, aLens.Pts, 1.e-9 * std::max(1., aSize)))
++    {
++      return LENS034C_FAIL(-1);
++    }
++    // boundary polygon: C1 forward, C2 backward (the chords close the exits)
++    for (int i = 1; i <= aLens.Pts.Length(); ++i)
++    {
++      aLens.Poly.Append(aLens.Pts.Value(i).P);
++    }
++    for (int i = aLens.Pts.Length(); i >= 1; --i)
++    {
++      aLens.Poly.Append(aLens.Pts.Value(i).Q);
++    }
++    aLens.Inner = aG0;
++    if (!inPoly034c(aLens.Poly, aG0))
++    {
++      return LENS034C_FAIL(-1);
++    }
++    theLenses.Append(aLens);
++    aCovered(aFi) = true;
++  }
++  // every fold sample covered (already by construction of the loop), the
++  // lens boundaries simple and disjoint
++  for (int l = 1; l <= theLenses.Length(); ++l)
++  {
++    const NCollection_Sequence<gp_Pnt2d>& aPl = theLenses.Value(l).Poly;
++    for (int m = l; m <= theLenses.Length(); ++m)
++    {
++      const NCollection_Sequence<gp_Pnt2d>& aPm = theLenses.Value(m).Poly;
++      for (int a = 1; a <= aPl.Length(); ++a)
++      {
++        const gp_Pnt2d& aA1 = aPl.Value(a);
++        const gp_Pnt2d& aA2 = aPl.Value(a == aPl.Length() ? 1 : a + 1);
++        for (int b = (l == m ? a + 2 : 1); b <= aPm.Length(); ++b)
++        {
++          if (l == m && a == 1 && b == aPm.Length())
++          {
++            continue;
++          }
++          const gp_Pnt2d& aB1 = aPm.Value(b);
++          const gp_Pnt2d& aB2 = aPm.Value(b == aPm.Length() ? 1 : b + 1);
++          if (segCross034c(aA1, aA2, aB1, aB2))
++          {
++            return LENS034C_FAIL(-1);
++          }
++        }
++      }
++    }
++  }
++  return 1;
++}
++} // namespace
++
++namespace
++{
++//! vertex on the surface of theF at theUV
++static TopoDS_Vertex lensVertex034c(const TopoDS_Face& theF, const gp_Pnt2d& theUV, const double theTol)
++{
++  TopLoc_Location                  aLoc;
++  const occ::handle<Geom_Surface>& aS = BRep_Tool::Surface(theF, aLoc);
++  gp_Pnt                           aP = aS->Value(theUV.X(), theUV.Y());
++  if (!aLoc.IsIdentity())
++  {
++    aP.Transform(aLoc.Transformation());
++  }
++  TopoDS_Vertex aV;
++  BRep_Builder().MakeVertex(aV, aP, theTol);
++  return aV;
++}
++
++//! edge on theF with the pcurve theC2d on [theF0, theL0], vertices theV0, theV1
++static TopoDS_Edge lensEdge034c(const TopoDS_Face&               theF,
++                                const occ::handle<Geom2d_Curve>& theC2d,
++                                const double                     theT0,
++                                const double                     theT1,
++                                const TopoDS_Vertex&             theV0,
++                                const TopoDS_Vertex&             theV1,
++                                const double                     theTol)
++{
++  BRep_Builder aBB;
++  TopoDS_Edge  anE;
++  aBB.MakeEdge(anE);
++  aBB.UpdateEdge(anE, theC2d, theF, theTol);
++  aBB.Range(anE, theT0, theT1);
++  aBB.Add(anE, theV0.Oriented(TopAbs_FORWARD));
++  aBB.Add(anE, theV1.Oriented(TopAbs_REVERSED));
++  BRepLib::BuildCurve3d(anE, theTol);
++  aBB.UpdateVertex(theV0, theT0, anE, theTol);
++  aBB.UpdateVertex(theV1, theT1, anE, theTol);
++  // the tolerance covers the deviation of the 3D curve from the pcurve (the
++  // pcurve itself is kept: its parameter is shared with the partner edge)
++  double aDev = 0., aPar = 0.;
++  if (BOPTools_AlgoTools::ComputeTolerance(theF, anE, aDev, aPar) && aDev > BRep_Tool::Tolerance(anE))
++  {
++    aBB.UpdateEdge(anE, aDev * (1. + 1.e-6));
++    aBB.UpdateVertex(theV0, aDev * (1. + 1.e-6));
++    aBB.UpdateVertex(theV1, aDev * (1. + 1.e-6));
++  }
++  return anE;
++}
++
++//! Result of the lens split of the faces of a shape.
++struct LensSplit034c
++{
++  occ::handle<BRepTools_ReShape>                                           ReShape;
++  occ::handle<BRepTools_ReShape>                                           Skin; //!< the edge splits only
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>                   LensFaces;
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher> Partner;
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher> Origin;
++};
++
++//! UV curve of one side of a lens, shifted by whole periods into the face range
++static bool lensSide034c(const Lens034c&                  theLens,
++                         const bool                       theIsP,
++                         const LensFace034c&              theDom,
++                         NCollection_Sequence<gp_Pnt2d>&  theUV,
++                         gp_Pnt2d&                        theShift)
++{
++  theUV.Clear();
++  const gp_Pnt2d aFirst = theIsP ? theLens.Pts.First().P : theLens.Pts.First().Q;
++  const gp_Pnt2d aW     = theDom.Wrap(aFirst);
++  theShift              = gp_Pnt2d(aW.X() - aFirst.X(), aW.Y() - aFirst.Y());
++  const double anEpsU   = 1.e-9 * (theDom.U1() - theDom.U0()), anEpsV = 1.e-9 * (theDom.V1() - theDom.V0());
++  for (int i = 1; i <= theLens.Pts.Length(); ++i)
++  {
++    const gp_Pnt2d& aP = theIsP ? theLens.Pts.Value(i).P : theLens.Pts.Value(i).Q;
++    const gp_Pnt2d  aQ(aP.X() + theShift.X(), aP.Y() + theShift.Y());
++    if ((theDom.UPer() > 0. && (aQ.X() < theDom.U0() - anEpsU || aQ.X() > theDom.U0() + theDom.UPer() + anEpsU))
++        || (theDom.VPer() > 0. && (aQ.Y() < theDom.V0() - anEpsV || aQ.Y() > theDom.V0() + theDom.VPer() + anEpsV)))
++    {
++      return LENS034C_FAIL(false); // the curve crosses the seam
++    }
++    theUV.Append(aQ);
++  }
++  return true;
++}
++
++//! interpolating pcurve through theUV with parameters theT
++static occ::handle<Geom2d_Curve> lensPCurve034c(const NCollection_Sequence<gp_Pnt2d>& theUV,
++                                               const NCollection_Sequence<double>&   theT)
++{
++  const int aN = theUV.Length();
++  occ::handle<NCollection_HArray1<gp_Pnt2d>> aPts = new NCollection_HArray1<gp_Pnt2d>(1, aN);
++  occ::handle<NCollection_HArray1<double>>   aPar = new NCollection_HArray1<double>(1, aN);
++  for (int i = 1; i <= aN; ++i)
++  {
++    aPts->SetValue(i, theUV.Value(i));
++    aPar->SetValue(i, theT.Value(i));
++  }
++  Geom2dAPI_Interpolate anInt(aPts, aPar, false, Precision::PConfusion());
++  anInt.Perform();
++  if (!anInt.IsDone())
++  {
++    return occ::handle<Geom2d_Curve>();
++  }
++  return anInt.Curve();
++}
++
++//! Splits the faces with lenses (see the header of the issue 034 B2 round 3
++//! block). theFacesLenses: face (as in the shape) -> its lenses. Returns false
++//! when a configuration is out of scope (nothing is changed then).
++static bool lensSplit034c(
++  const NCollection_IndexedDataMap<TopoDS_Shape, NCollection_Sequence<Lens034c>, TopTools_ShapeMapHasher>&
++                                                                            theFacesLenses,
++  const NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>& theFaceOffset,
++  const double                                                              theOffset,
++  LensSplit034c&                                                            theRes)
++{
++  theRes.ReShape = new BRepTools_ReShape();
++  theRes.Skin    = new BRepTools_ReShape();
++  // 1. boundary splits: edge -> parameters
++  NCollection_DataMap<TopoDS_Shape, NCollection_Sequence<double>, TopTools_ShapeMapHasher> aSplits;
++  struct Ray034c
++  {
++    gp_Pnt2d    From, To;
++    TopoDS_Edge Edge;
++    double      T = 0.;
++    int         Lens = 0, End = 0;
++  };
++  NCollection_DataMap<TopoDS_Shape, NCollection_Sequence<Ray034c>, TopTools_ShapeMapHasher> aRays;
++  for (int aFi = 1; aFi <= theFacesLenses.Extent(); ++aFi)
++  {
++    const TopoDS_Face&                     aF = TopoDS::Face(theFacesLenses.FindKey(aFi));
++    const NCollection_Sequence<Lens034c>& aLs = theFacesLenses(aFi);
++    TopLoc_Location                        aLoc;
++    occ::handle<Geom_Surface>              aS  = BRep_Tool::Surface(aF, aLoc);
++    const LensFace034c                     aDom(aF, aS);
++    const double* aFOff = theFaceOffset.Seek(aF);
++    const double  aDD   = (aF.Orientation() == TopAbs_REVERSED) ? -(aFOff ? *aFOff : theOffset)
++                                                                : (aFOff ? *aFOff : theOffset);
++    Bnd_Box      aFBox;
++    BRepBndLib::Add(aF, aFBox, false);
++    const double aSize = aFBox.IsVoid() ? 1. : std::sqrt(aFBox.SquareExtent());
++    aRays.Bind(aF, NCollection_Sequence<Ray034c>());
++    for (int l = 1; l <= aLs.Length(); ++l)
++    {
++      const Lens034c& aL = aLs.Value(l);
++      int             aNbExit = 0;
++      for (int anEnd = 0; anEnd < 2; ++anEnd)
++      {
++        if (!aL.Miter[anEnd])
++        {
++          ++aNbExit;
++          const LensExit034c& anX = aL.Exit[anEnd];
++          if (BRep_Tool::IsClosed(anX.Edge, aF))
++          {
++            return LENS034C_FAIL(false); // an exit on a seam
++          }
++          if (!aSplits.IsBound(anX.Edge))
++          {
++            aSplits.Bind(anX.Edge, NCollection_Sequence<double>());
++          }
++          aSplits.ChangeFind(anX.Edge).Append(anX.T);
++          if (anX.Both)
++          {
++            if (BRep_Tool::IsClosed(anX.Edge2, aF))
++            {
++              return LENS034C_FAIL(false);
++            }
++            if (!aSplits.IsBound(anX.Edge2))
++            {
++              aSplits.Bind(anX.Edge2, NCollection_Sequence<double>());
++            }
++            aSplits.ChangeFind(anX.Edge2).Append(anX.T2);
++          }
++        }
++      }
++      if (aNbExit == 2)
++      {
++        continue;
++      }
++      // rays from the miter ends that must cut the face in two
++      for (int anEnd = 0; anEnd < 2; ++anEnd)
++      {
++        if (!aL.Miter[anEnd] || (aNbExit == 1 && false))
++        {
++          continue;
++        }
++        const int      aN  = aL.Pts.Length();
++        const XPt034c& aM  = anEnd == 0 ? aL.Pts.First() : aL.Pts.Last();
++        double         aSMax = 0.;
++        for (int i = 1; i <= aN; ++i)
++        {
++          aSMax = std::max(aSMax, aL.Pts.Value(i).C[3]);
++        }
++        // the lens opens away from the miter: the ray goes the other way
++        gp_Pnt2d aCk = aM.P;
++        for (int k = 1; k <= aN; ++k)
++        {
++          const XPt034c& aPk = aL.Pts.Value(anEnd == 0 ? k : aN + 1 - k);
++          if (aPk.C[3] >= 0.1 * aSMax)
++          {
++            aCk = gp_Pnt2d(0.5 * (aPk.P.X() + aPk.Q.X()), 0.5 * (aPk.P.Y() + aPk.Q.Y()));
++            break;
++          }
++        }
++        double aRu = aM.P.X() - aCk.X(), aRv = aM.P.Y() - aCk.Y();
++        gp_Pnt aPm;
++        gp_Vec aDu, aDv;
++        aS->D1(aM.P.X(), aM.P.Y(), aPm, aDu, aDv);
++        const double aSp = (aDu * aRu + aDv * aRv).Magnitude();
++        if (!(aSp > 1.e-300))
++        {
++          return LENS034C_FAIL(false);
++        }
++        aRu /= aSp;
++        aRv /= aSp;
++        const double aStep = aSize / 400.;
++        double       aT    = 0.;
++        bool         isOut = false;
++        for (int anIt = 0; anIt < 4000; ++anIt)
++        {
++          const gp_Pnt2d aPn(aM.P.X() + (aT + aStep) * aRu, aM.P.Y() + (aT + aStep) * aRv);
++          if (!aDom.IsIn(aPn))
++          {
++            isOut = true;
++            break;
++          }
++          aT += aStep;
++          double aG, a1, a2;
++          if (aT > 0.02 * aSize && (!foldFactor034c(*aS, aPn.X(), aPn.Y(), aDD, aG, a1, a2) || aG <= 0.))
++          {
++            return LENS034C_FAIL(false); // the ray runs into a fold
++          }
++        }
++        if (!isOut)
++        {
++          return LENS034C_FAIL(false);
++        }
++        double aLo = aT, aHi = aT + aStep;
++        for (int anIt = 0; anIt < 50; ++anIt)
++        {
++          const double aMd = 0.5 * (aLo + aHi);
++          (aDom.IsIn(gp_Pnt2d(aM.P.X() + aMd * aRu, aM.P.Y() + aMd * aRv)) ? aLo : aHi) = aMd;
++        }
++        const gp_Pnt2d aEndG(aM.P.X() + aLo * aRu, aM.P.Y() + aLo * aRv);
++        Ray034c        aRay;
++        double         aDist = 0.;
++        if (!aDom.Project(aDom.Wrap(aEndG), aRay.Edge, aRay.T, aDist) || BRep_Tool::IsClosed(aRay.Edge, aF))
++        {
++          return LENS034C_FAIL(false);
++        }
++        aRay.From = aM.P;
++        aRay.Lens = l;
++        aRay.End  = anEnd;
++        double                          aCF, aCL;
++        const occ::handle<Geom2d_Curve> aBC = BRep_Tool::CurveOnSurface(aRay.Edge, aF, aCF, aCL);
++        aRay.To                             = aBC->Value(aRay.T);
++        // the ray must not cross a lens
++        for (int m = 1; m <= aLs.Length(); ++m)
++        {
++          const NCollection_Sequence<gp_Pnt2d>& aPoly = aLs.Value(m).Poly;
++          for (int a = 1; a <= aPoly.Length(); ++a)
++          {
++            const gp_Pnt2d& aA1 = aPoly.Value(a);
++            const gp_Pnt2d& aA2 = aPoly.Value(a == aPoly.Length() ? 1 : a + 1);
++            const gp_Pnt2d  aR0(aRay.From.X() + 1.e-6 * (aRay.To.X() - aRay.From.X()),
++                               aRay.From.Y() + 1.e-6 * (aRay.To.Y() - aRay.From.Y()));
++            if (segCross034c(aR0, aRay.To, aA1, aA2))
++            {
++              return LENS034C_FAIL(false);
++            }
++          }
++        }
++        aRays.ChangeFind(aF).Append(aRay);
++        if (!aSplits.IsBound(aRay.Edge))
++        {
++          aSplits.Bind(aRay.Edge, NCollection_Sequence<double>());
++        }
++        aSplits.ChangeFind(aRay.Edge).Append(aRay.T);
++        if (aNbExit == 1)
++        {
++          break; // one ray is enough: the exit already cuts the face on the other side
++        }
++      }
++    }
++  }
++  // 2. split the boundary edges
++  NCollection_DataMap<TopoDS_Shape, NCollection_Sequence<TopoDS_Shape>, TopTools_ShapeMapHasher> aPieces;
++  NCollection_DataMap<TopoDS_Shape, NCollection_Sequence<double>, TopTools_ShapeMapHasher> aPieceT; // vertex params
++  NCollection_DataMap<TopoDS_Shape, NCollection_Sequence<TopoDS_Shape>, TopTools_ShapeMapHasher> aPieceV;
++  BRep_Builder aBB;
++  for (NCollection_DataMap<TopoDS_Shape, NCollection_Sequence<double>, TopTools_ShapeMapHasher>::Iterator anIt(aSplits);
++       anIt.More();
++       anIt.Next())
++  {
++    const TopoDS_Edge anE = TopoDS::Edge(anIt.Key().Oriented(TopAbs_FORWARD));
++    double            aF, aL;
++    BRep_Tool::Range(anE, aF, aL);
++    TopoDS_Vertex aVf, aVl;
++    TopExp::Vertices(anE, aVf, aVl);
++    const double aTolE = BRep_Tool::Tolerance(anE);
++    BRepAdaptor_Curve anAC(anE);
++    NCollection_Sequence<double> aTs;
++    for (int i = 1; i <= anIt.Value().Length(); ++i)
++    {
++      aTs.Append(anIt.Value().Value(i));
++    }
++    // sort
++    for (int i = 1; i <= aTs.Length(); ++i)
++    {
++      for (int j = i + 1; j <= aTs.Length(); ++j)
++      {
++        if (aTs.Value(j) < aTs.Value(i))
++        {
++          const double aT = aTs.Value(i);
++          aTs.SetValue(i, aTs.Value(j));
++          aTs.SetValue(j, aT);
++        }
++      }
++    }
++    NCollection_Sequence<double>       aKnots;
++    NCollection_Sequence<TopoDS_Shape> aVs;
++    aKnots.Append(aF);
++    aVs.Append(aVf);
++    for (int i = 1; i <= aTs.Length(); ++i)
++    {
++      const double aT  = aTs.Value(i);
++      const gp_Pnt aP  = anAC.Value(aT);
++      const double aTl = std::max(aTolE, BRep_Tool::Tolerance(TopoDS::Vertex(aVs.Last())));
++      if (aP.Distance(anAC.Value(aKnots.Last())) <= 2. * aTl || aP.Distance(anAC.Value(aL)) <= 2. * aTolE)
++      {
++        return LENS034C_FAIL(false); // a split point on a vertex: out of scope (the pieces would be degenerate)
++      }
++      TopoDS_Vertex aV;
++      aBB.MakeVertex(aV, aP, aTolE);
++      aKnots.Append(aT);
++      aVs.Append(aV);
++    }
++    aKnots.Append(aL);
++    aVs.Append(aVl);
++    NCollection_Sequence<TopoDS_Shape> aPs;
++    TopoDS_Wire                         aW;
++    aBB.MakeWire(aW);
++    for (int i = 1; i < aKnots.Length(); ++i)
++    {
++      TopoDS_Edge aP = TopoDS::Edge(anE.EmptyCopied());
++      aBB.Range(aP, aKnots.Value(i), aKnots.Value(i + 1));
++      aBB.Add(aP, TopoDS::Vertex(aVs.Value(i)).Oriented(TopAbs_FORWARD));
++      aBB.Add(aP, TopoDS::Vertex(aVs.Value(i + 1)).Oriented(TopAbs_REVERSED));
++      if (i > 1)
++      {
++        aBB.UpdateVertex(TopoDS::Vertex(aVs.Value(i)), aKnots.Value(i), aP, aTolE);
++      }
++      if (i + 1 < aKnots.Length())
++      {
++        aBB.UpdateVertex(TopoDS::Vertex(aVs.Value(i + 1)), aKnots.Value(i + 1), aP, aTolE);
++      }
++      aPs.Append(aP);
++      aBB.Add(aW, aP);
++    }
++    aPieces.Bind(anE, aPs);
++    aPieceT.Bind(anE, aKnots);
++    aPieceV.Bind(anE, aVs);
++    theRes.ReShape->Replace(anE, aW);
++    theRes.Skin->Replace(anE, aW);
++  }
++  auto splitVertex = [&](const TopoDS_Edge& theE, const double theT) -> TopoDS_Vertex {
++    const TopoDS_Shape                  aKey = theE.Oriented(TopAbs_FORWARD);
++    const NCollection_Sequence<double>* aKs  = aPieceT.Seek(aKey);
++    if (aKs == nullptr)
++    {
++      return TopoDS_Vertex();
++    }
++    for (int i = 2; i < aKs->Length(); ++i)
++    {
++      if (aKs->Value(i) == theT)
++      {
++        return TopoDS::Vertex(aPieceV.Find(aKey).Value(i));
++      }
++    }
++    return TopoDS_Vertex();
++  };
++  // 3. the faces
++  for (int aFi = 1; aFi <= theFacesLenses.Extent(); ++aFi)
++  {
++    const TopoDS_Face&                     aFo = TopoDS::Face(theFacesLenses.FindKey(aFi));
++    const TopoDS_Face                      aF  = TopoDS::Face(aFo.Oriented(TopAbs_FORWARD));
++    const NCollection_Sequence<Lens034c>& aLs  = theFacesLenses(aFi);
++    TopLoc_Location                        aLoc;
++    occ::handle<Geom_Surface>              aS = BRep_Tool::Surface(aF, aLoc);
++    const LensFace034c                     aDom(aF, aS);
++    const double                           aTolF = std::max(BRep_Tool::Tolerance(aF), Precision::Confusion());
++    NCollection_List<TopoDS_Shape>         anEdges;
++    for (TopExp_Explorer anExp(aF, TopAbs_EDGE); anExp.More(); anExp.Next())
++    {
++      const TopoDS_Shape&                       anE = anExp.Current();
++      const NCollection_Sequence<TopoDS_Shape>* aPs = aPieces.Seek(anE.Oriented(TopAbs_FORWARD));
++      if (aPs == nullptr)
++      {
++        anEdges.Append(anE);
++        continue;
++      }
++      for (int i = 1; i <= aPs->Length(); ++i)
++      {
++        anEdges.Append(aPs->Value(i).Oriented(anE.Orientation()));
++      }
++    }
++    NCollection_List<TopoDS_Shape> aNewEdges;
++    for (int l = 1; l <= aLs.Length(); ++l)
++    {
++      const Lens034c&                aL = aLs.Value(l);
++      NCollection_Sequence<gp_Pnt2d> aUV1, aUV2;
++      gp_Pnt2d                       aSh1, aSh2;
++      if (!lensSide034c(aL, true, aDom, aUV1, aSh1) || !lensSide034c(aL, false, aDom, aUV2, aSh2))
++      {
++        return LENS034C_FAIL(false);
++      }
++      NCollection_Sequence<double> aT;
++      for (int i = 1; i <= aL.Pts.Length(); ++i)
++      {
++        aT.Append(aL.Pts.Value(i).L);
++      }
++      const occ::handle<Geom2d_Curve> aC1 = lensPCurve034c(aUV1, aT);
++      const occ::handle<Geom2d_Curve> aC2 = lensPCurve034c(aUV2, aT);
++      if (aC1.IsNull() || aC2.IsNull())
++      {
++        return LENS034C_FAIL(false);
++      }
++      // vertices of the ends
++      TopoDS_Vertex aV1[2], aV2[2]; // C1 ends, C2 ends
++      for (int anEnd = 0; anEnd < 2; ++anEnd)
++      {
++        const gp_Pnt2d& aP1 = anEnd == 0 ? aUV1.First() : aUV1.Last();
++        const gp_Pnt2d& aP2 = anEnd == 0 ? aUV2.First() : aUV2.Last();
++        if (aL.Miter[anEnd])
++        {
++          if (aP1.Distance(aP2) > 1.e-9 * (1. + std::abs(aP1.X()) + std::abs(aP1.Y())))
++          {
++            return LENS034C_FAIL(false); // the two sides wrapped differently: the lens crosses a seam
++          }
++          aV1[anEnd] = aV2[anEnd] = lensVertex034c(aF, aP1, aTolF);
++          continue;
++        }
++        if (!aL.Exit[anEnd].Both && (aSh1.X() != aSh2.X() || aSh1.Y() != aSh2.Y()))
++        {
++          return LENS034C_FAIL(false); // a chord across a seam
++        }
++        const LensExit034c& anX = aL.Exit[anEnd];
++        const TopoDS_Vertex aVb = splitVertex(anX.Edge, anX.T);
++        if (aVb.IsNull())
++        {
++          return LENS034C_FAIL(false);
++        }
++        if (anX.Both)
++        {
++          const TopoDS_Vertex aVb2 = splitVertex(anX.Edge2, anX.T2);
++          if (aVb2.IsNull())
++          {
++            return LENS034C_FAIL(false);
++          }
++          aV1[anEnd] = anX.IsP ? aVb : aVb2;
++          aV2[anEnd] = anX.IsP ? aVb2 : aVb;
++          continue;
++        }
++        const TopoDS_Vertex aVi = lensVertex034c(aF, anX.IsP ? aP2 : aP1, aTolF);
++        aV1[anEnd]              = anX.IsP ? aVb : aVi;
++        aV2[anEnd]              = anX.IsP ? aVi : aVb;
++        // the chord between the two preimages of the exit point
++        const gp_Pnt2d                  aA = anX.IsP ? aP1 : aP2, aB = anX.IsP ? aP2 : aP1;
++        const double                    aLen = aA.Distance(aB);
++        if (!(aLen > 0.))
++        {
++          return LENS034C_FAIL(false);
++        }
++        const occ::handle<Geom2d_Line> aLine = new Geom2d_Line(aA, gp_Dir2d(aB.X() - aA.X(), aB.Y() - aA.Y()));
++        const TopoDS_Edge aCh = lensEdge034c(aF, aLine, 0., aLen, aVb, aVi, aTolF);
++        aNewEdges.Append(aCh);
++      }
++      const TopoDS_Edge anE1 = lensEdge034c(aF, aC1, aT.First(), aT.Last(), aV1[0], aV1[1], aTolF);
++      const TopoDS_Edge anE2 = lensEdge034c(aF, aC2, aT.First(), aT.Last(), aV2[0], aV2[1], aTolF);
++      aNewEdges.Append(anE1);
++      aNewEdges.Append(anE2);
++      theRes.Partner.Bind(anE1, anE2);
++      theRes.Partner.Bind(anE2, anE1);
++      // rays of this lens
++      for (int r = 1; r <= aRays.Find(aFo).Length(); ++r)
++      {
++        const Ray034c& aR = aRays.Find(aFo).Value(r);
++        if (aR.Lens != l)
++        {
++          continue;
++        }
++        const TopoDS_Vertex aVb = splitVertex(aR.Edge, aR.T);
++        if (aVb.IsNull())
++        {
++          return LENS034C_FAIL(false);
++        }
++        const gp_Pnt2d aA(aR.From.X() + aSh1.X(), aR.From.Y() + aSh1.Y());
++        const gp_Pnt2d aB = aR.To;
++        const double   aLen = aA.Distance(aB);
++        if (!(aLen > 0.))
++        {
++          return LENS034C_FAIL(false);
++        }
++        const occ::handle<Geom2d_Line> aLine = new Geom2d_Line(aA, gp_Dir2d(aB.X() - aA.X(), aB.Y() - aA.Y()));
++        aNewEdges.Append(lensEdge034c(aF, aLine, 0., aLen, aV1[aR.End], aVb, aTolF));
++      }
++    }
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt(aNewEdges); anIt.More(); anIt.Next())
++    {
++      anEdges.Append(anIt.Value().Oriented(TopAbs_FORWARD));
++      anEdges.Append(anIt.Value().Oriented(TopAbs_REVERSED));
++    }
++    BOPAlgo_BuilderFace aBF;
++    aBF.SetFace(aF);
++    aBF.SetShapes(anEdges);
++    aBF.Perform();
++    if (aBF.HasErrors() || aBF.Areas().Extent() < aLs.Length() + 1)
++    {
++      return LENS034C_FAIL(false);
++    }
++    // the lens faces: the areas inside a lens (a seam can cut a lens in two)
++    NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aLensAreas;
++    occ::handle<IntTools_Context>                          aCtx = new IntTools_Context();
++    NCollection_Array1<int>                                aLensHits(1, aLs.Length());
++    aLensHits.Init(0);
++    for (NCollection_List<TopoDS_Shape>::Iterator anItA(aBF.Areas()); anItA.More(); anItA.Next())
++    {
++      gp_Pnt   aP3;
++      gp_Pnt2d aP2;
++      if (BOPTools_AlgoTools3D::PointInFace(TopoDS::Face(anItA.Value()), aP3, aP2, aCtx) != 0)
++      {
++        return LENS034C_FAIL(false);
++      }
++      int aLensOf = 0;
++      for (int l = 1; l <= aLs.Length() && aLensOf == 0; ++l)
++      {
++        for (int aKu = -1; aKu <= 1 && aLensOf == 0; ++aKu)
++        {
++          for (int aKv = -1; aKv <= 1 && aLensOf == 0; ++aKv)
++          {
++            if ((aKu != 0 && aDom.UPer() == 0.) || (aKv != 0 && aDom.VPer() == 0.))
++            {
++              continue;
++            }
++            if (inPoly034c(aLs.Value(l).Poly, gp_Pnt2d(aP2.X() + aKu * aDom.UPer(), aP2.Y() + aKv * aDom.VPer())))
++            {
++              aLensOf = l;
++            }
++          }
++        }
++      }
++      if (aLensOf > 0)
++      {
++        aLensAreas.Add(anItA.Value());
++        ++aLensHits(aLensOf);
++      }
++    }
++    for (int l = 1; l <= aLs.Length(); ++l)
++    {
++      if (aLensHits(l) == 0)
++      {
++        return LENS034C_FAIL(false);
++      }
++    }
++    if (aLensAreas.Extent() == aBF.Areas().Extent())
++    {
++      return LENS034C_FAIL(false); // nothing of the face survives: a vanishing face
++    }
++    TopoDS_Compound aComp;
++    aBB.MakeCompound(aComp);
++    for (NCollection_List<TopoDS_Shape>::Iterator anItA(aBF.Areas()); anItA.More(); anItA.Next())
++    {
++      const TopoDS_Shape anA = anItA.Value().Oriented(TopAbs_FORWARD);
++      aBB.Add(aComp, anA);
++      theRes.Origin.Bind(anA, aFo);
++      if (aLensAreas.Contains(anItA.Value()))
++      {
++        theRes.LensFaces.Add(anA);
++      }
++    }
++    theRes.ReShape->Replace(aF, aComp);
++  }
++  return true;
++}
++} // namespace
++
++namespace
++{
++//! Pass of the running MakeOffsetShape()/MakeThickSolid() (issue 034 B2 r3):
++//! pass 1 is the flow of rounds 1-2; only when it fails and a face folds
++//! partially, pass 2 repeats the operation on the input split along its
++//! lenses. A result of pass 1 is never changed.
++struct LensPass034c
++{
++  const void* Owner = nullptr;
++  int         Mode  = 0; //!< 1: pass 1 (no lens), 2: pass 2 (lens split)
++  //! pass 2: the split of the input (faces -> pieces, edges -> wires of
++  //! their pieces), the same split of the edges only (the faces of the
++  //! input keep their surface domain: the skin of a thick solid), the
++  //! lens faces and the input face of every piece
++  occ::handle<BRepTools_ReShape>                                           Split;
++  occ::handle<BRepTools_ReShape>                                           Skin;
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>                   LensFaces;
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher> Origin;
++};
++
++thread_local LensPass034c THE_LENS_PASS_034C;
++
++class LensPassScope034c
++{
++public:
++  LensPassScope034c(const void* theOwner)
++      : myPrev(THE_LENS_PASS_034C)
++  {
++    THE_LENS_PASS_034C       = LensPass034c();
++    THE_LENS_PASS_034C.Owner = theOwner;
++    THE_LENS_PASS_034C.Mode  = 1;
++  }
++
++  ~LensPassScope034c() { THE_LENS_PASS_034C = myPrev; }
++
++  LensPassScope034c(const LensPassScope034c&)            = delete;
++  LensPassScope034c& operator=(const LensPassScope034c&) = delete;
++
++private:
++  LensPass034c myPrev;
++};
++
++//! Issue 034 lane B2 round 3: true if the result keeps a FOLDED point of
++//! some face. A point x of a face where a principal offset factor 1 - d*k is
++//! negative is never on the offset (Maekawa 1999: the offset point is closer
++//! than |d| to points of the face near x), so an image face of the offset
++//! that contains the offset of such a point is wrong geometry - also when it
++//! is valid and does not interfere with other faces (a fold inside one face:
++//! the self-interference check of the BOP compares different faces only, and
++//! the distance samples of the stage A guard can miss a small fold). The
++//! folded points are found on a grid of the face (the same factor as the
++//! stage A guard, strictly negative); the image faces live on the offset of
++//! the face surface in the same parameters, so the test is a 2D
++//! classification of the folded parameters in the image faces (curvature and
++//! parameters only; for an image on another surface the offset point is
++//! projected on it - an error-raising control, never a construction).
++static bool foldedPointKept034c(
++  const TopoDS_Shape&                                                       theFaces,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>&      theCaps,
++  const NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>& theFaceOffset,
++  const double                                                              theOffset,
++  const BRepAlgo_Image&                                                     theInit)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    for (TopExp_Explorer anExp(theFaces, TopAbs_FACE); anExp.More(); anExp.Next())
++    {
++      const TopoDS_Face& aF = TopoDS::Face(anExp.Current());
++      if (theCaps.Contains(aF) || !theInit.HasImage(aF))
++      {
++        continue;
++      }
++      TopLoc_Location           aLoc;
++      occ::handle<Geom_Surface> aS = BRep_Tool::Surface(aF, aLoc);
++      if (aS.IsNull())
++      {
++        continue;
++      }
++      while (!occ::down_cast<Geom_RectangularTrimmedSurface>(aS).IsNull())
++      {
++        aS = occ::down_cast<Geom_RectangularTrimmedSurface>(aS)->BasisSurface();
++      }
++      const GeomAdaptor_Surface aGAS(aS);
++      if (aGAS.GetType() == GeomAbs_Plane)
++      {
++        continue;
++      }
++      const double* anOff = theFaceOffset.Seek(aF);
++      const double  aD    = (aF.Orientation() == TopAbs_REVERSED) ? -(anOff ? *anOff : theOffset)
++                                                                  : (anOff ? *anOff : theOffset);
++      double aU0, aU1, aV0, aV1;
++      BRepTools::UVBounds(aF, aU0, aU1, aV0, aV1);
++      if (!(aU1 > aU0) || !(aV1 > aV0))
++      {
++        continue;
++      }
++      int aNU = 32, aNV = 32;
++      if (aGAS.GetType() == GeomAbs_BSplineSurface)
++      {
++        const occ::handle<Geom_BSplineSurface> aBS = aGAS.BSpline();
++        aNU = std::min(std::max(aNU, 2 * (aBS->NbUKnots() - 1)), 96);
++        aNV = std::min(std::max(aNV, 2 * (aBS->NbVKnots() - 1)), 96);
++      }
++      // the folded samples of the face (cell centres)
++      NCollection_Sequence<gp_Pnt2d>                       aFolded;
++      std::unique_ptr<IntTools_FClass2d>                   aClsF;
++      for (int i = 0; i < aNU; ++i)
++      {
++        for (int j = 0; j < aNV; ++j)
++        {
++          const gp_Pnt2d aP(aU0 + (aU1 - aU0) * (i + 0.5) / aNU, aV0 + (aV1 - aV0) * (j + 0.5) / aNV);
++          double         aFct;
++          if (!offsetFactor034(*aS, aP.X(), aP.Y(), aU1 - aU0, aV1 - aV0, aD, aFct) || !(aFct < -1.e-6))
++          {
++            continue;
++          }
++          if (!aClsF)
++          {
++            aClsF.reset(new IntTools_FClass2d(aF, Precision::PConfusion()));
++          }
++          if (aClsF->Perform(aP) == TopAbs_IN)
++          {
++            aFolded.Append(aP);
++          }
++        }
++      }
++      if (aFolded.IsEmpty())
++      {
++        continue;
++      }
++      NCollection_List<TopoDS_Shape> anImages;
++      theInit.LastImage(aF, anImages);
++      for (NCollection_List<TopoDS_Shape>::Iterator anItI(anImages); anItI.More(); anItI.Next())
++      {
++        for (TopExp_Explorer anExpI(anItI.Value(), TopAbs_FACE); anExpI.More(); anExpI.Next())
++        {
++          const TopoDS_Face&        anI = TopoDS::Face(anExpI.Current());
++          TopLoc_Location           aLocI;
++          occ::handle<Geom_Surface> aSI = BRep_Tool::Surface(anI, aLocI);
++          if (aSI.IsNull())
++          {
++            continue;
++          }
++          while (!occ::down_cast<Geom_RectangularTrimmedSurface>(aSI).IsNull())
++          {
++            aSI = occ::down_cast<Geom_RectangularTrimmedSurface>(aSI)->BasisSurface();
++          }
++          // the image surface in the parameters of the face surface? (the
++          // offset point O(u,v) = S(u,v) + d N(u,v) evaluated on both, at
++          // three parameters of the folded samples)
++          auto anOffsetPoint = [&](const gp_Pnt2d& theUV, gp_Pnt& theO) {
++            gp_Pnt aP;
++            gp_Vec aDu, aDv;
++            aS->D1(theUV.X(), theUV.Y(), aP, aDu, aDv);
++            gp_Vec aN = aDu.Crossed(aDv);
++            if (aN.Magnitude() <= gp::Resolution())
++            {
++              return false;
++            }
++            aN.Normalize();
++            theO = aP.Translated(aN * aD);
++            if (!aLoc.IsIdentity())
++            {
++              theO.Transform(aLoc.Transformation());
++            }
++            if (!aLocI.IsIdentity())
++            {
++              theO.Transform(aLocI.Transformation().Inverted());
++            }
++            return true;
++          };
++          bool isSameParam = true;
++          for (int k = 1; k <= aFolded.Length() && isSameParam; k += std::max(1, aFolded.Length() / 3))
++          {
++            gp_Pnt aO;
++            isSameParam = anOffsetPoint(aFolded.Value(k), aO)
++                          && aSI->Value(aFolded.Value(k).X(), aFolded.Value(k).Y()).Distance(aO)
++                               <= 1.e-9 * (1. + aO.XYZ().Modulus());
++          }
++          IntTools_FClass2d aClsI(anI, Precision::PConfusion());
++          for (int k = 1; k <= aFolded.Length(); ++k)
++          {
++            gp_Pnt2d aUV = aFolded.Value(k);
++            if (!isSameParam)
++            {
++              // the offset point projected on the image surface (control)
++              gp_Pnt aO;
++              if (!anOffsetPoint(aUV, aO))
++              {
++                continue;
++              }
++              GeomAPI_ProjectPointOnSurf aProj(aO, aSI);
++              if (!aProj.IsDone() || aProj.NbPoints() == 0
++                  || aProj.LowerDistance() > 10. * BRep_Tool::Tolerance(anI) + Precision::Confusion())
++              {
++                continue;
++              }
++              double aU, aV;
++              aProj.LowerDistanceParameters(aU, aV);
++              aUV.SetCoord(aU, aV);
++            }
++            if (aClsI.Perform(aUV) == TopAbs_IN)
++            {
++              LENS034C_TRACE("lens034c: folded point (%.6f %.6f) kept in the result%s", aUV.X(), aUV.Y(), "\n");
++              return true;
++            }
++          }
++        }
++      }
++    }
++  }
++  catch (Standard_Failure const&)
++  {
++  }
++  return false;
++}
++
++//! Pass 2, first step (before anything else of the offset is built): the
++//! faces of theShape that fold on a part of them only are split along their
++//! lenses; theShape, the removed faces theCaps and the face offsets follow
++//! the split. False (nothing changed) when some face is out of scope.
++static bool lensSplitShape034c(
++  TopoDS_Shape&                                                       theShape,
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>&      theCaps,
++  NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>& theFaceOffset,
++  const double                                                        theOffset,
++  VanishRecord034b&                                                   theRec,
++  LensPass034c&                                                       thePass)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    NCollection_IndexedDataMap<TopoDS_Shape, NCollection_Sequence<Lens034c>, TopTools_ShapeMapHasher> aFL;
++    for (TopExp_Explorer anExpF(theShape, TopAbs_FACE); anExpF.More(); anExpF.Next())
++    {
++      const TopoDS_Face& aF = TopoDS::Face(anExpF.Current());
++      if (theCaps.Contains(aF) || aFL.Contains(aF))
++      {
++        continue;
++      }
++      const double*                  anOff = theFaceOffset.Seek(aF);
++      NCollection_Sequence<Lens034c> aLs;
++      const int                      aSt = findLenses034c(aF, anOff ? *anOff : theOffset, aLs);
++      if (aSt < 0)
++      {
++        return false;
++      }
++      if (aSt == 1)
++      {
++        aFL.Add(aF, aLs);
++      }
++    }
++    LensSplit034c aSplit;
++    if (aFL.IsEmpty() || !lensSplit034c(aFL, theFaceOffset, theOffset, aSplit))
++    {
++      return false;
++    }
++    // the certificate of every piece that is not a lens (see certifyRegion034c)
++    for (int i = 1; i <= aFL.Extent(); ++i)
++    {
++      const TopoDS_Face&               aF = TopoDS::Face(aFL.FindKey(i));
++      TopLoc_Location                  aLoc;
++      occ::handle<Geom_Surface>        aS = BRep_Tool::Surface(aF, aLoc);
++      while (!occ::down_cast<Geom_RectangularTrimmedSurface>(aS).IsNull())
++      {
++        aS = occ::down_cast<Geom_RectangularTrimmedSurface>(aS)->BasisSurface();
++      }
++      const double*      anOff = theFaceOffset.Seek(aF);
++      const double       aDD   = (aF.Orientation() == TopAbs_REVERSED) ? -(anOff ? *anOff : theOffset)
++                                                                       : (anOff ? *anOff : theOffset);
++      const LensFace034c aDom(aF, aS);
++      LensCert034c       aCert;
++      for (int l = 1; l <= aFL(i).Length(); ++l)
++      {
++        const Lens034c& aL = aFL(i).Value(l);
++        double          aMinU = RealLast(), aMaxU = -RealLast(), aMinV = RealLast(), aMaxV = -RealLast();
++        for (int k = 1; k <= aL.Poly.Length(); ++k)
++        {
++          aMinU = std::min(aMinU, aL.Poly.Value(k).X());
++          aMaxU = std::max(aMaxU, aL.Poly.Value(k).X());
++          aMinV = std::min(aMinV, aL.Poly.Value(k).Y());
++          aMaxV = std::max(aMaxV, aL.Poly.Value(k).Y());
++        }
++        aCert.Extent = std::max(aCert.Extent, std::sqrt((aMaxU - aMinU) * (aMaxU - aMinU) + (aMaxV - aMinV) * (aMaxV - aMinV)));
++        for (int anEnd = 0; anEnd < 2; ++anEnd)
++        {
++          if (aL.Miter[anEnd])
++          {
++            aCert.Miters.Append(aDom.Wrap(anEnd == 0 ? aL.Pts.First().P : aL.Pts.Last().P));
++          }
++        }
++      }
++      for (NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>::Iterator anItO(aSplit.Origin);
++           anItO.More();
++           anItO.Next())
++      {
++        if (!anItO.Value().IsSame(aF) || aSplit.LensFaces.Contains(anItO.Key()))
++        {
++          continue;
++        }
++        if (certifyRegion034c(TopoDS::Face(anItO.Key()), aS, aDD, aCert) == 0)
++        {
++          return LENS034C_FAIL(false);
++        }
++      }
++    }
++    const TopoDS_Shape                                            aNewShape = aSplit.ReShape->Apply(theShape);
++    NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aNewCaps;
++    for (int i = 1; i <= theCaps.Extent(); ++i)
++    {
++      const TopoDS_Shape aN = aSplit.ReShape->Apply(theCaps(i));
++      if (aN.ShapeType() != TopAbs_FACE)
++      {
++        return LENS034C_FAIL(false); // a removed face is never split
++      }
++      aNewCaps.Add(aN);
++    }
++    NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher> aNewFO;
++    for (NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>::Iterator anItO(theFaceOffset);
++         anItO.More();
++         anItO.Next())
++    {
++      const TopoDS_Shape aN = aSplit.ReShape->Apply(anItO.Key());
++      for (TopExp_Explorer anExpN(aN, TopAbs_FACE); anExpN.More(); anExpN.Next())
++      {
++        aNewFO.Bind(anExpN.Current(), anItO.Value());
++      }
++    }
++    theShape      = aNewShape;
++    theCaps       = aNewCaps;
++    theFaceOffset = aNewFO;
++    theRec.LensFaces   = aSplit.LensFaces;
++    theRec.LensPartner = aSplit.Partner;
++    theRec.LensOrigin  = aSplit.Origin;
++    thePass.Split      = aSplit.ReShape;
++    thePass.Skin       = aSplit.Skin;
++    thePass.LensFaces  = aSplit.LensFaces;
++    thePass.Origin     = aSplit.Origin;
++    LENS034C_TRACE("lens034c: split %d faces, %d lens faces\n", aFL.Extent(), aSplit.LensFaces.Extent());
++    return true;
++  }
++  catch (Standard_Failure const& anExc)
++  {
++    LENS034C_TRACE("lens034c: split exception %s\n", anExc.what());
++    (void)anExc;
++    return false;
+   }
++}
+ 
+-  ~VanishScope034b() { THE_VANISH_034B = myPrev; }
+-
+-private:
+-  VanishRecord034b* myPrev;
+-};
+-} // namespace
+-
+-//! Issue 034 lane B2, for BRepOffset_Inter3d (internal, not exported): true
+-//! while the MakeOffsetShape() running on this thread builds its offset
+-//! around vanishing faces (the stock flow is unchanged otherwise).
+-bool BRepOffset_VanishActive034b()
++//! State of a BRepOffset_MakeOffset between the passes (the members a run
++//! changes, same names). Pass 2 starts from the state before pass 1; when it
++//! fails, the state at the end of pass 1 (its error, its bad shape) is put
++//! back, so a caller sees exactly the result of pass 1.
++struct OffsetState034c
+ {
+-  return THE_VANISH_034B != nullptr && !THE_VANISH_034B->Faces.IsEmpty();
+-}
++  double                                                                 myOffset = 0.;
++  TopoDS_Shape                                                           myShape;
++  TopoDS_Compound                                                        myFaceComp;
++  NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>     myFaceOffset;
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>          myFaces;
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>          myOriginalFaces;
++  BRepOffset_Analyse                                                     myAnalyse;
++  TopoDS_Shape                                                           myOffsetShape;
++  BRepAlgo_Image                                                         myInitOffsetFace;
++  BRepAlgo_Image                                                         myInitOffsetEdge;
++  BRepAlgo_Image                                                         myImageOffset;
++  BRepAlgo_Image                                                         myImageVV;
++  NCollection_List<TopoDS_Shape>                                         myWalls;
++  occ::handle<BRepAlgo_AsDes>                                            myAsDes;
++  NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> myEdgeIntEdges;
++  bool                                                                   myDone = false;
++  BRepOffset_Error                                                       myError = BRepOffset_NoError;
++  BRepOffset_MakeLoops                                                   myMakeLoops;
++  bool                                                                   myIsPerformSewing = false;
++  bool                                                                   myIsPlanar        = false;
++  TopoDS_Shape                                                           myBadShape;
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher> myFacePlanfaceMap;
++  NCollection_List<TopoDS_Shape>                                         myGenerated;
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>                 myResMap;
++};
+ 
+-//! Issue 034 lane B2 (internal, also used by BRepOffset_Inter3d): true if the
+-//! removed face theCap and the initial face theF are a rim pair of the running
+-//! offset (theF is a rim face next to a vanishing set that reaches theCap):
+-//! their intersection is computed on enlarged copies in Intersection3D(), not
+-//! from the offset edges of theF on theCap, which end where the set was.
+-bool BRepOffset_RimCap034b(const TopoDS_Shape& theCap, const TopoDS_Shape& theF)
++#define OFFSET_STATE_FIELDS_034C(F)                                                                \
++  F(myOffset) F(myShape) F(myFaceComp) F(myFaceOffset) F(myFaces) F(myOriginalFaces) F(myAnalyse)  \
++  F(myOffsetShape) F(myInitOffsetFace) F(myInitOffsetEdge) F(myImageOffset) F(myImageVV)          \
++  F(myWalls) F(myAsDes) F(myEdgeIntEdges) F(myDone) F(myError) F(myMakeLoops)                     \
++  F(myIsPerformSewing) F(myIsPlanar) F(myBadShape) F(myFacePlanfaceMap) F(myGenerated) F(myResMap)
++#define OFFSET_STATE_SAVE_034C(theM) theState.theM = theM;
++#define OFFSET_STATE_LOAD_034C(theM) theM = theState.theM;
++
++//! The kept input faces of a thick solid: theShape itself, except in pass 2,
++//! where the pieces of a split face are replaced by that face with its
++//! boundary edges split (the same edge pieces as in theShape); lens faces
++//! and the other pieces then do not appear.
++static TopoDS_Shape lensSkin034c(const TopoDS_Shape& theShape)
+ {
+-  if (!BRepOffset_VanishActive034b())
++  const LensPass034c& aPass = THE_LENS_PASS_034C;
++  if (aPass.Mode != 2 || aPass.Skin.IsNull() || aPass.Origin.IsEmpty())
+   {
+-    return false;
++    return theShape;
+   }
+-  for (NCollection_List<RimPair034b>::Iterator anIt(THE_VANISH_034B->RimPairs); anIt.More();
+-       anIt.Next())
++  BRep_Builder    aBB;
++  TopoDS_Compound aComp;
++  aBB.MakeCompound(aComp);
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aDone;
++  for (TopExp_Explorer anExp(theShape, TopAbs_FACE); anExp.More(); anExp.Next())
+   {
+-    if (anIt.Value().IsCapA && anIt.Value().A.IsSame(theCap) && anIt.Value().B.IsSame(theF))
++    const TopoDS_Shape* anOrig = aPass.Origin.Seek(anExp.Current());
++    if (anOrig == nullptr)
+     {
+-      return true;
++      aBB.Add(aComp, anExp.Current());
++    }
++    else if (aDone.Add(*anOrig))
++    {
++      aBB.Add(aComp, aPass.Skin->Apply(*anOrig));
+     }
+   }
+-  return false;
++  return aComp;
+ }
+ 
+-//! Issue 034 lane B2 (internal, used by BRepOffset_Inter3d::ConnexIntByArc):
+-//! the sections theLInt1 / theLInt2 of the offsets of the two faces of the
+-//! sharp edge theE are prolonged at the ends that lie at a vertex of a
+-//! vanishing set when one of the faces is a rim face of a set that reaches a
+-//! removed face: the two rim offsets meet that removed face (which is not
+-//! offset) across the set, beyond the stock end of their section. The other
+-//! ends are kept.
+-void BRepOffset_ProlongRimSections034b(const TopoDS_Shape&             theE,
+-                                       const TopoDS_Shape&             theF1,
+-                                       const TopoDS_Shape&             theF2,
+-                                       NCollection_List<TopoDS_Shape>& theLInt1,
+-                                       NCollection_List<TopoDS_Shape>& theLInt2)
++//! Pass 2 succeeded: the history of the input faces and edges that the lens
++//! split replaced (Generated / Modified are asked for the shapes of the
++//! input). A face replaced by one face (its boundary edges split) is mapped
++//! to it through the face substitution map (the planar substitution uses the
++//! same map); a face split into pieces gets the images of its pieces that are
++//! not lens faces; a split edge gets the images of its pieces.
++static void lensHistory034c(
++  const TopoDS_Shape&                                                       theOrig,
++  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& thePlanface,
++  BRepAlgo_Image&                                                           theInitFace,
++  BRepAlgo_Image&                                                           theInitEdge)
+ {
+-  if (!BRepOffset_VanishActive034b() || theLInt1.IsEmpty())
++  const occ::handle<BRepTools_ReShape>& aRS = THE_LENS_PASS_034C.Split;
++  if (aRS.IsNull())
+   {
+     return;
+   }
+-  const double* aM1   = THE_VANISH_034B->RimMargin.Seek(theF1);
+-  const double* aM2   = THE_VANISH_034B->RimMargin.Seek(theF2);
+-  const double  aReach = std::max(aM1 ? *aM1 : 0., aM2 ? *aM2 : 0.);
+-  TopoDS_Vertex aVa, aVb;
+-  TopExp::Vertices(TopoDS::Edge(theE), aVa, aVb);
+-  const bool isA = THE_VANISH_034B->SetVertices.Contains(aVa);
+-  const bool isB = THE_VANISH_034B->SetVertices.Contains(aVb);
+-  if (!(aReach > 0.) || (!isA && !isB) || aVa.IsNull() || aVb.IsNull())
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aDone;
++  for (TopExp_Explorer anExpF(theOrig, TopAbs_FACE); anExpF.More(); anExpF.Next())
+   {
+-    return;
++    const TopoDS_Shape& aF0 = anExpF.Current();
++    if (!aDone.Add(aF0))
++    {
++      continue;
++    }
++    const TopoDS_Shape aF1 = aRS->Apply(aF0);
++    if (aF1.IsSame(aF0))
++    {
++      continue;
++    }
++    if (aF1.ShapeType() == TopAbs_FACE)
++    {
++      const TopoDS_Shape* aPl = thePlanface.Seek(aF1);
++      thePlanface.Bind(aF0, aPl != nullptr ? *aPl : aF1);
++      continue;
++    }
++    NCollection_List<TopoDS_Shape> anImages;
++    for (TopExp_Explorer anExpP(aF1, TopAbs_FACE); anExpP.More(); anExpP.Next())
++    {
++      const TopoDS_Shape& aP = anExpP.Current();
++      if (THE_LENS_PASS_034C.LensFaces.Contains(aP))
++      {
++        continue;
++      }
++      const TopoDS_Shape* aPl = thePlanface.Seek(aP);
++      const TopoDS_Shape  aS  = aPl != nullptr ? *aPl : aP;
++      if (theInitFace.HasImage(aS))
++      {
++        NCollection_List<TopoDS_Shape> aLI;
++        theInitFace.LastImage(aS, aLI);
++        anImages.Append(aLI);
++      }
++    }
++    if (!anImages.IsEmpty())
++    {
++      theInitFace.SetRoot(aF0);
++      theInitFace.Bind(aF0, anImages);
++    }
+   }
+-  const gp_Pnt aPa = BRep_Tool::Pnt(aVa), aPb = BRep_Tool::Pnt(aVb);
+-  NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher> aNew;
+-  for (NCollection_List<TopoDS_Shape>::Iterator anIt(theLInt1); anIt.More(); anIt.Next())
++  aDone.Clear();
++  for (TopExp_Explorer anExpE(theOrig, TopAbs_EDGE); anExpE.More(); anExpE.Next())
+   {
+-    const TopoDS_Edge& aSE = TopoDS::Edge(anIt.Value());
+-    TopoDS_Vertex      aN1, aN2;
+-    TopExp::Vertices(TopoDS::Edge(aSE.Oriented(TopAbs_FORWARD)), aN1, aN2);
+-    if (aN1.IsNull() || aN2.IsNull() || aNew.IsBound(aSE))
++    const TopoDS_Shape& anE0 = anExpE.Current();
++    if (!aDone.Add(anE0))
+     {
+       continue;
+     }
+-    const gp_Pnt aP1 = BRep_Tool::Pnt(aN1), aP2 = BRep_Tool::Pnt(aN2);
+-    const bool   isSwap =
+-      aP1.Distance(aPb) + aP2.Distance(aPa) < aP1.Distance(aPa) + aP2.Distance(aPb);
+-    const TopoDS_Edge aProl = prolongedSection034b(aSE,
+-                                                   isSwap ? isB : isA,
+-                                                   isSwap ? isA : isB,
+-                                                   aReach + 10. * BRep_Tool::Tolerance(aSE));
+-    if (!aProl.IsNull())
++    const TopoDS_Shape anE1 = aRS->Apply(anE0);
++    if (anE1.IsSame(anE0))
+     {
+-      aNew.Bind(aSE, aProl);
++      continue;
++    }
++    NCollection_List<TopoDS_Shape> anImages;
++    for (TopExp_Explorer anExpP(anE1, TopAbs_EDGE); anExpP.More(); anExpP.Next())
++    {
++      if (theInitEdge.HasImage(anExpP.Current()))
++      {
++        NCollection_List<TopoDS_Shape> aLI;
++        theInitEdge.LastImage(anExpP.Current(), aLI);
++        anImages.Append(aLI);
++      }
++    }
++    if (!anImages.IsEmpty())
++    {
++      theInitEdge.SetRoot(anE0);
++      theInitEdge.Bind(anE0, anImages);
+     }
+   }
+-  if (aNew.IsEmpty())
++}
++
++//! true if some free-form face of theShape (not a removed face) folds on a
++//! part of it only: some grid sample folds, some does not (the samples of
++//! findLenses034c)
++static bool lensCandidate034c(
++  const TopoDS_Shape&                                                       theShape,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>&      theCaps,
++  const NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>& theFaceOffset,
++  const double                                                              theOffset)
++{
++  for (TopExp_Explorer anExp(theShape, TopAbs_FACE); anExp.More(); anExp.Next())
+   {
+-    return;
++    const TopoDS_Face& aF = TopoDS::Face(anExp.Current());
++    if (theCaps.Contains(aF))
++    {
++      continue;
++    }
++    const double* anOff = theFaceOffset.Seek(aF);
++    const double  aD    = anOff ? *anOff : theOffset;
++    try
++    {
++      OCC_CATCH_SIGNALS
++      TopLoc_Location                  aLoc;
++      const occ::handle<Geom_Surface>& aS0 = BRep_Tool::Surface(aF, aLoc);
++      if (aS0.IsNull())
++      {
++        continue;
++      }
++      occ::handle<Geom_Surface>                   aS  = aS0;
++      occ::handle<Geom_RectangularTrimmedSurface> aRT = occ::down_cast<Geom_RectangularTrimmedSurface>(aS);
++      if (!aRT.IsNull())
++      {
++        aS = aRT->BasisSurface();
++      }
++      const GeomAdaptor_Surface aGAS(aS);
++      const GeomAbs_SurfaceType aT = aGAS.GetType();
++      if (aT != GeomAbs_BSplineSurface && aT != GeomAbs_BezierSurface && aT != GeomAbs_SurfaceOfExtrusion
++          && aT != GeomAbs_SurfaceOfRevolution && aT != GeomAbs_OffsetSurface)
++      {
++        continue;
++      }
++      const double aDD = (aF.Orientation() == TopAbs_REVERSED) ? -aD : aD;
++      double       aU0, aU1, aV0, aV1;
++      BRepTools::UVBounds(aF, aU0, aU1, aV0, aV1);
++      IntTools_FClass2d aCls(aF, Precision::PConfusion());
++      bool              isFold = false, isReg = false;
++      std::vector<std::pair<double, gp_Pnt2d>> aLow; // the lowest regular samples
++      for (int i = 0; i <= 32 && !(isFold && isReg); ++i)
++      {
++        for (int j = 0; j <= 32 && !(isFold && isReg); ++j)
++        {
++          const gp_Pnt2d aP(aU0 + (aU1 - aU0) * i / 32, aV0 + (aV1 - aV0) * j / 32);
++          double         aG, a1, a2;
++          if (aCls.Perform(aP) == TopAbs_OUT || !foldFactor034c(*aS, aP.X(), aP.Y(), aDD, aG, a1, a2))
++          {
++            continue;
++          }
++          (aG < 0. ? isFold : isReg) = true;
++          if (aG >= 0. && aG < 0.75)
++          {
++            aLow.push_back(std::make_pair(aG, aP));
++          }
++        }
++      }
++      if (isReg && !isFold)
++      {
++        // a narrow fold between the samples
++        std::sort(aLow.begin(), aLow.end(), [](const std::pair<double, gp_Pnt2d>& theA,
++                                               const std::pair<double, gp_Pnt2d>& theB) { return theA.first < theB.first; });
++        for (size_t k = 0; k < aLow.size() && k < 8 && !isFold; ++k)
++        {
++          gp_Pnt2d aFound;
++          isFold = foldNear034c(*aS, aDD, aLow[k].second, (aU1 - aU0) / 32, (aV1 - aV0) / 32, aU0, aU1, aV0, aV1,
++                                aFound)
++                   && aCls.Perform(aFound) != TopAbs_OUT;
++        }
++      }
++      if (isFold && isReg)
++      {
++        return true;
++      }
++    }
++    catch (Standard_Failure const&)
++    {
++    }
+   }
+-  for (NCollection_List<TopoDS_Shape>* aL : {&theLInt1, &theLInt2})
++  return LENS034C_FAIL(false);
++}
++
++//! max deviation of the pcurves of the edges of theS from their 3D curves
++//! (the measure of the BOP check, BOPTools_AlgoTools::ComputeTolerance); an
++//! edge whose tolerance under-reports it gets the measured value
++static void coverEdgeDeviations034c(const TopoDS_Shape& theS)
++{
++  NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> anEF;
++  TopExp::MapShapesAndAncestors(theS, TopAbs_EDGE, TopAbs_FACE, anEF);
++  BRep_Builder aBB;
++  for (int i = 1; i <= anEF.Extent(); ++i)
+   {
+-    for (NCollection_List<TopoDS_Shape>::Iterator anIt(*aL); anIt.More(); anIt.Next())
++    const TopoDS_Edge& anE = TopoDS::Edge(anEF.FindKey(i));
++    if (BRep_Tool::Degenerated(anE))
+     {
+-      if (const TopoDS_Shape* aP = aNew.Seek(anIt.Value()))
++      continue;
++    }
++    double aMax = 0.;
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt(anEF(i)); anIt.More(); anIt.Next())
++    {
++      double aD = 0., aPar = 0.;
++      try
++      {
++        OCC_CATCH_SIGNALS
++        if (BOPTools_AlgoTools::ComputeTolerance(TopoDS::Face(anIt.Value()), anE, aD, aPar))
++        {
++          aMax = std::max(aMax, aD);
++        }
++      }
++      catch (Standard_Failure const&)
+       {
+-        // the prolonged copy has the parametrisation of the old edge
+-        anIt.ChangeValue() = aP->Oriented(anIt.Value().Orientation());
+       }
+     }
++    if (aMax > BRep_Tool::Tolerance(anE))
++    {
++      aBB.UpdateEdge(anE, aMax * (1. + 1.e-6) + Precision::Confusion() * 1.e-3);
++    }
+   }
+ }
++} // namespace
++
+ 
+ //=======================================================================
+ // static methods
+@@ -2809,11 +6050,71 @@ void BRepOffset_MakeOffset::SetFacesWithOffset()
+ 
+ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRange)
+ {
++  // Issue 034 lane B2 round 3: pass 1 is the flow of rounds 1-2. Only when
++  // it fails and some free-form face folds on a part of it only, pass 2
++  // repeats the operation on the input split along the lenses of those faces
++  // (findLenses034c / lensSplit034c). A result of pass 1 is never changed;
++  // when pass 2 fails too, the state (error, bad shape) of pass 1 is put back.
++  if (THE_LENS_PASS_034C.Owner != this)
++  {
++    const LensPassScope034c aLensScope(this);
++    OffsetState034c         aState0, aState1;
++    {
++      OffsetState034c& theState = aState0;
++      OFFSET_STATE_FIELDS_034C(OFFSET_STATE_SAVE_034C)
++    }
++    MakeOffsetShape(theRange);
++    if (myDone || myError == BRepOffset_UserBreak || myJoin != GeomAbs_Arc
++        || !lensCandidate034c(aState0.myShape, aState0.myOriginalFaces, aState0.myFaceOffset, aState0.myOffset))
++    {
++      return;
++    }
++    {
++      OffsetState034c& theState = aState1;
++      OFFSET_STATE_FIELDS_034C(OFFSET_STATE_SAVE_034C)
++    }
++    {
++      const OffsetState034c& theState = aState0;
++      OFFSET_STATE_FIELDS_034C(OFFSET_STATE_LOAD_034C)
++      myAsDes = new BRepAlgo_AsDes(); // pass 1 keeps its own
++    }
++    THE_LENS_PASS_034C.Mode = 2;
++    try
++    {
++      OCC_CATCH_SIGNALS
++      MakeOffsetShape(Message_ProgressRange());
++    }
++    catch (Standard_Failure const& anExc034c)
++    {
++      // an exception of the lens pass is its failure, never the caller's
++      LENS034C_TRACE("lens034c: lens pass exception %s\n", anExc034c.what());
++      (void)anExc034c;
++      myDone = false;
++    }
++    LENS034C_TRACE("lens034c: lens pass done=%d error %d\n", (int)myDone, (int)myError);
++    if (myDone)
++    {
++      lensHistory034c(aState0.myShape, myFacePlanfaceMap, myInitOffsetFace, myInitOffsetEdge);
++      return;
++    }
++    const OffsetState034c& theState = aState1;
++    OFFSET_STATE_FIELDS_034C(OFFSET_STATE_LOAD_034C)
++    return;
++  }
+   myDone = false;
+   // Issue 034 lane B2: vanishing faces found while building the offset faces.
+   VanishRecord034b aVanish;
+   aVanish.Owner = this;
+   const VanishScope034b aVanishScope(&aVanish);
++  // Issue 034 lane B2 round 3, pass 2: split the faces along their lenses
++  // before anything else is built (the planar substitution, the analysis and
++  // every later step then see the split input).
++  if (THE_LENS_PASS_034C.Owner == this && THE_LENS_PASS_034C.Mode == 2
++      && !lensSplitShape034c(myShape, myOriginalFaces, myFaceOffset, myOffset, aVanish, THE_LENS_PASS_034C))
++  {
++    myError = BRepOffset_CannotTrimEdges;
++    return;
++  }
+   //
+ 
+   // check if shape consists of only planar faces
+@@ -3024,6 +6325,13 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+       TopoDS_Shape aDummy;
+       UpdateTolerance(myOffsetShape, myFaces, aDummy);
+     }
++    // Issue 034 lane B2: edges built around vanishing faces and lenses
++    // (prolonged sections, shared lens edges) carry the deviation of their
++    // pcurves that the BOP check measures
++    if (!aVanish.Faces.IsEmpty())
++    {
++      coverEdgeDeviations034c(myOffsetShape);
++    }
+     BRepLib::UpdateTolerances(myOffsetShape);
+   }
+ 
+@@ -3090,6 +6398,14 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+       return;
+     }
+   }
++  // Issue 034 lane B2 round 3: a folded point of a face kept in the result
++  // proves it wrong (see foldedPointKept034c): the pass fails (pass 1 then
++  // gives way to the lens pass; its error is reported when that fails too)
++  if (isFold && foldedPointKept034c(myFaceComp, myFaces, myFaceOffset, myOffset, myInitOffsetFace))
++  {
++    myError = BRepOffset_CannotTrimEdges;
++    return;
++  }
+   // Stage A2: the shells of the solids of the result must be closed and
+   // coherently oriented (the thick solid is checked in MakeThickSolid()).
+   if (myFaces.IsEmpty() && solidShellsBroken034(myOffsetShape))
+@@ -3127,7 +6443,6 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+       return;
+     }
+   }
+-
+   myDone = true;
+ }
+ 
+@@ -3135,6 +6450,52 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+ 
+ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange)
+ {
++  // Issue 034 lane B2 round 3: the two passes as in MakeOffsetShape().
++  if (THE_LENS_PASS_034C.Owner != this)
++  {
++    const LensPassScope034c aLensScope(this);
++    OffsetState034c         aState0, aState1;
++    {
++      OffsetState034c& theState = aState0;
++      OFFSET_STATE_FIELDS_034C(OFFSET_STATE_SAVE_034C)
++    }
++    MakeThickSolid(theRange);
++    if (myDone || myError == BRepOffset_UserBreak || myJoin != GeomAbs_Arc
++        || !lensCandidate034c(aState0.myShape, aState0.myOriginalFaces, aState0.myFaceOffset, aState0.myOffset))
++    {
++      return;
++    }
++    {
++      OffsetState034c& theState = aState1;
++      OFFSET_STATE_FIELDS_034C(OFFSET_STATE_SAVE_034C)
++    }
++    {
++      const OffsetState034c& theState = aState0;
++      OFFSET_STATE_FIELDS_034C(OFFSET_STATE_LOAD_034C)
++      myAsDes = new BRepAlgo_AsDes(); // pass 1 keeps its own
++    }
++    THE_LENS_PASS_034C.Mode = 2;
++    try
++    {
++      OCC_CATCH_SIGNALS
++      MakeThickSolid(Message_ProgressRange());
++    }
++    catch (Standard_Failure const& anExc034c)
++    {
++      LENS034C_TRACE("lens034c: thick lens pass exception %s\n", anExc034c.what());
++      (void)anExc034c;
++      myDone = false;
++    }
++    LENS034C_TRACE("lens034c: thick lens pass done=%d error %d\n", (int)myDone, (int)myError);
++    if (myDone)
++    {
++      lensHistory034c(aState0.myShape, myFacePlanfaceMap, myInitOffsetFace, myInitOffsetEdge);
++      return;
++    }
++    const OffsetState034c& theState = aState1;
++    OFFSET_STATE_FIELDS_034C(OFFSET_STATE_LOAD_034C)
++    return;
++  }
+   //--------------------------------------------------------------
+   // Construction of shell parallel to shell (initial without cap).
+   //--------------------------------------------------------------
+@@ -3161,7 +6522,11 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     B.MakeSolid(Res);
+ 
+     BRepTools_Quilt Glue;
+-    for (exp.Init(myShape, TopAbs_FACE); exp.More(); exp.Next())
++    // Issue 034 lane B2 round 3: the kept input faces of pass 2 are glued as
++    // they are in the input (a face split along its lenses is glued whole,
++    // with its boundary edges split as the walls use them)
++    const TopoDS_Shape aKept = lensSkin034c(myShape);
++    for (exp.Init(aKept, TopAbs_FACE); exp.More(); exp.Next())
+     {
+       NbF++;
+       Glue.Add(exp.Current());
+@@ -3202,7 +6567,7 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     }
+     Res.Closed(true);
+     myOffsetShape = Res;
+-    aThickShells = thickShells034(Res, myShape, Glue, myInitOffsetFace, myFaces);
++    aThickShells = thickShells034(Res, aKept, Glue, myInitOffsetFace, myFaces);
+ 
+     // Test of Validity of the result of thick Solid
+     // more face than the initial solid.
+@@ -3268,7 +6633,7 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+       ++aNbShells;
+     }
+     if (solidShellsBroken034(myOffsetShape) || aThickShells.Broken
+-        || (aNbShells > maxThickShells034(myShape) && !aThickShells.Proven
++        || (aNbShells > maxThickShells034(lensSkin034c(myShape)) && !aThickShells.Proven
+             && resultIsBroken034(myOffsetShape)))
+     {
+       myDone  = false;
+@@ -3327,6 +6692,31 @@ void BRepOffset_MakeOffset::MakeOffsetFaces(
+     }
+     const TopoDS_Face& aF = TopoDS::Face(aItLF.Value());
+     aCurOffset            = myFaceOffset.IsBound(aF) ? myFaceOffset(aF) : myOffset;
++    // Issue 034 lane B2 round 3: a lens face is offset on its own (its offset
++    // is trimmed away); the edges C1 and C2 of a lens share one offset edge
++    const VanishRecord034b* aLensRec =
++      (THE_VANISH_034B != nullptr && THE_VANISH_034B->Owner == this
++       && !THE_VANISH_034B->LensFaces.IsEmpty())
++        ? THE_VANISH_034B
++        : nullptr;
++    if (aLensRec != nullptr && aLensRec->LensFaces.Contains(aF))
++    {
++      const NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher> anOwn;
++      BRepOffset_Offset aLensOF(aF, aCurOffset, anOwn, OffsetOutside, myJoin);
++      theMapSF.Bind(aF, aLensOF);
++      continue;
++    }
++    if (aLensRec != nullptr)
++    {
++      for (TopExp_Explorer anExpE(aF, TopAbs_EDGE); anExpE.More(); anExpE.Next())
++      {
++        const TopoDS_Shape* aPartner = aLensRec->LensPartner.Seek(anExpE.Current());
++        if (aPartner != nullptr && ShapeTgt.IsBound(*aPartner) && !ShapeTgt.IsBound(anExpE.Current()))
++        {
++          ShapeTgt.Bind(anExpE.Current(), ShapeTgt(*aPartner));
++        }
++      }
++    }
+     BRepOffset_Offset              OF(aF, aCurOffset, ShapeTgt, OffsetOutside, myJoin);
+     NCollection_List<TopoDS_Shape> Let;
+     myAnalyse.Edges(aF, ChFiDS_Tangential, Let);
+@@ -4003,6 +7393,36 @@ void BRepOffset_MakeOffset::BuildFaceComp()
+ //            face) when the set touches a removed face. Leaves the record
+ //            empty when some set is outside the handled scope.
+ //=======================================================================
++//! Issue 034 lane B2 round 3: true if the faces theA and theB are the two
++//! sides of a lens: an edge C1 of one and its partner C2 of the other share
++//! one offset edge (they are joined, not intersected)
++static bool lensJoined034c(const VanishRecord034b&   theRec,
++                           const BRepOffset_Analyse& theAnalyse,
++                           const TopoDS_Shape&       theA,
++                           const TopoDS_Shape&       theB)
++{
++  if (theRec.LensPartner.IsEmpty())
++  {
++    return false;
++  }
++  for (TopExp_Explorer anExp(theA, TopAbs_EDGE); anExp.More(); anExp.Next())
++  {
++    const TopoDS_Shape* aP = theRec.LensPartner.Seek(anExp.Current());
++    if (aP == nullptr || !theAnalyse.HasAncestor(*aP))
++    {
++      continue;
++    }
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt(theAnalyse.Ancestors(*aP)); anIt.More(); anIt.Next())
++    {
++      if (anIt.Value().IsSame(theB))
++      {
++        return true;
++      }
++    }
++  }
++  return false;
++}
++
+ static void findVanishing034b(
+   const TopoDS_Shape&                                                                  theFaceComp,
+   const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>&                 theCaps,
+@@ -4015,6 +7435,8 @@ static void findVanishing034b(
+   theRec.Faces.Clear();
+   theRec.RimPairs.Clear();
+   theRec.RimMargin.Clear();
++  theRec.RimTargets.Clear();
++  theRec.Offset = theOffset;
+   theRec.SetVertices.Clear();
+   // 1. vanishing faces
+   for (TopExp_Explorer anExp(theFaceComp, TopAbs_FACE); anExp.More(); anExp.Next())
+@@ -4030,7 +7452,8 @@ static void findVanishing034b(
+       continue;
+     }
+     const double* anOff = theFaceOffset.Seek(aF);
+-    if (anOF->Status() == BRepOffset_Reversed || anOF->Status() == BRepOffset_Degenerated
++    if (theRec.LensFaces.Contains(aF) || anOF->Status() == BRepOffset_Reversed
++        || anOF->Status() == BRepOffset_Degenerated
+         || freeFormFaceVanishes034b(aF, anOff ? *anOff : theOffset))
+     {
+       theRec.Faces.Add(aF);
+@@ -4101,11 +7524,13 @@ static void findVanishing034b(
+       aSetCaps;
+     Bnd_Box                                                       aSetBox;
+     aStack.Append(aSeed.Value());
++    bool isLensSet = false; // round 3: the set holds a lens face
+     while (!aStack.IsEmpty())
+     {
+       const TopoDS_Shape aF = aStack.First();
+       aStack.RemoveFirst();
+       BRepBndLib::Add(aF, aSetBox, false);
++      isLensSet = isLensSet || theRec.LensFaces.Contains(aF);
+       // a tube edge at a vertex of the set: the tube ends on the vanished
+       // face (its offset near the vertex is then not bounded by the rim)
+       for (TopExp_Explorer anEV(aF, TopAbs_VERTEX); anEV.More(); anEV.Next())
+@@ -4216,8 +7641,12 @@ static void findVanishing034b(
+     // enlarged by the tolerance only. A removed face is not offset: the rim
+     // offsets must reach its surface across the vanished set, so the copies
+     // are enlarged by the size of the set plus the offset.
+-    const double aMargin =
+-      aRimCaps.IsEmpty() ? 0. : std::sqrt(aSetBox.SquareExtent()) + std::abs(theOffset);
++    // Round 3: the two sides of a lens meet each other on their shared edge
++    // and the removed face on its surface there; nothing is prolonged across
++    // a lens.
++    const double aMargin = (aRimCaps.IsEmpty() || isLensSet)
++                             ? 0.
++                             : std::sqrt(aSetBox.SquareExtent()) + std::abs(theOffset);
+     // boxes of the rim offsets enlarged by the reach, computed once per face
+     NCollection_Array1<Bnd_Box> aRimBoxes(1, std::max(aRim.Extent(), 1));
+     for (int i = 1; i <= aRim.Extent(); ++i)
+@@ -4244,6 +7673,24 @@ static void findVanishing034b(
+         {
+           *aRM = std::max(*aRM, aMargin);
+         }
++        if (!theRec.RimTargets.IsBound(aRim(i)))
++        {
++          theRec.RimTargets.Bind(aRim(i), NCollection_List<RimTarget034b>());
++        }
++        NCollection_List<RimTarget034b>& aTg = theRec.RimTargets.ChangeFind(aRim(i));
++        for (int c = 1; c <= aRimCaps.Extent(); ++c)
++        {
++          const TopoDS_Face& aCapF = TopoDS::Face(aRimCaps(c));
++          aTg.Append(RimTarget034b{aCapF, BRep_Tool::Surface(aCapF)});
++        }
++        for (int j = 1; j <= aRim.Extent(); ++j)
++        {
++          const BRepOffset_Offset* anOFj = theMapSF.Seek(aRim(j));
++          if (j != i && anOFj != nullptr && !anOFj->Face().IsNull())
++          {
++            aTg.Append(RimTarget034b{aRim(j), BRep_Tool::Surface(TopoDS::Face(anOFj->Face()))});
++          }
++        }
+       }
+       const BRepOffset_Offset* anOF1 = theMapSF.Seek(aRim(i));
+       if (anOF1 == nullptr || anOF1->Face().IsNull())
+@@ -4255,7 +7702,7 @@ static void findVanishing034b(
+       aB1.Enlarge(Precision::Confusion() + aMargin);
+       for (int j = i + 1; j <= aRim.Extent(); ++j)
+       {
+-        if (aB1.IsOut(aRimBoxes(j)))
++        if (aB1.IsOut(aRimBoxes(j)) || lensJoined034c(theRec, theAnalyse, aRim(i), aRim(j)))
+         {
+           continue;
+         }
+@@ -4343,6 +7790,8 @@ void BRepOffset_MakeOffset::BuildOffsetByArc(const Message_ProgressRange& theRan
+   if (aVanish != nullptr)
+   {
+     findVanishing034b(myFaceComp, myFaces, myAnalyse, MapSF, myFaceOffset, myOffset, *aVanish);
++    LENS034C_TRACE("lens034c: vanishing faces %d rim pairs %d lens faces %d caps %d\n", aVanish->Faces.Extent(),
++                   aVanish->RimPairs.Extent(), aVanish->LensFaces.Extent(), myFaces.Extent());
+   }
+   //--------------------------------------------------------
+   // Construction of tubes on edge.
+@@ -4560,7 +8009,7 @@ void BRepOffset_MakeOffset::BuildOffsetByArc(const Message_ProgressRange& theRan
+         //--------------------------------------------------------------------
+         const TopoDS_Edge&                           E = TopoDS::Edge(Exp.Current());
+         const NCollection_List<BRepOffset_Interval>& L = myAnalyse.Type(E);
+-        if (isVanishSet && myAnalyse.HasAncestor(E))
++        if (isVanishSet && myAnalyse.HasAncestor(E) && !aVanish->LensPartner.IsBound(E))
+         {
+           // the edge shared with a vanishing face bounds nothing: the face is
+           // bounded by its intersections with the other rim faces instead
+@@ -4753,10 +8202,12 @@ void BRepOffset_MakeOffset::ToContext(
+         if (!L.IsEmpty() && L.First().Type() != RT)
+         {
+           if (THE_VANISH_034B != nullptr && THE_VANISH_034B->Owner == this
+-              && !THE_VANISH_034B->Faces.IsEmpty() && myAnalyse.HasAncestor(E))
++              && !THE_VANISH_034B->Faces.IsEmpty() && myAnalyse.HasAncestor(E)
++              && !THE_VANISH_034B->LensPartner.IsBound(E))
+           {
+             // Issue 034 lane B2: as in BuildOffsetByArc(), an edge shared
+-            // with a vanishing face bounds nothing
++            // with a vanishing face bounds nothing (round 3: except the two
++            // sides of a lens, which bound the faces on both sides of it)
+             bool isToVanishing = false;
+             for (NCollection_List<TopoDS_Shape>::Iterator anItA(myAnalyse.Ancestors(E));
+                  anItA.More();
+@@ -4786,14 +8237,26 @@ void BRepOffset_MakeOffset::ToContext(
+             // Issue 034 lane B2: the section of a rim face with a removed
+             // face ends where a vanished face began; the rim face meets the
+             // other rim faces on it (rim lemma) and other removed faces
+-            // across the set, beyond that end: the section is prolonged there
+-            // by the reach of the set, its other end is kept.
+-            const double* aReach = THE_VANISH_034B->RimMargin.Seek(S);
++            // across the set, beyond that end: the section is prolonged to
++            // that corner (round 3: computed), its other end is kept.
++            const NCollection_List<RimTarget034b>* aTg = THE_VANISH_034B->RimTargets.Seek(S);
++            NCollection_List<RimTarget034b>        aTargets;
++            if (aTg != nullptr)
++            {
++              for (NCollection_List<RimTarget034b>::Iterator anItT(*aTg); anItT.More(); anItT.Next())
++              {
++                if (!anItT.Value().Face.IsSame(*aCapOE))
++                {
++                  aTargets.Append(anItT.Value());
++                }
++              }
++            }
++
+             TopoDS_Vertex aVa, aVb;
+             TopExp::Vertices(E, aVa, aVb);
+             const bool isA = THE_VANISH_034B->SetVertices.Contains(aVa);
+             const bool isB = THE_VANISH_034B->SetVertices.Contains(aVb);
+-            if (aReach != nullptr && (isA || isB))
++            if (!aTargets.IsEmpty() && (isA || isB))
+             {
+               TopoDS_Edge aNE0 = TopoDS::Edge(Created(OE));
+               TopoDS_Vertex aN1, aN2;
+@@ -4807,8 +8270,11 @@ void BRepOffset_MakeOffset::ToContext(
+                   aP1.Distance(aPb) + aP2.Distance(aPa) < aP1.Distance(aPa) + aP2.Distance(aPb);
+                 const bool isAtFirst = isSwap ? isB : isA;
+                 const bool isAtLast  = isSwap ? isA : isB;
+-                const TopoDS_Edge aProl =
+-                  prolongedSection034b(aNE0, isAtFirst, isAtLast, *aReach + 10. * myTol);
++                const TopoDS_Edge aProl = prolongedSection034b(aNE0,
++                                                               isAtFirst,
++                                                               isAtLast,
++                                                               aTargets,
++                                                               10. * myTol + 1.e-3 * std::abs(myOffset));
+                 if (!aProl.IsNull())
+                 {
+                   Created.ChangeFind(OE) = aProl;
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Tool.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Tool.cxx
+index cde0d94ad4..ddba41e43a 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Tool.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Tool.cxx
+@@ -27,6 +27,7 @@
+ #include <BRepAdaptor_Curve.hxx>
+ #include <BRepAdaptor_Curve2d.hxx>
+ #include <BRepAdaptor_Surface.hxx>
++#include <Standard_ErrorHandler.hxx>
+ #include <BRepAlgo_AsDes.hxx>
+ #include <BRepAlgo_Image.hxx>
+ #include <BRepLib.hxx>
+@@ -108,6 +109,10 @@
+ 
+ #include <cstdio>
+ 
++// Issue 034 lane B2 (BRepOffset_MakeOffset.cxx, internal): true while the
++// running offset is built around vanishing faces or lenses.
++bool BRepOffset_VanishActive034b();
++
+ // The constant defines the maximal value to enlarge surfaces.
+ // It is limited to 1.e+7. This limitation is justified by the
+ // floating point format. As we can have only 15
+@@ -1064,7 +1069,8 @@ static occ::handle<Geom2d_Curve> ConcatPCurves(const TopoDS_Edge& E1,
+                                                const TopoDS_Face& F,
+                                                const bool         After,
+                                                double&            newFirst,
+-                                               double&            newLast)
++                                               double&            newLast,
++                                               const double       theGlueTol)
+ {
+   double        Tol        = 1.e-7;
+   GeomAbs_Shape Continuity = GeomAbs_C1;
+@@ -1140,10 +1146,54 @@ static occ::handle<Geom2d_Curve> ConcatPCurves(const TopoDS_Edge& E1,
+   }
+   else
+   {
+-    occ::handle<Geom2d_TrimmedCurve>      TC1 = new Geom2d_TrimmedCurve(PCurve1, first1, last1);
+-    occ::handle<Geom2d_TrimmedCurve>      TC2 = new Geom2d_TrimmedCurve(PCurve2, first2, last2);
++    occ::handle<Geom2d_TrimmedCurve> TC1 = new Geom2d_TrimmedCurve(PCurve1, first1, last1);
++    occ::handle<Geom2d_TrimmedCurve> TC2 = new Geom2d_TrimmedCurve(PCurve2, first2, last2);
++    (void)theGlueTol;
++    const double aTol2d = Precision::Confusion();
++    // Issue 034 lane B2 round 3: the pieces of a section that crosses the
++    // period of a periodic surface (an enlarged face) lie a whole number of
++    // periods apart in the parametric space; bring the second one next to
++    // the first before joining them (pieces that already join are unchanged).
++    // Only while an offset is built around vanishing faces (stock otherwise).
++    const bool isVanish034b = BRepOffset_VanishActive034b();
++    if (isVanish034b)
++    {
++      const occ::handle<Geom_Surface> aS  = BRep_Tool::Surface(F);
++      const gp_Pnt2d                  aP1 = After ? TC1->EndPoint() : TC1->StartPoint();
++      const gp_Pnt2d                  aP2 = After ? TC2->StartPoint() : TC2->EndPoint();
++      double                          aDU = 0., aDV = 0.;
++      if (aS->IsUPeriodic())
++      {
++        const double aT = aS->UPeriod();
++        const double aK = std::round((aP1.X() - aP2.X()) / aT);
++        if (aK != 0. && std::abs(aP1.X() - aP2.X() - aK * aT) <= aTol2d)
++        {
++          aDU = aK * aT;
++        }
++      }
++      if (aS->IsVPeriodic())
++      {
++        const double aT = aS->VPeriod();
++        const double aK = std::round((aP1.Y() - aP2.Y()) / aT);
++        if (aK != 0. && std::abs(aP1.Y() - aP2.Y() - aK * aT) <= aTol2d)
++        {
++          aDV = aK * aT;
++        }
++      }
++      if (aDU != 0. || aDV != 0.)
++      {
++        occ::handle<Geom2d_Curve> aMoved = occ::down_cast<Geom2d_Curve>(PCurve2->Copy());
++        aMoved->Translate(gp_Vec2d(aDU, aDV));
++        TC2 = new Geom2d_TrimmedCurve(aMoved, first2, last2);
++      }
++    }
+     Geom2dConvert_CompCurveToBSplineCurve Concat2d(TC1);
+-    Concat2d.Add(TC2, Precision::Confusion(), After);
++    // a pair that does not join is reported (the pcurve of one piece alone
++    // would not cover the new edge)
++    if (!Concat2d.Add(TC2, aTol2d, After) && isVanish034b)
++    {
++      return occ::handle<Geom2d_Curve>();
++    }
+     newPCurve = Concat2d.BSplineCurve();
+     if (newPCurve->Continuity() < GeomAbs_C1)
+     {
+@@ -1245,13 +1295,21 @@ static TopoDS_Edge Glue(const TopoDS_Edge&   E1,
+   double newFirst, newLast;
+   if (addPCurve1)
+   {
+-    newPCurve = ConcatPCurves(E1, E2, F1, After, newFirst, newLast);
++    newPCurve = ConcatPCurves(E1, E2, F1, After, newFirst, newLast, theGlueTol);
++    if (newPCurve.IsNull())
++    {
++      return TopoDS_Edge();
++    }
+     BB.UpdateEdge(newEdge, newPCurve, F1, 0.);
+     BB.Range(newEdge, F1, newFirst, newLast);
+   }
+   if (addPCurve2)
+   {
+-    newPCurve = ConcatPCurves(E1, E2, F2, After, newFirst, newLast);
++    newPCurve = ConcatPCurves(E1, E2, F2, After, newFirst, newLast, theGlueTol);
++    if (newPCurve.IsNull())
++    {
++      return TopoDS_Edge();
++    }
+     BB.UpdateEdge(newEdge, newPCurve, F2, 0.);
+     BB.Range(newEdge, F2, newFirst, newLast);
+   }
+@@ -1889,6 +1947,12 @@ void BRepOffset_Tool::Inter3D(const TopoDS_Face&              F1,
+       } // for (i = 1; i <= wseq.Length(); i++)
+     } // end of else (when TrueEdges is empty)
+ 
++    // Issue 034 lane B2 round 3: an exception while the glued sections are
++    // made same-parameter leaves the sections as they were computed
++    const NCollection_List<TopoDS_Shape> aL1Sections = L1, aL2Sections = L2;
++    try
++    {
++    OCC_CATCH_SIGNALS
+     if (eseq.Length() < L1.Extent())
+     {
+       L1.Clear();
+@@ -1927,6 +1991,16 @@ void BRepOffset_Tool::Inter3D(const TopoDS_Face&              F1,
+         L2.Append(anEdge.Oriented(O2));
+       }
+     }
++    }
++    catch (Standard_Failure const&)
++    {
++      if (!BRepOffset_VanishActive034b())
++      {
++        throw; // stock flow
++      }
++      L1 = aL1Sections;
++      L2 = aL2Sections;
++    }
+   } // end of if (L1.Extent() > 1)
+ 
+   else
+-- 
+2.52.0.windows.1
+

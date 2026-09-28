@@ -1,0 +1,188 @@
+From 716c44c30399fb30fe64f4e7c47fcff5c09450e2 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 22:54:59 +0700
+Subject: [PATCH 2/7] 034 B2: rim intersection hardening (rational surfaces,
+ removed faces only, no exceptions, compound input)
+
+- surfaces are extended in place only when the vanishing set reaches a
+  removed face (the rim lemma needs no extension otherwise), and only
+  polynomial B-spline / Bezier ones (GeomLib::ExtendSurfByLength keeps
+  their parametrisation; not guaranteed for rational ones);
+- an exception inside the rim intersection is reported as
+  CannotTrimEdges (the code the stage A guard gave these offsets);
+- the positive-volume check of an offset built around vanishing faces also
+  covers a solid given inside a compound (FreeCAD's Part::Offset input):
+  the result is then a closed shell, not a solid.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepOffset/BRepOffset_MakeOffset.cxx      | 131 +++++++++++-------
+ 1 file changed, 81 insertions(+), 50 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+index bd55d281fd..4bf720cf8b 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+@@ -1203,9 +1203,14 @@ static occ::handle<Geom_Surface> extendedSurface034b(const occ::handle<Geom_Surf
+     return aB.IsNull() ? occ::handle<Geom_Surface>()
+                        : occ::handle<Geom_Surface>(new Geom_OffsetSurface(aB, anOff->Offset(), true));
+   }
++  // polynomial B-spline / Bezier only: GeomLib::ExtendSurfByLength keeps
++  // their parametrisation on the original domain (checked); for rational
++  // surfaces it is not guaranteed, they are not extended
+   occ::handle<Geom_BoundedSurface> aBS;
+-  if (theS->IsKind(STANDARD_TYPE(Geom_BSplineSurface))
+-      || theS->IsKind(STANDARD_TYPE(Geom_BezierSurface)))
++  occ::handle<Geom_BSplineSurface> aBSpl = occ::down_cast<Geom_BSplineSurface>(theS);
++  occ::handle<Geom_BezierSurface>  aBez  = occ::down_cast<Geom_BezierSurface>(theS);
++  if ((!aBSpl.IsNull() && !aBSpl->IsURational() && !aBSpl->IsVRational())
++      || (!aBez.IsNull() && !aBez->IsURational() && !aBez->IsVRational()))
+   {
+     aBS = occ::down_cast<Geom_BoundedSurface>(theS->Copy());
+   }
+@@ -2277,13 +2282,21 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+     return;
+   }
+   // Issue 034 lane B2: an offset of a solid built around vanishing faces
+-  // must be solids of positive volume (an offset beyond the half thickness
+-  // collapses: the rim faces then close an inverted box).
++  // must enclose a positive volume: every solid of the result (a solid
++  // input) or every closed shell (a solid given inside a compound, the
++  // result is then a shell) - an offset beyond the half thickness collapses
++  // and the rim faces close an inverted box.
+   if (!aVanish.Faces.IsEmpty() && myFaces.IsEmpty() && !myThickening && IsSolid(myShape))
+   {
++    const TopAbs_ShapeEnum aType =
++      TopExp_Explorer(myOffsetShape, TopAbs_SOLID).More() ? TopAbs_SOLID : TopAbs_SHELL;
+     bool isSound = false;
+-    for (TopExp_Explorer anExpS(myOffsetShape, TopAbs_SOLID); anExpS.More(); anExpS.Next())
++    for (TopExp_Explorer anExpS(myOffsetShape, aType); anExpS.More(); anExpS.Next())
+     {
++      if (aType == TopAbs_SHELL && !BRep_Tool::IsClosed(anExpS.Current()))
++      {
++        continue;
++      }
+       GProp_GProps aProps;
+       BRepGProp::VolumeProperties(anExpS.Current(), aProps);
+       isSound = aProps.Mass() > 0.;
+@@ -4429,54 +4442,72 @@ void BRepOffset_MakeOffset::Intersection3D(BRepOffset_Inter3d&          Inter,
+   if (THE_VANISH_034B != nullptr && THE_VANISH_034B->Owner == this
+       && !THE_VANISH_034B->Faces.IsEmpty())
+   {
+-    for (NCollection_List<RimPair034b>::Iterator anIt(THE_VANISH_034B->RimPairs); anIt.More();
+-         anIt.Next())
++    // an exception inside the intersection of the rim is an error of the
++    // offset, never an exception of the caller (the stock flow reported
++    // these offsets as CannotTrimEdges through the stage A guard)
++    try
+     {
+-      const RimPair034b& aPair = anIt.Value();
+-      if (!myInitOffsetFace.HasImage(aPair.A) || !myInitOffsetFace.HasImage(aPair.B))
+-      {
+-        continue;
+-      }
+-      // a removed face is bound to itself in myInitOffsetFace
+-      const TopoDS_Face& aF1 = TopoDS::Face(myInitOffsetFace.Image(aPair.A).First());
+-      const TopoDS_Face& aF2 = TopoDS::Face(myInitOffsetFace.Image(aPair.B).First());
+-      if (Inter.IsDone(aF1, aF2))
++      OCC_CATCH_SIGNALS
++      for (NCollection_List<RimPair034b>::Iterator anIt(THE_VANISH_034B->RimPairs); anIt.More();
++           anIt.Next())
+       {
+-        continue;
++        const RimPair034b& aPair = anIt.Value();
++        if (!myInitOffsetFace.HasImage(aPair.A) || !myInitOffsetFace.HasImage(aPair.B))
++        {
++          continue;
++        }
++        // a removed face is bound to itself in myInitOffsetFace
++        const TopoDS_Face& aF1 = TopoDS::Face(myInitOffsetFace.Image(aPair.A).First());
++        const TopoDS_Face& aF2 = TopoDS::Face(myInitOffsetFace.Image(aPair.B).First());
++        if (Inter.IsDone(aF1, aF2))
++        {
++          continue;
++        }
++        // intersect enlarged copies, store on the faces
++        NCollection_List<TopoDS_Shape> aL1, aL2;
++        TopoDS_Edge                    aNullEdge;
++        TopoDS_Face                    aNullFace;
++        const double                   aLen1 = 10. * faceTolerance034b(aF1) + aPair.Margin;
++        const double                   aLen2 = 10. * faceTolerance034b(aF2) + aPair.Margin;
++        if (aPair.Margin > 0.)
++        {
++          // the set reaches a removed face: the rim offsets must reach its
++          // surface across the set (a removed face is an input face and is
++          // never modified)
++          if (!aPair.IsCapA)
++          {
++            extendFaceSurface034b(aF1, aLen1);
++          }
++          extendFaceSurface034b(aF2, aLen2);
++        }
++        const TopoDS_Face aC1 = enlargedCopy034b(aF1, aPair.Margin);
++        const TopoDS_Face aC2 = enlargedCopy034b(aF2, aPair.Margin);
++        BRepOffset_Tool::Inter3D(aC1,
++                                 aC2,
++                                 aL1,
++                                 aL2,
++                                 myOffset < 0. ? TopAbs_OUT : TopAbs_IN,
++                                 aNullEdge,
++                                 aNullFace,
++                                 aNullFace);
++        if (!aL1.IsEmpty())
++        {
++          Inter.TouchedFaces().Add(aF1);
++          Inter.TouchedFaces().Add(aF2);
++          myAsDes->Add(aF1, aL1);
++          myAsDes->Add(aF2, aL2);
++          for (NCollection_List<TopoDS_Shape>::Iterator anItE(aL1); anItE.More(); anItE.Next())
++          {
++            Inter.NewEdges().Add(anItE.Value());
++          }
++        }
++        Inter.SetDone(aF1, aF2);
+       }
+-      // intersect enlarged copies, store on the faces
+-      NCollection_List<TopoDS_Shape> aL1, aL2;
+-      TopoDS_Edge                    aNullEdge;
+-      TopoDS_Face                    aNullFace;
+-      const double                   aLen1 = 10. * faceTolerance034b(aF1) + aPair.Margin;
+-      const double                   aLen2 = 10. * faceTolerance034b(aF2) + aPair.Margin;
+-      if (!aPair.IsCapA)
+-      {
+-        extendFaceSurface034b(aF1, aLen1); // a removed face is an input face: never modified
+-      }
+-      extendFaceSurface034b(aF2, aLen2);
+-      const TopoDS_Face aC1 = enlargedCopy034b(aF1, aPair.Margin);
+-      const TopoDS_Face aC2 = enlargedCopy034b(aF2, aPair.Margin);
+-      BRepOffset_Tool::Inter3D(aC1,
+-                               aC2,
+-                               aL1,
+-                               aL2,
+-                               myOffset < 0. ? TopAbs_OUT : TopAbs_IN,
+-                               aNullEdge,
+-                               aNullFace,
+-                               aNullFace);
+-      if (!aL1.IsEmpty())
+-      {
+-        Inter.TouchedFaces().Add(aF1);
+-        Inter.TouchedFaces().Add(aF2);
+-        myAsDes->Add(aF1, aL1);
+-        myAsDes->Add(aF2, aL2);
+-        for (NCollection_List<TopoDS_Shape>::Iterator anItE(aL1); anItE.More(); anItE.Next())
+-        {
+-          Inter.NewEdges().Add(anItE.Value());
+-        }
+-      }
+-      Inter.SetDone(aF1, aF2);
++    }
++    catch (Standard_Failure const&)
++    {
++      myError = BRepOffset_CannotTrimEdges;
++      return;
+     }
+   }
+ #ifdef OCCT_DEBUG
+-- 
+2.52.0.windows.1
+

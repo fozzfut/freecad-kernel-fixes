@@ -1,0 +1,73 @@
+Issue 034 lane B2, round 3 (28.09.2026) - literature and provenance of the round-3 design elements.
+(Venue rule: specialist CAD/CAGD journals count as full sources. OA = open access text read; ABS = abstract/known result.)
+
+A. The class and why the folded part is never on the offset
+ 1. T. Maekawa, "An overview of offset curves and surfaces", CAD 31(3) 1999 165-173, doi 10.1016/S0010-4485(99)00013-5.
+    Offset factors 1 - d k_i; a factor < 0 puts the offset point closer than |d| to nearby points of the surface.
+    APPLIED: the fold samples (same criterion as the stage A guard) and the statement that no folded point is kept.
+ 2. N.M. Patrikalakis, T. Maekawa, "Shape Interrogation for Computer Aided Design and Manufacturing", Springer 2002,
+    ch. 11 (offsets, self-intersections of offsets). OA (MIT hyperbook). APPLIED: vocabulary (cuspidal edge,
+    swallowtail), the structure local self-intersection = two regular sheets crossing near a fold.
+
+B. The self-intersection curve X and its ends (review r2 finding 1 - the core of the class)
+ 3. S. Aomura, T. Uehara, "Self-intersection of an offset surface", CAD 22(7) 1990 417-421. ABS (web-checked).
+    Tracing the self-intersection curve of an offset surface. APPLIED: X is traced as a curve (not sampled).
+ 4. T. Maekawa, W. Cho, N.M. Patrikalakis, "Computation of self-intersections of offsets of Bezier surface patches",
+    ASME J. Mech. Design 119(2) 1997 275-283 (supporting venue). ABS (web-checked). Starting points of the tracing
+    from a system of nonlinear equations, then tracing. APPLIED: seed on the fold cross-section, then tracing.
+ 5. Y. Park, Q Y. Hong, M.-S. Kim, G. Elber, "Self-intersection computation for freeform surfaces based on a
+    regional representation scheme for miter points", CAGD 2021 (S0167839621000248). OA preprint read
+    (r3/lit/park2021.pdf/txt). Miter points are the open ends of a self-intersection curve, where its two
+    parameter-space branches (u,v) and (s,t) join; near them (u,v) and (s,t) are arbitrarily close, which makes the
+    plain system S(u,v) = S(s,t) singular; the xyz location of a miter point is stable, its uv location is not.
+    APPLIED (own formulation): the divided-difference system G(c,th,s) = (O(c + s w) - O(c - s w)) / (2 s) = 0 is
+    regular at p = q (its s = 0 branch is the fold curve with w the null direction); X reaches s = 0 exactly at
+    the miter points, where the tracing stops and the end is extrapolated in s^2 (the branch is regular in s^2).
+    The two preimage curves C1 = {c + s w}, C2 = {c - s w} meet at the miter point (Park et al. Fig. 1c).
+ 6. Q Y. Hong, Y. Park, M.-S. Kim, G. Elber, "Trimming offset surface self-intersections around near-singular
+    regions", Computers & Graphics 82 2019 84-94, doi 10.1016/j.cag.2019.05.016 (C&G, supporting). ABS.
+    Offset trimming regions in the parameter space; numerical care around miter points. NOT applied for region
+    finding (their trimming regions are defined by distance to the surface - EP4530910A1 red flag, IP.txt);
+    applied only as the observation that the trimmed region in the parameter space is bounded by the two
+    preimage curves of X.
+ 7. E.L. Allgower, K. Georg, "Numerical Continuation Methods", Springer 1990 (book). APPLIED: pseudo-arclength
+    predictor-corrector with a tangent from the generalised cross product of the 3x4 Jacobian, step control by
+    the corrector iteration count and the turning angle.
+ 8. G. Elber, T. Grandine, M.-S. Kim, "Surface self-intersection computation via algebraic decomposition", CAD
+    41(12) 2009 1060-1069. ABS. Supporting: the trivial diagonal solutions are removed by a divided difference,
+    the same device as (5) in our parametrisation.
+ 9. D. Pekerman, G. Elber, M.-S. Kim, "Self-intersection detection and elimination in freeform curves and
+    surfaces", CAD 40(2) 2008 150-159. ABS. Supporting (elimination of the self-intersecting part of a curve/surface).
+10. J.-K. Seong, G. Elber, M.-S. Kim, "Trimming local and global self-intersections in offset curves/surfaces using
+    distance maps", CAD 38 2006 183-193. ABS. NOT applied (distance maps; IP.txt).
+
+C. Building the trimmed offset in the B-rep (own derivation on top of rounds 1-2)
+11. Own derivation: the INPUT face is split along C1 and C2 (the lens between them holds every fold sample, checked);
+    the lens is a face whose offset is trimmed away (round-1 vanishing machinery: its offset is not stored, the
+    edges it shares with its neighbours bound nothing); the pieces on both sides share the offset of C1 and of
+    C2, which is ONE curve X (O(C1(t)) = O(C2(t)) by construction, same parameter t = arc length of X): the
+    offset of C1 is created once and bound to C2 (BRepOffset_Offset "Created" map). A lens that does not cut the
+    face in two gets a straight parametric line from its miter point away from the lens to the face boundary (the
+    lens opens towards c'(s^2); the line runs in the regular region, checked by the curvature factor).
+    Where X leaves the face, the leaving preimage is moved onto the boundary edge exactly (3x3 Newton on
+    O(pcurve_E(t)) = O(q)), the other one stays inside and a chord closes the lens; the part of X beyond the
+    neighbour's section is removed by the stock loops (Inter2d).
+12. Rossignac-Requicha CAGD 3 1986 and Forsyth SMA 1995 (as rounds 1-2): faces vanish, neighbours are intersected.
+13. OCCT tools reused: BOPAlgo_BuilderFace (areas of a face split by edges), BRepTools_ReShape (replacement of
+    faces/edges in the shapes), Geom2dAPI_Interpolate (pcurves through the traced points), BRepLib::BuildCurve3d.
+
+D. Soundness items of the review
+14. C.-Y. Hu, N.M. Patrikalakis, X. Ye, "Robust interval solid modelling part I: representations", CAD 28(10) 1996
+    807-817; C.-Y. Hu, T. Maekawa, N.M. Patrikalakis, X. Ye, "Robust interval algorithm for surface
+    intersections", CAD 29(9) 1997 617-627. ABS. APPLIED (finding 6): rounded interval arithmetic - every interval
+    bound is moved one ulp outward (std::nextafter), the net values carry an error bound from their operation
+    count (Bezier extraction, centring, rotation, de Casteljau), the hodograph hulls and the Cartesian box are
+    widened by it. The 1e-10 margin is kept on top (conservative only).
+15. BOPTools_AlgoTools::ComputeTolerance (the measure of the BOP curve-on-surface check): APPLIED (finding 5): the
+    edges of results built around vanishing faces or lenses get the measured deviation of their pcurves as
+    tolerance (it was under-reported on prolonged sections).
+
+E. Patent position (EP4530910A1 design-around, IP.txt): the kernel decides WHAT to trim from the curvature factor
+   (fold samples) and from the traced self-intersection curve X (an intersection of the offset with itself); no
+   distance between the offset and the input is evaluated in the kernel. The distance check stays the stage-A
+   error-raising control of the result only, and the test stand's distance oracle is test side.

@@ -1,0 +1,7 @@
+ell_t2_in OK valid=True vol=728.177274 area=46.1886375434 ref=46.188743045 rel=2.28e-06
+ell_t3_in OK valid=True vol=921.312583 area=16.7994136130 ref=16.799413087 rel=3.13e-08
+wave_t3_in OK valid=True vol=4846.308282 area=227.2245962528 ref=227.224281836 rel=1.38e-06
+ridge_t5_in OK valid=True vol=9536.069353 area=123.0693213448 ref=123.066108212 rel=2.61e-05
+ell_t1_in_ctl OK valid=True vol=422.163334 area=82.7865905238 ref=82.779073606 rel=9.08e-05
+wave_t3_out ERR:F,a,i,l,e,d, ,t,o, ,m,a,k,e, ,t,h,i,c,k, ,s,o,l,i,d valid=False vol=0.000000 area=0.0000000000 ref=0.000000000 rel=-1.00e+00
+PDTHK-DONE

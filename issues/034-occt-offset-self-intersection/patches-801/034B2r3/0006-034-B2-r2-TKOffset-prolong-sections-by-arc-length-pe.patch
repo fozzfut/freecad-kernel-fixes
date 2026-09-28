@@ -1,0 +1,150 @@
+From bdef38f1b980b57a800903c6df0c987075e99ddc Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Mon, 28 Sep 2026 04:35:22 +0700
+Subject: [PATCH 6/7] 034 B2 r2 (TKOffset): prolong sections by arc length
+ (periodic curves capped), bound patches in their own frame
+
+A closed section (a circle of a cylindrical rim wall) was prolonged by a
+chord test that returned the whole period; the prolongation now follows
+the arc length and stays below a quarter of the rest of the period at
+each end. The interval bounds of a Bezier patch are taken in a frame of
+the patch (s and t chords, their normal): the factors are invariant under
+rotation and a rotated blend is proven as tightly as an axis-aligned one.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepOffset/BRepOffset_MakeOffset.cxx      | 87 ++++++++++++-------
+ 1 file changed, 54 insertions(+), 33 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+index 6d0d5c6f96..8cdd991605 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+@@ -109,6 +109,8 @@
+ #include <Geom_BoundedSurface.hxx>
+ #include <Geom_BezierSurface.hxx>
+ #include <BRep_CurveRepresentation.hxx>
++#include <GCPnts_AbscissaPoint.hxx>
++#include <GeomAdaptor_Curve.hxx>
+ #include <memory>
+ #include <BRepOffset.hxx>
+ #include <Geom_RectangularTrimmedSurface.hxx>
+@@ -1205,8 +1207,33 @@ static Itv034b hodoHull034b(const Patch034b& theP, const int theA, const int the
+ 
+ //! Test of one patch: 1 proven vanishing, 0 not proven, -1 no bound (a
+ //! weight or the normal may vanish on the patch).
+-static int patchVanishes034b(const Patch034b& theP, const double theD, const double theSigma)
++static int patchVanishes034b(const Patch034b& thePatch, const double theD, const double theSigma)
+ {
++  // The factors do not change under a rotation: the net is expressed in a
++  // frame of the patch (its s and t chords and their normal), where the box
++  // hulls of the derivative nets are far tighter than in world axes (a
++  // rotated fillet is bounded as tightly as an axis-aligned one).
++  Patch034b  theP = thePatch;
++  const int  aJm = theP.NV / 2, aIm = theP.NU / 2;
++  auto       aCart = [&](const int i, const int j) {
++    const double* q = thePatch.Q(i, j);
++    return gp_XYZ(q[0] / q[3], q[1] / q[3], q[2] / q[3]);
++  };
++  const gp_XYZ aA = aCart(theP.NU, aJm) - aCart(0, aJm);
++  const gp_XYZ aB = aCart(aIm, theP.NV) - aCart(aIm, 0);
++  const gp_XYZ aZ = aA.Crossed(aB);
++  if (aA.Modulus() > gp::Resolution() && aZ.Modulus() > gp::Resolution())
++  {
++    const gp_XYZ aE1 = aA / aA.Modulus(), aE3 = aZ / aZ.Modulus();
++    const gp_XYZ aE2 = aE3.Crossed(aE1);
++    for (size_t k = 0; k + 3 < theP.Net.size(); k += 4)
++    {
++      const gp_XYZ aX(theP.Net[k], theP.Net[k + 1], theP.Net[k + 2]);
++      theP.Net[k]     = aX.Dot(aE1);
++      theP.Net[k + 1] = aX.Dot(aE2);
++      theP.Net[k + 2] = aX.Dot(aE3);
++    }
++  }
+   Itv034b  aW{RealLast(), -RealLast()};
+   IVec034b aS;
+   for (int c = 0; c < 3; ++c)
+@@ -1905,7 +1932,7 @@ static TopoDS_Face enlargedCopy034b(const TopoDS_Face& theF, const double theExt
+ 
+ 
+ //! Copy of the section edge theNE (a rim offset face on a removed face)
+-//! prolonged along its curve by the 3D chord theLen at its first and/or last
++//! prolonged along its curve by the arc length theLen at its first and/or last
+ //! end; the other end keeps its vertex (it is shared with the section of the
+ //! face that does not vanish there: a tube, a surviving blend, another removed
+ //! face). The prolongation stays inside the parameter bounds of the 3D curve
+@@ -1964,46 +1991,40 @@ static TopoDS_Edge prolongedSection034b(const TopoDS_Edge& theNE,
+       }
+     }
+   }
+-  // parameter at which the chord from the end reaches theLen (or the bound)
+-  auto aReach = [&](const double theEnd, const double theBound) {
+-    const gp_Pnt aP0  = aC->Value(theEnd);
+-    const double aSpan = theBound - theEnd; // signed
+-    if (Precision::IsInfinite(theBound) || std::abs(aSpan) > Precision::Infinite())
++  // a closed (periodic) curve is prolonged by at most a quarter of the rest
++  // of its period at each end: the two ends never meet
++  if (aC->IsPeriodic())
++  {
++    const double aRest = aC->Period() - (aL - aF);
++    if (!(aRest > Precision::PConfusion()))
+     {
+-      // unbounded (a line, a periodic curve prolonged over its seam is
+-      // bounded by the pcurves): step with the speed at the end
+-      gp_Pnt aP;
+-      gp_Vec aD1;
+-      aC->D1(theEnd, aP, aD1);
+-      const double aSpeed = aD1.Magnitude();
+-      double       aStep  = aSpeed > gp::Resolution() ? theLen / aSpeed : (aL - aF);
+-      for (int anIt = 0; anIt < 32; ++anIt)
+-      {
+-        const double aP1 = theEnd + (theBound > theEnd ? aStep : -aStep);
+-        if (aP0.Distance(aC->Value(aP1)) >= theLen)
+-        {
+-          return aP1;
+-        }
+-        aStep *= 2.;
+-      }
+-      return theEnd;
++      return TopoDS_Edge();
+     }
+-    if (std::abs(aSpan) <= Precision::PConfusion())
++    aBF = std::max(aBF, aF - 0.25 * aRest);
++    aBL = std::min(aBL, aL + 0.25 * aRest);
++  }
++  // parameter at the arc length theLen from the end (at most the bound)
++  const GeomAdaptor_Curve aGC(aC);
++  auto                    aReach = [&](const double theEnd, const double theBound) {
++    if (std::abs(theBound - theEnd) <= Precision::PConfusion())
+     {
+       return theEnd;
+     }
+-    // bounded: bisection on the chord between the end and the bound
+-    if (aP0.Distance(aC->Value(theBound)) <= theLen)
++    try
+     {
+-      return theBound;
++      OCC_CATCH_SIGNALS
++      GCPnts_AbscissaPoint anAP(aGC, theBound > theEnd ? theLen : -theLen, theEnd);
++      if (anAP.IsDone())
++      {
++        const double aP = anAP.Parameter();
++        return theBound > theEnd ? std::min(std::max(aP, theEnd), theBound)
++                                 : std::max(std::min(aP, theEnd), theBound);
++      }
+     }
+-    double aLo = theEnd, aHi = theBound;
+-    for (int anIt = 0; anIt < 60; ++anIt)
++    catch (Standard_Failure const&)
+     {
+-      const double aMid = 0.5 * (aLo + aHi);
+-      (aP0.Distance(aC->Value(aMid)) < theLen ? aLo : aHi) = aMid;
+     }
+-    return aHi;
++    return theEnd;
+   };
+   const double aNF = theAtFirst ? aReach(aF, aBF) : aF;
+   const double aNL = theAtLast ? aReach(aL, aBL) : aL;
+-- 
+2.52.0.windows.1
+
