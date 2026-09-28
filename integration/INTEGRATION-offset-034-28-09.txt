@@ -1,0 +1,61 @@
+Integration offset 034 (28.09-29.09.2026) - INSTALLED 29.09 00:24 into C:/dev/FreeCAD-occt8-perf
+
+Scope (accepted reviews only): A2 r2 (base, installed before), A3 r3 (Review offset-A3 r3 ACCEPTED), cav r3 (Review
+offset-cav r3 ACCEPTED), R-034-inner r1 (Review R-034-inner r1 ACCEPTED; per CONTROLLER NOTE 18:25 NOT its r2/r3).
+Not included: B2, 034g, loc, inner r3, c0 (open) - they must merge onto perf/801-034int.
+
+OCCT: perf/801-034int b45eb1e40d (worktree C:/dev/occt-801-034int, clean)
+  = perf/801-034 7192f9ea (A2 r2) -> ff perf/801-034a3 dfc965a6 (A3 r3)
+    + merge e6da5fd89b perf/801-034cav e015b9c9 (cav r3)
+    + merge b45eb1e40d perf/801-034in 9cc39e71 (R-034-inner r1)
+  Conflicts only in BRepOffset_MakeOffset.cxx (histogram diff). Resolution:
+  - MakeThickSolid: A3 stock/flush wrapper first, then cav's saved offset; at the end A3's tangent-rim full check,
+    then cav's lost-offset control (its own comment: last). inner's lump split + full check before the fold check.
+  - R-034-inner splits A3's CONTEXT corks (removed faces with an image; wall corks are built as walls and take no
+    part), the concave-cork test still sees all removed faces: splitCorks034in(theCorks = context, theAll = myFaces).
+    With no wall cork both are myFaces = lane R-034-inner exactly (all 5 call sites + ContextIntByInt).
+  - cav's second construction ran a nested MakeOffsetShape that overwrote A3's thread-local cork record (owner,
+    tangent flag, crossing corks) - silently disabling A3's tangent-rim full check afterwards. The record of THIS
+    object is now put back on every exit of the second construction (RAII CorkRecordKeep034).
+  Build: build_tk.py full, MSVC 19.50.35739 (vcvars150), /MP2, buildlock, 0 warnings; TKOffset
+  c2732f4622a5d2a314853a687cade772, built from the tree committed unchanged as b45eb1e4 (git diff --quiet; source
+  mtime 23:08 < obj 23:21). ABI: exports 480 == weekly; import DLL set == delivery; +34 imports all resolved by the
+  delivery bin (NEG fake symbol not resolved).
+  Full patch TKOffset-034int-vs-V8_0_1.patch: applied to V8_0_1 the TKOffset subtree == b45eb1e4's (75ee12bd).
+
+FreeCAD: _PartDesign.pyd fdb26859121e885ffe8b9b0791510d1b = fc-034in mig/thick-034in dd78fbf (= mig/chamfer-032c
+  3771005, source of the installed 432b1d94, + FeatureThickness single-solid rule). D0: FeatureThickness recompiled
+  from the clean tree, relinked with the R-032 objects -> == fdb26859 except 9 timestamp bytes (.text/.data/.pdata/
+  .rsrc/.reloc identical); control: same link with the R-032 FeatureThickness object -> == installed 432b1d94 except
+  9 timestamp bytes. So the pyd is exactly the installed R-032 pyd + the one recompiled file. Patch 0001 onto
+  3771005 -> tree == dd78fbf.
+
+Gates (evidence C:/dev/occt8-mig/offset-034int {id, fam, suite, runs, diag, tools}):
+  Native identity (weekly context, harnesses of the lanes; tools/idcmp.py = per key: delivery value unless a lane
+  changed it, then that lane's value; NEG altered line reported):
+    A2 class 144: 47 same + 97 declared; rvx 204: 134 + 70; FP probe 116: 116 same; corpus 51: 48 + 3;
+    b33 33: 30 + 1 + 2 c031 ERR-code flips (stock nondeterminism); s129 129: 123 + 3 + 3 c031 flips;
+    x3 50: 42 + 2 (cav) + 6 cylbell ERR 5->6 (inner's input check, ERR stays ERR);
+    A3 family 408: 181 + 223 declared + 4 ERR->EXACT (pocket floor removed = inner class; A3's own oracle).
+  A3 FreeCAD families (rv3 6 sets 240, rv4 10 sets 238, rv5 5 sets 105) vs review3 D0 verdicts: all equal except
+    rv4 D "island out" 8 ERR->"BROKEN" = 2 exact lumps (symdiff 0; inner's one-lump-per-piece; A3's grader wants one
+    solid) and rv5 "L top out t=2.5 Int rot" EXACT -> valid, symdiff 0, rel -1.3e-8 but BOPAlgo_InvalidCurveOnSurface
+    (edge tol 1e-7 on a torus). Bisect on the current delivery: A3 alone clean, cav alone the SAME dirty result,
+    inner alone / delivery ERR -> inherited from lane cav (its gate has no curve-on-surface check). Not silent wrong
+    geometry; CONCERN for cav r4 / A3. A precedence rule (skip cav's repair where A3's flush applies) was tried, did
+    not change it (the stock construction itself succeeds), and was dropped.
+  cav: rvc7 126 == cav r3 D0 (53/71/2, dv noise 1e-14), rvc6 89 == cav r3 D0 on the same stack (ccone arc EXACT).
+  inner: rvfam 8 sets 66 == r1 + 2 ERR->EXACT (m4 filleted pocket floor: A3 + inner together; reviewer's oracle);
+    extra 16/16 EXACT; NEG (a*(1+1e-5)) 0 EXACT; rvid 409: 335 same + 74 == r1; prismchk 60/60 + NEG 60;
+    PartDesign probe 20 == r1 (10 "Allow Compound" errors, 10 exact 2-solid results).
+  FreeCAD suites on int034 (delivery + 2 files): TestPartApp 299 OK, TestPartDesignApp 226 (2 known 5829) - per-test
+    verdicts == intk28 run (NEG doctored verdict caught). HD d655292 headless: test_chamfer 16, test_shell 19,
+    offset_blends 23, offset_surfaces 42, press_pull 78, prismatic_offset 4, seam 68 - all OK; smoke_gui 30 ok,
+    verdicts == delivery run (console gate exit 2 on both: harness/offscreen signatures).
+  Owner model copies (ck28/files: cube_chamfer_fillet, owner_oring, Top, VR6 part4 + 5 parts, ball screw): identical
+    to the delivery run copy.
+  Negative controls: delivery run copy: inner curved/cbore/extra 35 ERR; rv5 L 19 of the int EXACT are ERR.
+Install: install-all.sh (ONLY two files) INSTALLED TKOffset f5fcd5a0 -> c2732f46, _PartDesign 432b1d94 -> fdb26859,
+  INSTALL-OK; all 17 list entries = ours; post-install run from the delivery loads both (paths + md5), inner cbore/
+  extra 20 EXACT, PD probe == run copy. revert.bat (+ 3rd earlier-ours slot) tested on a sandbox: offset/pd -> stock,
+  again "already stock", foreign TKOffset left alone rc 1, earlier ours f5fcd5a0 and 69d4443f accepted.

@@ -1,0 +1,4690 @@
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Cav034.pxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Cav034.pxx
+new file mode 100644
+index 0000000000..9b9d180ad4
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Cav034.pxx
+@@ -0,0 +1,17 @@
++// Issue 034, lane cav: state shared by BRepOffset_Inter3d.cxx and
++// BRepOffset_MakeOffset.cxx (internal to TKOffset, not exported).
++#ifndef BRepOffset_Cav034_pxx
++#define BRepOffset_Cav034_pxx
++
++struct OffsetArcPairs034
++{
++  bool Enabled    = false; //!< intersect the non-neighbour arc pairs
++  int  Candidates = 0;     //!< non-neighbour arc pairs whose boxes overlap
++  bool Collapse   = false; //!< lane cav round 3: intersection join, drop the traces of
++                           //!< collapsed offset faces (second construction)
++  int  Collapsed  = 0;     //!< collapsed offset faces of the last intersection-join construction
++};
++
++OffsetArcPairs034& offsetArcPairs034();
++
++#endif
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Inter3d.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Inter3d.cxx
+index ea272938a3..e57beec12c 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Inter3d.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Inter3d.cxx
+@@ -23,8 +23,11 @@
+ #include <BRepAlgo_AsDes.hxx>
+ #include <BRepAlgo_Image.hxx>
+ #include <BRepLib_MakeVertex.hxx>
++#include <BRepTools.hxx>
++#include <BRepLib_MakeFace.hxx>
+ #include <BRepOffset_Analyse.hxx>
+ #include <BRepOffset_Inter3d.hxx>
++#include "BRepOffset_Cav034.pxx"
+ #include <BRepOffset_Interval.hxx>
+ #include <NCollection_List.hxx>
+ #include <BRepOffset_Offset.hxx>
+@@ -46,6 +49,12 @@
+ #include <BOPTools_BoxTree.hxx>
+ //
+ #include <BOPTools_AlgoTools.hxx>
++#include <BOPTools_AlgoTools2D.hxx>
++#include <NCollection_Sequence.hxx>
++#include <Precision.hxx>
++#include <Standard_ErrorHandler.hxx>
++#include <Standard_Failure.hxx>
++#include <Geom2d_Curve.hxx>
+ 
+ //=================================================================================================
+ 
+@@ -86,6 +95,155 @@ static void ExtentEdge(const TopoDS_Face& /*F*/, const TopoDS_Edge& E, TopoDS_Ed
+   NE.Orientation(E.Orientation());
+ }
+ 
++
++//! Issue 034, lane cav: state of the pairs of arc-join tubes/spheres that
++//! are not neighbours in the input (see ConnexIntByArc): Enabled for the
++//! second construction of BRepOffset_MakeOffset, Candidates counts the
++//! pairs whose boxes overlap. Not exported (no Standard_EXPORT).
++OffsetArcPairs034& offsetArcPairs034()
++{
++  static thread_local OffsetArcPairs034 aState;
++  return aState;
++}
++
++//=======================================================================
++// Issue 034, lane cav: intersection of enlarged faces at the size of the
++// model when the "infinite" enlargement lost it.
++//
++// The intersection join intersects the offset faces enlarged to +-1.e+7
++// (TheInfini of BRepOffset_Tool): with 15 significant digits a coordinate
++// of 1.e+7 carries an error of ~1.e-9 before any computation, and the
++// sections are bounded where they leave these far boundaries (edge/face
++// intersections at 1.e+7). The TheInfini note assumes the result is still
++// within Precision::Confusion(); in a general placement (rotation +
++// translation of the part) the far boundaries are no longer aligned with
++// the section and that assumption fails: the section curve is found but
++// gets no bounded edge (no pave block), the pair is reported as not
++// intersecting and the offset face keeps the untrimmed boundary of its
++// neighbour - a shell that is not closed and is dropped as debris
++// (Jackson 1995, SPM: a tolerance must cover the numerical error of the
++// geometry it is attached to; here the 1.e+7 bounds exceed it).
++// When the enlarged pair gives no section, the same surfaces are
++// intersected again on a window of the size of the offset faces: their
++// UV box widened by 10 times its size on each side (the finite extension
++// of BRepOffset_Tool::EnLargeFace), clipped to the enlarged box. Same
++// surfaces and locations -> the section edges (and their pcurves) belong
++// to the enlarged faces as before; only pairs that found no section are
++// computed again, a pair with a section is never touched.
++//=======================================================================
++static bool window034(const TopoDS_Face& theNF, const TopoDS_Face& theOF, TopoDS_Face& theW)
++{
++  if (theOF.IsNull() || theNF.IsNull())
++  {
++    return false;
++  }
++  TopLoc_Location                  aLN, aLO;
++  const occ::handle<Geom_Surface>& aSN = BRep_Tool::Surface(theNF, aLN);
++  const occ::handle<Geom_Surface>& aSO = BRep_Tool::Surface(theOF, aLO);
++  if (aSN.IsNull() || aSN != aSO || !aLN.IsEqual(aLO))
++  {
++    return false; // the enlargement changed the surface: UV of the offset face do not apply
++  }
++  double aNU0, aNU1, aNV0, aNV1, aU0, aU1, aV0, aV1;
++  BRepTools::UVBounds(theNF, aNU0, aNU1, aNV0, aNV1);
++  BRepTools::UVBounds(theOF, aU0, aU1, aV0, aV1);
++  const double aDU = aU1 - aU0, aDV = aV1 - aV0;
++  double       aWU0 = aNU0, aWU1 = aNU1, aWV0 = aNV0, aWV1 = aNV1;
++  if (!aSN->IsUPeriodic())
++  {
++    aWU0 = std::max(aNU0, aU0 - 10. * aDU);
++    aWU1 = std::min(aNU1, aU1 + 10. * aDU);
++  }
++  if (!aSN->IsVPeriodic())
++  {
++    aWV0 = std::max(aNV0, aV0 - 10. * aDV);
++    aWV1 = std::min(aNV1, aV1 + 10. * aDV);
++  }
++  if (aWU0 <= aNU0 && aWU1 >= aNU1 && aWV0 <= aNV0 && aWV1 >= aNV1)
++  {
++    return false; // the window is the enlarged face itself
++  }
++  BRepLib_MakeFace aMF(aSN, aWU0, aWU1, aWV0, aWV1, BRep_Tool::Tolerance(theNF));
++  if (!aMF.IsDone())
++  {
++    return false;
++  }
++  theW = aMF.Face();
++  theW.Location(aLN);
++  theW.Orientation(theNF.Orientation());
++  return true;
++}
++
++//! Intersects the windows of the two enlarged faces (see window034); the
++//! edges are stored for the enlarged faces by the caller.
++static void interWindows034(const TopoDS_Face&              theNF1,
++                            const TopoDS_Face&              theOF1,
++                            const TopoDS_Face&              theNF2,
++                            const TopoDS_Face&              theOF2,
++                            NCollection_List<TopoDS_Shape>& theL1,
++                            NCollection_List<TopoDS_Shape>& theL2,
++                            const TopAbs_State              theSide,
++                            const TopoDS_Edge&              theRefEdge,
++                            const TopoDS_Face&              theRefFace1,
++                            const TopoDS_Face&              theRefFace2)
++{
++  TopoDS_Face aW1 = theNF1, aW2 = theNF2;
++  bool        isW1 = false, isW2 = false;
++  try
++  {
++    OCC_CATCH_SIGNALS
++    isW1 = window034(theNF1, theOF1, aW1);
++    isW2 = window034(theNF2, theOF2, aW2);
++  }
++  catch (Standard_Failure const&)
++  {
++    return; // no window: the pair stays without section, as before
++  }
++  if (!isW1 && !isW2)
++  {
++    return;
++  }
++  NCollection_List<TopoDS_Shape> aL1, aL2;
++  try
++  {
++    OCC_CATCH_SIGNALS
++    BRepOffset_Tool::Inter3D(aW1, aW2, aL1, aL2, theSide, theRefEdge, theRefFace1, theRefFace2);
++  }
++  catch (Standard_Failure const&)
++  {
++    return; // the pair stays without section, as before
++  }
++  // BRepLib_MakeFace puts the U range of a periodic surface into its first
++  // period; bring the pcurves back into the UV range of the enlarged faces
++  for (NCollection_List<TopoDS_Shape>::Iterator anIt(aL1); anIt.More(); anIt.Next())
++  {
++    const TopoDS_Edge& anE = TopoDS::Edge(anIt.Value());
++    for (int k = 0; k < 2; ++k)
++    {
++      const TopoDS_Face& aW  = k == 0 ? aW1 : aW2;
++      const TopoDS_Face& aNF = k == 0 ? theNF1 : theNF2;
++      if ((k == 0 ? !isW1 : !isW2) || !BRep_Tool::Surface(aNF)->IsUPeriodic())
++      {
++        continue;
++      }
++      double                           aF, aL;
++      const occ::handle<Geom2d_Curve>& aC2d = BRep_Tool::CurveOnSurface(anE, aW, aF, aL);
++      if (aC2d.IsNull())
++      {
++        continue;
++      }
++      occ::handle<Geom2d_Curve> aC2dA;
++      BOPTools_AlgoTools2D::AdjustPCurveOnFace(aNF, aF, aL, aC2d, aC2dA);
++      if (!aC2dA.IsNull() && aC2dA != aC2d)
++      {
++        BRep_Builder().UpdateEdge(anE, aC2dA, aNF, BRep_Tool::Tolerance(anE));
++      }
++    }
++  }
++  theL1 = aL1;
++  theL2 = aL2;
++}
++
+ //=================================================================================================
+ 
+ void BRepOffset_Inter3d::CompletInt(const NCollection_List<TopoDS_Shape>& SetOfFaces,
+@@ -439,6 +597,63 @@ void BRepOffset_Inter3d::ConnexIntByArc(const NCollection_List<TopoDS_Shape>& /*
+       }
+     }
+   }
++
++  // Issue 034, lane cav: the tubes of the edges (and spheres of the
++  // vertices) of the arc join are pieces of the offset of the solid, the
++  // union of the offsets of all its faces, edges and vertices (Rossignac-
++  // Requicha 1986). Its boundary is cut out of their boundaries by ALL the
++  // pairs that meet, not only by the pairs that share a vertex: where the
++  // solid is thinner than 2|t| (a neck, a rib) the tubes of edges on
++  // opposite sides of the thin part meet, and the offset changes topology
++  // there (Sherbrooke-Patrikalakis-Brisson 1996: at the medial axis). The
++  // pairs above follow the adjacency of the input only, so such tubes were
++  // never intersected: they ran through each other and the offset of the
++  // part behind the neck did not close (its shell was dropped as debris).
++  // Here every other pair of tubes/spheres whose boxes overlap is
++  // intersected as well (a broad-phase box test, the intersection itself
++  // decides; a pair that does not meet adds nothing).
++  {
++    NCollection_Sequence<TopoDS_Face> anArcs;
++    NCollection_Sequence<Bnd_Box>     aBoxes;
++    NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aSeen;
++    for (int aType = 0; aType < 2; ++aType)
++    {
++      for (Exp.Init(ShapeInit, aType == 0 ? TopAbs_EDGE : TopAbs_VERTEX); Exp.More(); Exp.Next())
++      {
++        if (!InitOffsetFace.HasImage(Exp.Current()))
++        {
++          continue;
++        }
++        const TopoDS_Shape& anArc = InitOffsetFace.Image(Exp.Current()).First();
++        if (anArc.ShapeType() != TopAbs_FACE || !aSeen.Add(anArc))
++        {
++          continue;
++        }
++        Bnd_Box aBox;
++        BRepBndLib::Add(anArc, aBox, false);
++        aBox.Enlarge(Precision::Confusion());
++        anArcs.Append(TopoDS::Face(anArc));
++        aBoxes.Append(aBox);
++      }
++    }
++    for (int k1 = 1; k1 <= anArcs.Length(); ++k1)
++    {
++      for (int k2 = k1 + 1; k2 <= anArcs.Length(); ++k2)
++      {
++        if (aBoxes(k1).IsOut(aBoxes(k2)) || IsDone(anArcs(k1), anArcs(k2)))
++        {
++          continue;
++        }
++        ++offsetArcPairs034().Candidates;
++        if (!offsetArcPairs034().Enabled)
++        {
++          continue;
++        }
++        BRepOffset_Tool::Inter3D(anArcs(k1), anArcs(k2), LInt1, LInt2, mySide, NullEdge, NullFace, NullFace);
++        Store(anArcs(k1), anArcs(k2), LInt1, LInt2);
++      }
++    }
++  }
+ }
+ 
+ //=================================================================================================
+@@ -755,6 +970,10 @@ void BRepOffset_Inter3d::ConnexIntByInt(
+       {
+         NCollection_List<TopoDS_Shape> LInt1, LInt2;
+         BRepOffset_Tool::Inter3D(NF1, NF2, LInt1, LInt2, CurSide, E, F1, F2);
++        if (LInt1.IsEmpty())
++        {
++          interWindows034(NF1, OF1, NF2, OF2, LInt1, LInt2, CurSide, E, F1, F2);
++        }
+         SetDone(NF1, NF2);
+         if (!LInt1.IsEmpty())
+         {
+@@ -1232,6 +1451,10 @@ void BRepOffset_Inter3d::ContextIntByInt(
+           NCollection_List<TopoDS_Shape> LOE;
+           LOE.Append(OE);
+           BRepOffset_Tool::Inter3D(WCF, NF, LInt1, LInt2, Side, E, CF, F);
++          if (LInt1.IsEmpty())
++          {
++            interWindows034(WCF, CF, NF, OF, LInt1, LInt2, Side, E, CF, F);
++          }
+           SetDone(NF, CF);
+           if (!LInt1.IsEmpty())
+           {
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+index 75132843ef..d89b316616 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+@@ -45,6 +45,7 @@
+ #include <BRepOffset_Inter2d.hxx>
+ #include <BRepOffset_Inter3d.hxx>
+ #include <BRepOffset_MakeOffset.hxx>
++#include "BRepOffset_Cav034.pxx"
+ #include <BRepOffset_Offset.hxx>
+ #include <BRepOffset_Tool.hxx>
+ #include <BRepTools.hxx>
+@@ -94,10 +95,42 @@
+ #include <NCollection_DynamicArray.hxx>
+ #include <NCollection_IncAllocator.hxx>
+ //
++#include <BOPAlgo_ArgumentAnalyzer.hxx>
++#include <BOPAlgo_CheckResult.hxx>
+ #include <BOPAlgo_MakerVolume.hxx>
++#include <BOPAlgo_Splitter.hxx>
++#include <BRepBuilderAPI_MakeFace.hxx>
++#include <BRepOffsetAPI_MakeOffset.hxx>
++#include <Bnd_Box.hxx>
++#include <Bnd_Box2d.hxx>
++#include <BRepAdaptor_Surface.hxx>
++#include <ChFi3d.hxx>
++#include <NCollection_IndexedDataMap.hxx>
++#include <TopExp.hxx>
++#include <BRepBndLib.hxx>
++#include <BRepExtrema_DistShapeShape.hxx>
++#include <BRepLProp_SLProps.hxx>
++#include <BRepAdaptor_Curve.hxx>
++#include <Extrema_ExtPC.hxx>
++#include <Extrema_ExtPS.hxx>
++#include <IntTools_FClass2d.hxx>
++#include <memory>
++#include <utility>
++#include <vector>
++#include <NCollection_Sequence.hxx>
++#include <NCollection_IndexedDataMap.hxx>
++#include <TopExp.hxx>
++#include <gp_Lin.hxx>
++#include <Geom_BSplineSurface.hxx>
++#include <Geom_BezierSurface.hxx>
++#include <Standard_ErrorHandler.hxx>
++#include <algorithm>
++#include <cmath>
+ #include <BOPTools_AlgoTools.hxx>
++#include <ChFi3d.hxx>
+ 
+ #include <cstdio>
++#include <exception>
+ // POP for NT
+ #ifdef OCCT_DEBUG
+   #include <OSD_Chronometer.hxx>
+@@ -233,16 +266,3150 @@ static void normalizeSteps(const double theWhole, NCollection_Array1<double>& th
+   double aSum = 0.;
+   for (int i = theSteps.Lower(); i <= theSteps.Upper(); ++i)
+   {
+-    aSum += theSteps(i);
++    aSum += theSteps(i);
++  }
++
++  // Normalize steps
++  for (int i = theSteps.Lower(); i <= theSteps.Upper(); ++i)
++  {
++    theSteps(i) = theWhole * theSteps(i) / aSum;
++  }
++}
++
++} // namespace
++
++//=======================================================================
++// Issue 034 guard: the offset algorithm must never return a broken
++// result silently.
++//
++// The offset of a face whose curvature radius on the offset side is
++// smaller than the offset distance folds over itself (Farouki 1986,
++// Maekawa 1999, Seong-Elber-Kim 2006). Analytic faces in this state
++// get the status Reversed/Degenerated and are dropped; free-form faces
++// are kept untrimmed (a face is never intersected with itself) and
++// the result can come back self-intersecting or invalid with no error.
++//
++// The guard costs nothing when no face can fold: planar faces are
++// skipped, cylinders and spheres cost one evaluation, other faces a
++// sampled curvature grid. Only when some face can fold is the result
++// checked (BRepCheck + self-interference, and for a plain offset the
++// distance of the result to the input). A check that fails turns the
++// result into an error; a result that passes is returned unchanged.
++//
++// Structural cases, independent of folds: an empty result is an error
++// (it was reported as done); a thick solid glued from the input faces
++// and an offset shell that is the input itself is an error (it was
++// returned as the thick solid); a glued plate that comes out inside out
++// is reversed.
++//=======================================================================
++namespace
++{
++//! Offset factors below this value trigger the check of the result.
++//! A factor 1 - d*k <= 0 is a fold; the margin covers sampling.
++const double THE_FOLD_TRIGGER_034 = 0.05;
++//! A sample of the result closer to the input than this share of the
++//! offset distance proves a wrong piece.
++const double THE_CLOSE_FACTOR_034 = 0.99;
++
++//! Record of the fold test of the last MakeOffsetShape() of an object,
++//! read back by MakeThickSolid() of the same object (no new members:
++//! the class layout stays that of OCCT 8.0.1).
++struct FoldRecord034
++{
++  const void* Owner = nullptr;
++  bool        Fold  = false;
++  bool        Check = false; //!< Fold, or a tangent free-form join (A2): check the result
++};
++
++thread_local FoldRecord034 THE_FOLD_RECORD_034;
++
++//! Smallest principal offset factor min(1 - d*k1, 1 - d*k2) at (u, v);
++//! d is the signed offset along the natural normal Su x Sv.
++//! Returns false at a singular point: normal undefined, or one derivative
++//! vanishing against the other over the face ranges theRU x theRV (a pole
++//! of a surface of revolution / degenerate B-spline edge, where the
++//! curvature formula is only round-off).
++static bool offsetFactor034(const Geom_Surface& theS,
++                            const double        theU,
++                            const double        theV,
++                            const double        theRU,
++                            const double        theRV,
++                            const double        theD,
++                            double&             theF)
++{
++  gp_Pnt aP;
++  gp_Vec aSu, aSv, aSuu, aSvv, aSuv;
++  theS.D2(theU, theV, aP, aSu, aSv, aSuu, aSvv, aSuv);
++  gp_Vec       aN   = aSu.Crossed(aSv);
++  const double aNm  = aN.Magnitude();
++  const double anE  = aSu.SquareMagnitude();
++  const double aG   = aSv.SquareMagnitude();
++  const double aF   = aSu.Dot(aSv);
++  const double aDen = anE * aG - aF * aF;
++  const double aLU  = std::sqrt(anE) * theRU;
++  const double aLV  = std::sqrt(aG) * theRV;
++  if (aNm < 1.e-300 || aNm <= 1.e-9 * std::sqrt(anE * aG) || aDen <= 0.
++      || std::min(aLU, aLV) <= 1.e-6 * std::max(aLU, aLV))
++  {
++    return false;
++  }
++  aN.Divide(aNm);
++  const double aL    = aSuu.Dot(aN);
++  const double aM    = aSuv.Dot(aN);
++  const double aNN   = aSvv.Dot(aN);
++  const double aK    = (aL * aNN - aM * aM) / aDen;
++  const double aH    = (anE * aNN + aG * aL - 2. * aF * aM) / (2. * aDen);
++  const double aDisc = std::sqrt(std::max(aH * aH - aK, 0.));
++  theF               = std::min(1. - theD * (aH + aDisc), 1. - theD * (aH - aDisc));
++  return true;
++}
++
++//! True if the offset of the face by theOffset (along the outward normal of
++//! the face in its shape) can fold, i.e. some sampled offset factor is below
++//! THE_FOLD_TRIGGER_034. Exceptions count as "can fold" (the result is checked).
++static bool faceMayFold034(const TopoDS_Face& theF, const double theOffset)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    TopLoc_Location                  aLoc;
++    const occ::handle<Geom_Surface>& aS = BRep_Tool::Surface(theF, aLoc);
++    if (aS.IsNull() || std::abs(theOffset) <= Precision::Confusion())
++    {
++      return false;
++    }
++    const GeomAdaptor_Surface aGAS(aS);
++    const GeomAbs_SurfaceType aType = aGAS.GetType();
++    if (aType == GeomAbs_Plane)
++    {
++      return false;
++    }
++    const double aD = (theF.Orientation() == TopAbs_REVERSED) ? -theOffset : theOffset;
++    double       aU0, aU1, aV0, aV1;
++    BRepTools::UVBounds(theF, aU0, aU1, aV0, aV1);
++    if (aU1 < aU0 || aV1 < aV0)
++    {
++      return true;
++    }
++    // number of grid steps in each direction (0 = one sample in the middle)
++    int aNU = 16, aNV = 16;
++    switch (aType)
++    {
++      case GeomAbs_Cylinder:
++      case GeomAbs_Sphere:
++        aNU = aNV = 0; // constant curvature
++        break;
++      case GeomAbs_Cone: {
++        // the apex inside the face: the offset towards the axis always folds
++        const gp_Cone aCone = aGAS.Cone();
++        const double  aR0   = aCone.RefRadius() + aV0 * std::sin(aCone.SemiAngle());
++        const double  aR1   = aCone.RefRadius() + aV1 * std::sin(aCone.SemiAngle());
++        if (aR0 * aR1 <= 0.)
++        {
++          return true;
++        }
++        aNU = 0; // curvature depends on v only
++        break;
++      }
++      case GeomAbs_Torus:
++      case GeomAbs_SurfaceOfRevolution:
++        aNU = 0; // curvature depends on v only
++        break;
++      case GeomAbs_SurfaceOfExtrusion:
++        aNV = 0; // curvature depends on u only
++        break;
++      case GeomAbs_BSplineSurface: {
++        // at least two samples per knot span, at most 64 steps
++        const occ::handle<Geom_BSplineSurface> aBS = aGAS.BSpline();
++        int                                    aSU = 0, aSV = 0;
++        for (int i = aBS->FirstUKnotIndex(); i < aBS->LastUKnotIndex(); ++i)
++        {
++          if (aBS->UKnot(i + 1) > aU0 && aBS->UKnot(i) < aU1)
++          {
++            ++aSU;
++          }
++        }
++        for (int i = aBS->FirstVKnotIndex(); i < aBS->LastVKnotIndex(); ++i)
++        {
++          if (aBS->VKnot(i + 1) > aV0 && aBS->VKnot(i) < aV1)
++          {
++            ++aSV;
++          }
++        }
++        aNU = std::min(std::max(aNU, 2 * aSU), 64);
++        aNV = std::min(std::max(aNV, 2 * aSV), 64);
++        break;
++      }
++      default:
++        break;
++    }
++    const double aDU  = aNU > 0 ? (aU1 - aU0) / aNU : 0.;
++    const double aDV  = aNV > 0 ? (aV1 - aV0) / aNV : 0.;
++    double       aMin = RealLast(), aMinU = 0.5 * (aU0 + aU1), aMinV = 0.5 * (aV0 + aV1);
++    for (int i = 0; i <= aNU; ++i)
++    {
++      const double aU = aNU > 0 ? aU0 + aDU * i : 0.5 * (aU0 + aU1);
++      for (int j = 0; j <= aNV; ++j)
++      {
++        const double aV = aNV > 0 ? aV0 + aDV * j : 0.5 * (aV0 + aV1);
++        double       aFct;
++        if (!offsetFactor034(*aS, aU, aV, aU1 - aU0, aV1 - aV0, aD, aFct))
++        {
++          continue;
++        }
++        if (aFct < THE_FOLD_TRIGGER_034)
++        {
++          return true;
++        }
++        if (aFct < aMin)
++        {
++          aMin  = aFct;
++          aMinU = aU;
++          aMinV = aV;
++        }
++      }
++    }
++    // a thin tight band between the samples: pattern search from the
++    // tightest sample (only where the curvature radius is already below
++    // four offset distances)
++    if (aMin < 0.75 && (aNU > 0 || aNV > 0))
++    {
++      static const int THE_DIRS[8][2] =
++        {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
++      double aHU = aDU, aHV = aDV;
++      for (int anIter = 0; anIter < 64 && (aHU > aDU / 512. || aHV > aDV / 512.); ++anIter)
++      {
++        bool isMoved = false;
++        for (int k = 0; k < 8; ++k)
++        {
++          const double aU = std::min(std::max(aMinU + THE_DIRS[k][0] * aHU, aU0), aU1);
++          const double aV = std::min(std::max(aMinV + THE_DIRS[k][1] * aHV, aV0), aV1);
++          double       aFct;
++          if (!offsetFactor034(*aS, aU, aV, aU1 - aU0, aV1 - aV0, aD, aFct))
++          {
++            continue;
++          }
++          if (aFct < THE_FOLD_TRIGGER_034)
++          {
++            return true;
++          }
++          if (aFct < aMin)
++          {
++            aMin    = aFct;
++            aMinU   = aU;
++            aMinV   = aV;
++            isMoved = true;
++          }
++        }
++        if (!isMoved)
++        {
++          aHU *= 0.5;
++          aHV *= 0.5;
++        }
++      }
++    }
++    return false;
++  }
++  catch (Standard_Failure const&)
++  {
++    return true;
++  }
++}
++
++//! True if the offset of some face of theFaces can fold.
++static bool offsetMayFold034(
++  const TopoDS_Shape&                                                       theFaces,
++  const double                                                              theOffset,
++  const NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>& theFaceOffset)
++{
++  for (TopExp_Explorer anExp(theFaces, TopAbs_FACE); anExp.More(); anExp.Next())
++  {
++    const TopoDS_Face& aF       = TopoDS::Face(anExp.Current());
++    const double*      anOffset = theFaceOffset.Seek(aF);
++    if (faceMayFold034(aF, anOffset ? *anOffset : theOffset))
++    {
++      return true;
++    }
++  }
++  return false;
++}
++
++//! True if the result is proven broken: BRepCheck invalid, or its faces
++//! self-interfere (BOPAlgo self-interference check). An exception inside
++//! the check proves nothing (the result is kept).
++//! theIsParallel: the same checks on the OCCT thread pool (BRepCheck per
++//! sub-shape, the pairs of the self-interference check), as FreeCAD runs
++//! its Boolean operations; same verdict, shorter wall time (issue 034 A3
++//! round 3: the full check of every tangent-rim thick solid).
++static bool resultIsBroken034(const TopoDS_Shape& theRes, const bool theIsParallel = false)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    if (!BRepCheck_Analyzer(theRes, true, theIsParallel).IsValid())
++    {
++      return true;
++    }
++    BOPAlgo_ArgumentAnalyzer anAnalyzer;
++    anAnalyzer.SetShape1(theRes);
++    anAnalyzer.SelfInterMode()     = true;
++    anAnalyzer.StopOnFirstFaulty() = true;
++    anAnalyzer.SetRunParallel(theIsParallel);
++    anAnalyzer.Perform();
++    for (NCollection_List<BOPAlgo_CheckResult>::Iterator anIt(anAnalyzer.GetCheckResult());
++         anIt.More();
++         anIt.Next())
++    {
++      if (anIt.Value().GetCheckStatus() == BOPAlgo_SelfIntersect)
++      {
++        return true;
++      }
++    }
++  }
++  catch (Standard_Failure const&)
++  {
++  }
++  return false;
++}
++
++//! Issue 034, lane cav: true if BRepCheck proves the result invalid (the
++//! BOP self-interference part of resultIsBroken034 is not deterministic on
++//! results far from the origin, see LITERATURE.txt "lane cav"; an
++//! exception inside the check proves nothing).
++static bool resultIsInvalid034(const TopoDS_Shape& theRes)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    return !BRepCheck_Analyzer(theRes).IsValid();
++  }
++  catch (Standard_Failure const&)
++  {
++  }
++  return false;
++}
++
++//! Distance criterion (Seong-Elber-Kim 2006): every point of a correct
++//! offset lies at least |offset| away from the boundary of the input (both
++//! join types; the arc join gives exactly |offset|, the intersection join
++//! more at sharp edges). True if a sample inside a face of the result is
++//! clearly closer: a piece of the wrong side was kept.
++static bool resultTooClose034(const TopoDS_Shape& theRes,
++                              const TopoDS_Shape& theInput,
++                              const double        theAbsOffset,
++                              const double        theTol)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    BRep_Builder    aBB;
++    TopoDS_Compound aBnd, aPts;
++    aBB.MakeCompound(aBnd);
++    aBB.MakeCompound(aPts);
++    for (TopExp_Explorer anExp(theInput, TopAbs_FACE); anExp.More(); anExp.Next())
++    {
++      aBB.Add(aBnd, anExp.Current());
++    }
++    int aNbPts = 0;
++    for (TopExp_Explorer anExp(theRes, TopAbs_FACE); anExp.More(); anExp.Next())
++    {
++      const TopoDS_Face&  aF = TopoDS::Face(anExp.Current());
++      BRepAdaptor_Surface aBAS(aF, false);
++      double              aU0, aU1, aV0, aV1;
++      BRepTools::UVBounds(aF, aU0, aU1, aV0, aV1);
++      IntTools_FClass2d aCls(aF, Precision::PConfusion());
++      for (int i = 1; i < 5; ++i)
++      {
++        for (int j = 1; j < 5; ++j)
++        {
++          const gp_Pnt2d aUV(aU0 + (aU1 - aU0) * i / 5., aV0 + (aV1 - aV0) * j / 5.);
++          if (aCls.Perform(aUV) != TopAbs_IN)
++          {
++            continue;
++          }
++          aBB.Add(aPts, BRepLib_MakeVertex(aBAS.Value(aUV.X(), aUV.Y())).Vertex());
++          ++aNbPts;
++        }
++      }
++    }
++    if (aNbPts == 0 || aBnd.NbChildren() == 0)
++    {
++      return false;
++    }
++    BRepExtrema_DistShapeShape aDist(aPts, aBnd);
++    return aDist.IsDone() && aDist.Value() < THE_CLOSE_FACTOR_034 * theAbsOffset - theTol;
++  }
++  catch (Standard_Failure const&)
++  {
++    return false;
++  }
++}
++
++//! True if the two solids coincide: same volume and same bounding box.
++static bool sameSolid034(const TopoDS_Shape& theA, const TopoDS_Shape& theB)
++{
++  GProp_GProps aPA, aPB;
++  BRepGProp::VolumeProperties(theA, aPA);
++  BRepGProp::VolumeProperties(theB, aPB);
++  const double aVA = std::abs(aPA.Mass()), aVB = std::abs(aPB.Mass());
++  if (std::abs(aVA - aVB) > 1.e-7 * std::max(aVA, aVB))
++  {
++    return false;
++  }
++  Bnd_Box aBA, aBB;
++  BRepBndLib::Add(theA, aBA, false);
++  BRepBndLib::Add(theB, aBB, false);
++  if (aBA.IsVoid() || aBB.IsVoid())
++  {
++    return false;
++  }
++  const double aTol = 1.e-6 * std::sqrt(aBA.SquareExtent()) + Precision::Confusion();
++  return aBA.CornerMin().Distance(aBB.CornerMin()) <= aTol
++         && aBA.CornerMax().Distance(aBB.CornerMax()) <= aTol;
++}
++
++//=======================================================================
++// Issue 034, lane cav: result control "a piece of the offset was lost".
++//
++// With the arc join the offset of a solid by d is exact (Rossignac-
++// Requicha 1986): its boundary is the set of the points at distance
++// exactly |d| from the boundary of the input, on the offset side. A point
++// q = P + d*N(P), P inside a kept face F, is such a point when no other
++// kept face comes closer to q than |d| and F itself does not (q is then at
++// distance exactly |d|, from F); a neighbourhood of q on the boundary of
++// the offset is then a piece of the offset of F. So F must have an image
++// whenever
++//     h(P) = distance from q(P) to the other kept faces  >  |d| + eps
++// for some P of F with q(P) on the offset side. A face thinner than 2|d|
++// against another face (a neck), a face with a radius of curvature below
++// |d| on the offset side, a face swallowed by its neighbours has no such
++// P and legally loses its image; where the offset pinches off a chamber
++// (Sherbrooke-Patrikalakis-Brisson 1996: the topology of the offset
++// changes where |d| passes the radius of the medial axis) the chamber
++// keeps faces with such P, and a construction that dropped them returned
++// a valid solid without the cavity (a wrong volume).
++//
++// This is a RESULT CONTROL ONLY: it raises an error and never builds,
++// trims or selects anything (IP.txt of issue 034: a distance check only as
++// an error-raising control, EP4530910A1).
++// The intersection join uses the same criterion (lane cav round 3). Its
++// offset differs from the exact one only by the sharp extensions of the
++// offsets at the edges where they separate (the mitres, instead of the
++// tubes of the arc join): there the offset of F is EXTENDED to its
++// intersection with the offset of its neighbour, never cut. Where the
++// offsets meet (a neck thinner than 2|d|, a face swallowed by its
++// neighbours) the points of the offset of F lie inside the band of a
++// neighbour face, so h < |d| as for the arc join. Rounds 1-2 also let the
++// WHOLE (infinite, two-sided) surfaces of the faces touching F cut the
++// offset of F; that is not what the join builds - an extended offset cuts
++// the offset of F only beyond their intersection curve - and it hid a
++// real loss: the ceiling of a cone chamber under a square neck (Review
++// offset-cav r2), whose offset points are all within |d| of the planes of
++// the neck walls, although those walls end |d| above them and the join
++// keeps the whole ceiling (the hole of the neck closes).
++// The set of P where h > |d| can be small (a chamber just thicker than
++// 2|d|): h is sampled at the cell centres of a grid on the face (odd grid:
++// the centre of the face is a sample) and maximised from the best samples
++// by a compass (pattern) search (Kolda-Lewis-Torczon 2003, SIAM Review
++// 45:385-482), which converges to a local maximum of h. The control
++// reports a loss only on a point it has found (never a false error; a
++// piece it does not find is reported as before - a known limit).
++// eps: the tolerance of the construction (myTol) plus the tolerance of the
++// face plus the accuracy of the distance computation (Confusion); a piece
++// of offset thinner than eps is below the modelling accuracy.
++// Cost: nothing unless a kept face has no image; then the distance
++// machinery of each face is built once (FaceDistance034) and one answer
++// serves the first construction and the result (THE_LOST_RECORD_034).
++//=======================================================================
++//! The kept faces (theKept) that have no face among their images in the
++//! history of the offset (theInit).
++static void facesWithoutImage034(const TopoDS_Shape&             theKept,
++                                 const BRepAlgo_Image&           theInit,
++                                 NCollection_List<TopoDS_Shape>& theLost)
++{
++  for (TopExp_Explorer anExp(theKept, TopAbs_FACE); anExp.More(); anExp.Next())
++  {
++    const TopoDS_Shape& aF      = anExp.Current();
++    bool                isImage = false;
++    if (theInit.HasImage(aF))
++    {
++      NCollection_List<TopoDS_Shape> anImages;
++      theInit.LastImage(aF, anImages);
++      for (NCollection_List<TopoDS_Shape>::Iterator anIt(anImages); anIt.More() && !isImage;
++           anIt.Next())
++      {
++        isImage = TopExp_Explorer(anIt.Value(), TopAbs_FACE).More();
++      }
++    }
++    if (!isImage)
++    {
++      theLost.Append(aF);
++    }
++  }
++}
++
++//! Distance from theQ to the whole (untrimmed) elementary surface of theS;
++//! false for a surface that is not a plane, cylinder, sphere or torus.
++static bool extendedDistance034(const BRepAdaptor_Surface& theS, const gp_Pnt& theQ, double& theD)
++{
++  switch (theS.GetType())
++  {
++    case GeomAbs_Plane:
++      theD = theS.Plane().Distance(theQ);
++      return true;
++    case GeomAbs_Cylinder: {
++      const gp_Cylinder aC = theS.Cylinder();
++      theD                 = std::abs(gp_Lin(aC.Axis()).Distance(theQ) - aC.Radius());
++      return true;
++    }
++    case GeomAbs_Sphere: {
++      const gp_Sphere aS = theS.Sphere();
++      theD               = std::abs(aS.Location().Distance(theQ) - aS.Radius());
++      return true;
++    }
++    case GeomAbs_Torus: {
++      const gp_Torus aT = theS.Torus();
++      const gp_Vec   aV(aT.Location(), theQ);
++      const gp_Dir&  aZ  = aT.Axis().Direction();
++      const double   aH  = aV.Dot(gp_Vec(aZ));
++      const double   aR  = (aV - gp_Vec(aZ) * aH).Magnitude();
++      theD               = std::abs(std::hypot(aR - aT.MajorRadius(), aH) - aT.MinorRadius());
++      return true;
++    }
++    default:
++      return false;
++  }
++}
++
++namespace
++{
++//! Exact distance from a point to one trimmed face: the least of the
++//! interior extrema of its surface whose parameters the face classifier
++//! puts IN or ON the face, the extrema on its edges and the distances to
++//! its vertices - the quantity BRepExtrema_DistShapeShape(vertex, face)
++//! computes, with the extrema machinery of the face and of its edges built
++//! once and reused for every point (lane cav round 2: the control measures
++//! hundreds of points against the same faces; building the surface grid of
++//! a free-form face and the boxes of the sub-shapes again for each point
++//! made the control cost 5-40x the offset itself). Built on first use.
++class FaceDistance034
++{
++public:
++  explicit FaceDistance034(const TopoDS_Face& theF)
++      : myFace(theF)
++  {
++  }
++
++  //! The distance, or any value >= theBound when the distance is not
++  //! below theBound (the caller keeps the least value it has).
++  double Distance(const gp_Pnt& theQ, const double theBound)
++  {
++    if (!myIsInit)
++    {
++      init();
++    }
++    // plane, cylinder, sphere, torus: the distance to the whole surface is
++    // a lower bound of the distance to the face, and it is the distance to
++    // the face when its foot (the least extremum) lies in the face
++    double aLower = 0.;
++    const bool isElementary = myIsSurf && extendedDistance034(mySurf, theQ, aLower);
++    if (isElementary && aLower >= theBound)
++    {
++      return aLower;
++    }
++    double aD2 = RealLast();
++    if (myIsSurf)
++    {
++      myExtPS.Perform(theQ);
++      if (myExtPS.IsDone())
++      {
++        for (int i = 1; i <= myExtPS.NbExt(); ++i)
++        {
++          const double aS = myExtPS.SquareDistance(i);
++          if (aS >= aD2)
++          {
++            continue;
++          }
++          double aU, aV;
++          myExtPS.Point(i).Parameter(aU, aV);
++          const TopAbs_State aState = myCls->Perform(gp_Pnt2d(aU, aV));
++          if (aState == TopAbs_IN || aState == TopAbs_ON)
++          {
++            aD2 = aS;
++          }
++        }
++      }
++      if (isElementary && std::sqrt(aD2) <= aLower + Precision::Confusion() * 1.e-2)
++      {
++        return std::sqrt(aD2); // the foot of the whole surface is in the face
++      }
++    }
++    for (size_t k = 0; k < myEdges.size(); ++k)
++    {
++      Extrema_ExtPC& anExt = myEdges[k]->Ext;
++      anExt.Perform(theQ);
++      if (anExt.IsDone())
++      {
++        for (int i = 1; i <= anExt.NbExt(); ++i)
++        {
++          aD2 = std::min(aD2, anExt.SquareDistance(i));
++        }
++      }
++    }
++    for (size_t k = 0; k < myVertices.size(); ++k)
++    {
++      aD2 = std::min(aD2, theQ.SquareDistance(myVertices[k]));
++    }
++    return std::sqrt(aD2);
++  }
++
++private:
++  struct EdgeExt
++  {
++    BRepAdaptor_Curve Curve;
++    Extrema_ExtPC     Ext;
++  };
++
++  //! The same initialisation as BRepExtrema_ExtPF / BRepExtrema_ExtPC.
++  void init()
++  {
++    myIsInit = true;
++    mySurf.Initialize(myFace, false);
++    myIsSurf = mySurf.GetType() != GeomAbs_OtherSurface;
++    if (myIsSurf)
++    {
++      const double aTol  = std::min(BRep_Tool::Tolerance(myFace), Precision::Confusion());
++      const double aTolU = std::max(mySurf.UResolution(aTol), Precision::PConfusion());
++      const double aTolV = std::max(mySurf.VResolution(aTol), Precision::PConfusion());
++      double       aU1, aU2, aV1, aV2;
++      BRepTools::UVBounds(myFace, aU1, aU2, aV1, aV2);
++      myExtPS.SetFlag(Extrema_ExtFlag_MINMAX);
++      myExtPS.SetAlgo(Extrema_ExtAlgo_Grad);
++      myExtPS.Initialize(mySurf, aU1, aU2, aV1, aV2, aTolU, aTolV);
++      myCls.reset(new IntTools_FClass2d(myFace, BRep_Tool::Tolerance(myFace)));
++    }
++    NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aSeen;
++    for (TopExp_Explorer anExp(myFace, TopAbs_EDGE); anExp.More(); anExp.Next())
++    {
++      const TopoDS_Edge& anE = TopoDS::Edge(anExp.Current());
++      if (!aSeen.Add(anE) || BRep_Tool::Degenerated(anE) || !BRep_Tool::IsGeometric(anE))
++      {
++        continue;
++      }
++      std::unique_ptr<EdgeExt> anEE(new EdgeExt());
++      anEE->Curve.Initialize(anE);
++      double aTol = std::min(BRep_Tool::Tolerance(anE), Precision::Confusion());
++      aTol        = std::max(anEE->Curve.Resolution(aTol), Precision::PConfusion());
++      double aF, aL;
++      BRep_Tool::Range(anE, aF, aL);
++      anEE->Ext.Initialize(anEE->Curve, aF, aL, aTol);
++      myEdges.push_back(std::move(anEE));
++    }
++    for (TopExp_Explorer anExp(myFace, TopAbs_VERTEX); anExp.More(); anExp.Next())
++    {
++      if (aSeen.Add(anExp.Current()))
++      {
++        myVertices.push_back(BRep_Tool::Pnt(TopoDS::Vertex(anExp.Current())));
++      }
++    }
++  }
++
++  TopoDS_Face                           myFace;
++  bool                                  myIsInit = false;
++  bool                                  myIsSurf = false;
++  BRepAdaptor_Surface                   mySurf;
++  Extrema_ExtPS                         myExtPS;
++  std::unique_ptr<IntTools_FClass2d>    myCls;
++  std::vector<std::unique_ptr<EdgeExt>> myEdges;
++  std::vector<gp_Pnt>                   myVertices;
++};
++
++//! The kept faces of the controls with their boxes and distance evaluators.
++struct KeptFaces034
++{
++  //! theReach: the enlargement of the boxes (farther faces are not measured).
++  KeptFaces034(const TopoDS_Shape& theKept, const double theReach)
++  {
++    for (TopExp_Explorer anExp(theKept, TopAbs_FACE); anExp.More(); anExp.Next())
++    {
++      Bnd_Box aBox;
++      BRepBndLib::Add(anExp.Current(), aBox, false);
++      Tight.Append(aBox);
++      aBox.Enlarge(theReach);
++      Faces.Append(anExp.Current());
++      Boxes.Append(aBox);
++      Dist.push_back(
++        std::unique_ptr<FaceDistance034>(new FaceDistance034(TopoDS::Face(anExp.Current()))));
++    }
++  }
++
++  NCollection_Sequence<TopoDS_Shape>            Faces;
++  NCollection_Sequence<Bnd_Box>                 Boxes; //!< enlarged by the reach
++  NCollection_Sequence<Bnd_Box>                 Tight; //!< the box of the face
++  std::vector<std::unique_ptr<FaceDistance034>> Dist;
++};
++
++//! Distance from theQ to theBox (0 inside): a lower bound of the distance
++//! to anything the box encloses.
++static double boxDistance034(const Bnd_Box& theBox, const gp_Pnt& theQ)
++{
++  if (theBox.IsVoid())
++  {
++    return 0.;
++  }
++  double aX0, aY0, aZ0, aX1, aY1, aZ1;
++  theBox.Get(aX0, aY0, aZ0, aX1, aY1, aZ1);
++  const double aDX = std::max({aX0 - theQ.X(), 0., theQ.X() - aX1});
++  const double aDY = std::max({aY0 - theQ.Y(), 0., theQ.Y() - aY1});
++  const double aDZ = std::max({aZ0 - theQ.Z(), 0., theQ.Z() - aZ1});
++  return std::sqrt(aDX * aDX + aDY * aDY + aDZ * aDZ);
++}
++
++//! h(P) of one kept face F (see above), capped at 2|d| (farther faces are
++//! not measured: their boxes, enlarged by 2|d|, do not reach q), for both
++//! joins. The faces are measured in the order of the distance to their boxes and
++//! only while that lower bound is below the least distance found, so the
++//! minimum is the same as over every face in reach.
++class OwnedPiece034
++{
++public:
++  OwnedPiece034(const TopoDS_Face& theF,
++                KeptFaces034&      theKept,
++                const double       theOffset,
++                const double       theEps)
++      : myF(theF),
++        myKept(theKept),
++        mySurf(theF, true),
++        myCls(theF, Precision::PConfusion()),
++        myOffset(theOffset),
++        myAbs(std::abs(theOffset)),
++        myEps(theEps)
++  {
++  }
++
++  //! False if (u, v) is outside F or has no normal; else h and q.
++  bool Value(const double theU, const double theV, double& theH, gp_Pnt& theQ)
++  {
++    if (myCls.Perform(gp_Pnt2d(theU, theV)) != TopAbs_IN)
++    {
++      return false;
++    }
++    BRepLProp_SLProps aProps(mySurf, theU, theV, 1, Precision::Confusion());
++    if (!aProps.IsNormalDefined())
++    {
++      return false;
++    }
++    gp_Dir aN = aProps.Normal();
++    if (myF.Orientation() == TopAbs_REVERSED)
++    {
++      aN.Reverse();
++    }
++    theQ = aProps.Value().Translated(gp_Vec(aN) * myOffset);
++    theH = 2. * myAbs;
++    myOrder.clear();
++    int aSelf = 0;
++    for (int k = 1; k <= myKept.Faces.Length(); ++k)
++    {
++      if (myKept.Boxes(k).IsOut(theQ))
++      {
++        continue;
++      }
++      if (myKept.Faces(k).IsSame(myF))
++      {
++        aSelf = k; // F may come back towards q: measured below
++        continue;
++      }
++      myOrder.push_back(std::make_pair(boxDistance034(myKept.Tight(k), theQ), k));
++    }
++    std::sort(myOrder.begin(), myOrder.end());
++    for (size_t i = 0; i < myOrder.size() && myOrder[i].first < theH; ++i)
++    {
++      theH = std::min(theH, myKept.Dist[myOrder[i].second - 1]->Distance(theQ, theH));
++    }
++    if (aSelf > 0)
++    {
++      // q must be at distance |d| from F itself (no fold of F onto q)
++      if (myKept.Dist[aSelf - 1]->Distance(theQ, myAbs) < myAbs - myEps)
++      {
++        theH = -1.;
++      }
++    }
++    return true;
++  }
++
++  bool IsOwned(const double theH) const { return theH > myAbs + myEps; }
++
++private:
++  const TopoDS_Face&                  myF;
++  KeptFaces034&                       myKept;
++  BRepAdaptor_Surface                 mySurf;
++  IntTools_FClass2d                   myCls;
++  double                              myOffset;
++  double                              myAbs;
++  double                              myEps;
++  std::vector<std::pair<double, int>> myOrder;
++};
++} // namespace
++
++//! True if a point of the offset owned by one of the lost faces (theLost)
++//! is found (see above); theSolid classifies the offset side.
++static bool lostOffsetPiece034(const NCollection_List<TopoDS_Shape>& theLost,
++                               const TopoDS_Shape&                   theKept,
++                               const TopoDS_Shape&                   theSolid,
++                               const double                          theOffset,
++                               const double                          theTol)
++{
++  const double                       anAbs = std::abs(theOffset);
++  KeptFaces034 aKeptFaces(theKept, 2. * anAbs);
++  BRepClass3d_SolidClassifier aSide(theSolid);
++  const TopAbs_State          anOffsetSide = theOffset < 0. ? TopAbs_IN : TopAbs_OUT;
++  constexpr int               THE_NB_GRID   = 5; // cell centres; odd: the centre is a sample
++  constexpr int               THE_NB_STARTS = 3; // compass searches from the best samples
++  static const int            THE_DIRS[8][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1},
++                                                {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
++  for (NCollection_List<TopoDS_Shape>::Iterator aFIt(theLost); aFIt.More(); aFIt.Next())
++  {
++    const TopoDS_Face& aF    = TopoDS::Face(aFIt.Value());
++    const double       anEps = theTol + BRep_Tool::Tolerance(aF) + Precision::Confusion();
++    OwnedPiece034 aPiece(aF, aKeptFaces, theOffset, anEps);
++    double             aU0, aU1, aV0, aV1;
++    BRepTools::UVBounds(aF, aU0, aU1, aV0, aV1);
++    const double aDU = (aU1 - aU0) / THE_NB_GRID, aDV = (aV1 - aV0) / THE_NB_GRID;
++    // an owned point on the offset side ends the control
++    auto isLost = [&](const double theH, const gp_Pnt& theQ) {
++      if (!aPiece.IsOwned(theH))
++      {
++        return false;
++      }
++      aSide.Perform(theQ, Precision::Confusion());
++      return aSide.State() == anOffsetSide;
++    };
++    double aBestH[THE_NB_STARTS], aBestU[THE_NB_STARTS], aBestV[THE_NB_STARTS];
++    for (int s = 0; s < THE_NB_STARTS; ++s)
++    {
++      aBestH[s] = -2.;
++      aBestU[s] = aBestV[s] = 0.;
++    }
++    for (int i = 0; i < THE_NB_GRID; ++i)
++    {
++      for (int j = 0; j < THE_NB_GRID; ++j)
++      {
++        const double aU = aU0 + (i + 0.5) * aDU, aV = aV0 + (j + 0.5) * aDV;
++        double       aH;
++        gp_Pnt       aQ;
++        if (!aPiece.Value(aU, aV, aH, aQ))
++        {
++          continue;
++        }
++        if (isLost(aH, aQ))
++        {
++          return true;
++        }
++        for (int s = 0; s < THE_NB_STARTS; ++s)
++        {
++          if (aH > aBestH[s])
++          {
++            for (int t = THE_NB_STARTS - 1; t > s; --t)
++            {
++              aBestH[t] = aBestH[t - 1];
++              aBestU[t] = aBestU[t - 1];
++              aBestV[t] = aBestV[t - 1];
++            }
++            aBestH[s] = aH;
++            aBestU[s] = aU;
++            aBestV[s] = aV;
++            break;
++          }
++        }
++      }
++    }
++    // compass search from the best samples: poll the 8 neighbours at the
++    // current step, move to the first better one, else halve the step;
++    // stop at 1/1000 of the cell or after a bounded number of evaluations
++    for (int s = 0; s < THE_NB_STARTS; ++s)
++    {
++      if (aBestH[s] < 0.)
++      {
++        continue;
++      }
++      double aU = aBestU[s], aV = aBestV[s], aH = aBestH[s];
++      double aSU = aDU / 2., aSV = aDV / 2.;
++      for (int anEval = 0; anEval < 200 && aSU > aDU * 1.e-3;)
++      {
++        bool isMoved = false;
++        for (int k = 0; k < 8 && !isMoved; ++k)
++        {
++          const double aNU = aU + THE_DIRS[k][0] * aSU, aNV = aV + THE_DIRS[k][1] * aSV;
++          double       aNH;
++          gp_Pnt       aNQ;
++          ++anEval;
++          if (!aPiece.Value(aNU, aNV, aNH, aNQ))
++          {
++            continue;
++          }
++          if (isLost(aNH, aNQ))
++          {
++            return true;
++          }
++          if (aNH > aH)
++          {
++            aU      = aNU;
++            aV      = aNV;
++            aH      = aNH;
++            isMoved = true;
++          }
++        }
++        if (!isMoved)
++        {
++          aSU /= 2.;
++          aSV /= 2.;
++        }
++      }
++    }
++  }
++  return false;
++}
++
++//! Issue 034, lane cav: the control for one offset object (see above).
++//! For the arc and intersection joins and the skin mode with one offset value for all
++//! faces (the criterion is that of the exact offset of a solid); a
++//! thickening of a face or shell has no solid side and is not controlled.
++//! Issue 034, lane cav round 2: the result of the control on the first
++//! construction of one offset (Owner), reused by the control of the final
++//! result when that is the same construction (same faces without image):
++//! the control is paid once. Set and read outside the second construction
++//! only; cleared when an offset starts and when the second construction
++//! replaces the first.
++struct LostRecord034
++{
++  const void*                    Owner = nullptr;
++  NCollection_List<TopoDS_Shape> Lost;
++  bool                           Found = false;
++};
++static thread_local LostRecord034 THE_LOST_RECORD_034;
++
++//! True if the two lists hold the same shapes in the same order.
++static bool sameList034(const NCollection_List<TopoDS_Shape>& theA,
++                        const NCollection_List<TopoDS_Shape>& theB)
++{
++  if (theA.Extent() != theB.Extent())
++  {
++    return false;
++  }
++  NCollection_List<TopoDS_Shape>::Iterator anA(theA), aB(theB);
++  for (; anA.More(); anA.Next(), aB.Next())
++  {
++    if (!anA.Value().IsSame(aB.Value()))
++    {
++      return false;
++    }
++  }
++  return true;
++}
++
++static bool lostOffset034(const TopoDS_Shape&   theFaceComp,
++                          const TopoDS_Shape&   theInitial,
++                          const BRepAlgo_Image& theInit,
++                          const NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>&
++                                                 theFaceOffset,
++                          const BRepOffset_Mode  theMode,
++                          const GeomAbs_JoinType theJoin,
++                          const bool             theThickening,
++                          const double           theOffset,
++                          const double           theTol,
++                          const void*            theOwner)
++{
++  if ((theJoin != GeomAbs_Arc && theJoin != GeomAbs_Intersection) || theMode != BRepOffset_Skin
++      || theThickening || theOffset == 0.)
++  {
++    return false;
++  }
++  for (NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>::Iterator anIt(theFaceOffset);
++       anIt.More();
++       anIt.Next())
++  {
++    if (anIt.Value() != theOffset)
++    {
++      return false;
++    }
++  }
++  // the side of the input is known only for a single solid
++  TopoDS_Shape aSolid;
++  for (TopExp_Explorer anExp(theInitial, TopAbs_SOLID); anExp.More(); anExp.Next())
++  {
++    if (!aSolid.IsNull())
++    {
++      return false;
++    }
++    aSolid = anExp.Current();
++  }
++  if (aSolid.IsNull())
++  {
++    return false;
++  }
++  NCollection_List<TopoDS_Shape> aLost;
++  facesWithoutImage034(theFaceComp, theInit, aLost);
++  if (aLost.IsEmpty())
++  {
++    return false;
++  }
++  const bool isRecord =
++    theOwner != nullptr && !offsetArcPairs034().Enabled && !offsetArcPairs034().Collapse;
++  if (isRecord && THE_LOST_RECORD_034.Owner == theOwner && sameList034(aLost, THE_LOST_RECORD_034.Lost))
++  {
++    return THE_LOST_RECORD_034.Found; // the same construction, controlled before
++  }
++  bool isFound = false; // an exception inside the control proves nothing
++  try
++  {
++    OCC_CATCH_SIGNALS
++    isFound = lostOffsetPiece034(aLost, theFaceComp, aSolid, theOffset, theTol);
++  }
++  catch (Standard_Failure const&)
++  {
++  }
++  if (isRecord)
++  {
++    THE_LOST_RECORD_034.Owner = theOwner;
++    THE_LOST_RECORD_034.Lost  = aLost;
++    THE_LOST_RECORD_034.Found = isFound;
++  }
++  return isFound;
++}
++
++//=======================================================================
++// Issue 034, lane cav round 2: deterministic self-interference test of an
++// arc-join offset (the gate of the second construction).
++//
++// Every point of the exact offset of the kept faces K by d (Rossignac-
++// Requicha 1986) is at distance exactly |d| from K. Where two offset faces
++// cross and the construction did not cut them against each other (a global
++// self-intersection, Maekawa 1999; Pekerman-Elber-Kim 2008), the part of
++// each face beyond the crossing lies inside the band of the other one:
++// closer than |d| to K (Seong-Elber-Kim 2006: the distance criterion of an
++// untrimmed offset). The test computes, for every face G of the offset of
++// K (not the images of the faces to remove of a thick solid, which stay in
++// the offset with offset 0), the MINIMUM distance between G and the kept
++// faces that can come closer than the band (their boxes), over the whole
++// face - interior extrema, edges and vertices of both sides
++// (BRepExtrema_DistShapeShape: the global minimum of the distance between
++// two shapes; round 3: rounds 2 sampled 25 cell centres and 5 points per
++// edge, and an interference between the samples was accepted - Review
++// offset-cav r2) - and reports the offset when it is below the band of
++// stage A (THE_CLOSE_FACTOR_034 |d| - tol).
++// It depends on the geometry only (distances, no order of maps in memory),
++// unlike the BOP self-interference check that decided in round 1: that
++// check gave "faults" or "clean" at random, run to run, on the same correct
++// construction far from the origin (Review offset-cav r1, finding 1).
++// Only a CONTROL: it rejects a construction, it never builds or trims
++// anything (IP.txt of issue 034, EP4530910A1).
++//=======================================================================
++static bool offsetTooClose034(
++  const TopoDS_Shape&                                                  theOffsetShape,
++  const TopoDS_Shape&                                                  theKept,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theRemoved,
++  const BRepAlgo_Image&                                                theInit,
++  const double                                                         theOffset,
++  const double                                                         theTol)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    const double anAbs = std::abs(theOffset);
++    const double aBand = THE_CLOSE_FACTOR_034 * anAbs - theTol;
++    // the faces to remove of a thick solid stay in the offset with offset 0
++    // (their images close the opening until MakeThickSolid() takes them
++    // out): they are not pieces of the offset of the kept faces
++    NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aCaps;
++    for (int i = 1; i <= theRemoved.Extent(); ++i)
++    {
++      if (theInit.HasImage(theRemoved(i)))
++      {
++        NCollection_List<TopoDS_Shape> anImages;
++        theInit.LastImage(theRemoved(i), anImages);
++        for (NCollection_List<TopoDS_Shape>::Iterator anIt(anImages); anIt.More(); anIt.Next())
++        {
++          for (TopExp_Explorer aFExp(anIt.Value(), TopAbs_FACE); aFExp.More(); aFExp.Next())
++          {
++            aCaps.Add(aFExp.Current());
++          }
++        }
++      }
++    }
++    NCollection_Sequence<TopoDS_Shape> aKept;
++    NCollection_Sequence<Bnd_Box>      aKeptBoxes;
++    for (TopExp_Explorer anExp(theKept, TopAbs_FACE); anExp.More(); anExp.Next())
++    {
++      Bnd_Box aBox;
++      BRepBndLib::Add(anExp.Current(), aBox, false);
++      aKept.Append(anExp.Current());
++      aKeptBoxes.Append(aBox);
++    }
++    BRep_Builder aBB;
++    for (TopExp_Explorer anExp(theOffsetShape, TopAbs_FACE); anExp.More(); anExp.Next())
++    {
++      if (aCaps.Contains(anExp.Current()))
++      {
++        continue;
++      }
++      Bnd_Box aBox;
++      BRepBndLib::Add(anExp.Current(), aBox, false);
++      aBox.Enlarge(aBand);
++      // the kept faces whose boxes come closer than the band (a lower
++      // bound of the distance): the others cannot be closer
++      TopoDS_Compound aNear;
++      aBB.MakeCompound(aNear);
++      bool isNear = false;
++      for (int k = 1; k <= aKept.Length(); ++k)
++      {
++        if (!aBox.IsOut(aKeptBoxes(k)))
++        {
++          aBB.Add(aNear, aKept(k));
++          isNear = true;
++        }
++      }
++      if (!isNear)
++      {
++        continue;
++      }
++      BRepExtrema_DistShapeShape aDist(anExp.Current(), aNear, Extrema_ExtFlag_MIN);
++      if (!aDist.IsDone() || aDist.Value() < aBand)
++      {
++        return true;
++      }
++    }
++    return false;
++  }
++  catch (Standard_Failure const&)
++  {
++  }
++  return true; // not proven free of self-interference
++}
++
++//=======================================================================
++// Issue 034, lane cav round 3: collapsed faces of the intersection join.
++//
++// The intersection join builds the offset of a face F in the offset
++// surface of F, bounded by the traces of the offsets of its neighbours
++// (BRepOffset_Inter3d::ConnexIntByInt, TrimEdges, BRepAlgo_Loop); the
++// corner of two consecutive traces is the image of the vertex between
++// their edges. Where the offset changes topology the traces of a face
++// pass each other: the offset of the wall of a neck thinner than 2|d| is
++// bounded by the traces of the opposite walls in the wrong order - the
++// polygon of its corners is the mirror image of the face, its loop is
++// INVERTED and the face collapses (the "edge event" of the mitred offset,
++// the straight skeleton: Aichholzer-Aurenhammer 1996; Eppstein-Erickson
++// 1999, DCG 22:569-592; invalid loops of the mitred offset recognised by
++// their orientation: Choi-Park 1999, CAD 31:735-745; Park-Chung 2003, CAD
++// 35:501-505). A collapsed face has no offset, so its traces bound
++// nothing: the holes they cut into the offsets of its neighbours close
++// (the neck is filled, the chamber behind it keeps its ceiling as one
++// face). The stock loop builder keeps them: on the ceiling of a chamber
++// the inverted hole of the neck crosses the trace of the chamber wall,
++// the loops keep only the region the two cover twice, the rest of the
++// ceiling and the upper edge of the wall are lost and the cavity shell is
++// dropped (Review offset-cav r2, cone chamber).
++// A face is taken as collapsed when it has one wire of at least three
++// edges, each edge has one trace on the face, consecutive traces share
++// their corner vertex, and the polygon of the corners has the signed area
++// opposite to the polygon of the vertices of the face (same UV frame: the
++// offset surface keeps the parametrisation), or (stripCollapsed034) when
++// the face is a planar strip between two antiparallel straight edges
++// whose traces have passed each other. Anything else is undecided and the
++// face is kept as before.
++// Used only in the second construction of an offset whose first
++// construction the lost-piece control has proven defective; it changes
++// the boundaries of the neighbours only (topology and orientation; no
++// distance involved).
++//=======================================================================
++//! UV point of the vertex theV on the pcurve of theE on theF.
++static bool uvOfVertex034(const TopoDS_Vertex& theV,
++                          const TopoDS_Edge&   theE,
++                          const TopoDS_Face&   theF,
++                          gp_Pnt2d&            theUV)
++{
++  double                    aF, aL;
++  occ::handle<Geom2d_Curve> aC = BRep_Tool::CurveOnSurface(theE, theF, aF, aL);
++  if (aC.IsNull())
++  {
++    return false;
++  }
++  theUV = aC->Value(BRep_Tool::Parameter(theV, theE));
++  return true;
++}
++
++//! Twice the signed area of the polygon thePs.
++static double polygonArea034(const NCollection_Sequence<gp_Pnt2d>& thePs)
++{
++  double aA = 0.;
++  for (int i = 1; i <= thePs.Length(); ++i)
++  {
++    const gp_Pnt2d& aP = thePs(i);
++    const gp_Pnt2d& aQ = thePs(i < thePs.Length() ? i + 1 : 1);
++    aA += aP.X() * aQ.Y() - aQ.X() * aP.Y();
++  }
++  return aA;
++}
++
++//! Round 3 (second test, the strip): theFI is planar and lies between two
++//! of its straight edges ei, ej that run antiparallel (the two sides of
++//! a strip: every vertex of the face, and every point of its curved
++//! edges, on the inner side of both lines); the traces of ei and ej on
++//! theOF are straight lines parallel to them. The offset of the face lies
++//! between the two traces, each on its inner side; when the traces have
++//! passed each other (the signed width between them is negative) the
++//! face has collapsed - whatever its other edges are, and also when the
++//! trace of another edge is missing (an offset neighbour that does not
++//! reach the offset plane at all: the wall of a neck ending on a small
++//! sphere). The width is measured along the inner normal of ei.
++static bool stripCollapsed034(const TopoDS_Face&                       theFI,
++                              const TopoDS_Face&                       theOF,
++                              const NCollection_Sequence<TopoDS_Edge>& theEdges,
++                              const NCollection_Sequence<TopoDS_Edge>& theTraces)
++{
++  if (BRepAdaptor_Surface(theFI, false).GetType() != GeomAbs_Plane
++      || BRepAdaptor_Surface(theOF, false).GetType() != GeomAbs_Plane)
++  {
++    return false;
++  }
++  const int aNb = theEdges.Length();
++  // points of the face boundary (vertices, and samples of its curved edges)
++  // and, for the straight edges, their direction as traversed in the
++  // FORWARD face
++  NCollection_Sequence<gp_Pnt2d> aPs, aStarts;
++  std::vector<bool>              isLine(aNb + 1, false);
++  std::vector<gp_Dir2d>          aDs(aNb + 1);
++  for (int i = 1; i <= aNb; ++i)
++  {
++    double                    aF, aL;
++    occ::handle<Geom2d_Curve> aC = BRep_Tool::CurveOnSurface(theEdges(i), theFI, aF, aL);
++    if (aC.IsNull())
++    {
++      return false;
++    }
++    gp_Pnt2d aP0 = aC->Value(aF), aP1 = aC->Value(aL);
++    if (theEdges(i).Orientation() == TopAbs_REVERSED)
++    {
++      std::swap(aP0, aP1);
++    }
++    aStarts.Append(aP0);
++    isLine[i] = Geom2dAdaptor_Curve(aC).GetType() == GeomAbs_Line && aP0.Distance(aP1) > Precision::PConfusion();
++    if (isLine[i])
++    {
++      aDs[i] = gp_Dir2d(gp_Vec2d(aP0, aP1));
++      aPs.Append(aP0);
++    }
++    else
++    {
++      for (int k = 0; k <= 16; ++k)
++      {
++        aPs.Append(aC->Value(aF + (aL - aF) * k / 16.));
++      }
++    }
++  }
++  const double aSide = polygonArea034(aStarts) > 0. ? 1. : -1.; // the face is left of its edges if > 0
++  Bnd_Box2d    aBox;
++  for (int k = 1; k <= aPs.Length(); ++k)
++  {
++    aBox.Add(aPs(k));
++  }
++  double aU0, aV0, aU1, aV1;
++  aBox.Get(aU0, aV0, aU1, aV1);
++  const double aTol = 1.e-7 * std::max(1., std::max(aU1 - aU0, aV1 - aV0));
++  // a point of the trace of edge i (a line parallel to the edge) or false
++  auto aTracePoint = [&](const int theI, gp_Pnt2d& theQ) -> bool {
++    if (theTraces(theI).IsNull())
++    {
++      return false;
++    }
++    double                    aF, aL;
++    occ::handle<Geom2d_Curve> aC = BRep_Tool::CurveOnSurface(theTraces(theI), theOF, aF, aL);
++    if (aC.IsNull() || Geom2dAdaptor_Curve(aC).GetType() != GeomAbs_Line
++        || std::abs(Geom2dAdaptor_Curve(aC).Line().Direction().Crossed(aDs[theI])) > Precision::Angular())
++    {
++      return false;
++    }
++    theQ = aC->Value(aF);
++    return true;
++  };
++  for (int i = 1; i <= aNb; ++i)
++  {
++    for (int j = i + 1; j <= aNb; ++j)
++    {
++      if (!isLine[i] || !isLine[j] || aDs[i].Dot(aDs[j]) > -1. + Precision::Angular())
++      {
++        continue; // not an antiparallel pair of straight edges
++      }
++      const gp_Vec2d aN(-aDs[i].Y() * aSide, aDs[i].X() * aSide); // inner normal of ei (= outer of ej)
++      // the face lies between the two lines
++      const gp_Pnt2d& aPi = aStarts(i);
++      const gp_Pnt2d& aPj = aStarts(j);
++      bool            isStrip = true;
++      for (int k = 1; k <= aPs.Length() && isStrip; ++k)
++      {
++        isStrip = aN.Dot(gp_Vec2d(aPi, aPs(k))) >= -aTol && aN.Dot(gp_Vec2d(aPs(k), aPj)) >= -aTol;
++      }
++      gp_Pnt2d aQi, aQj;
++      if (!isStrip || !aTracePoint(i, aQi) || !aTracePoint(j, aQj))
++      {
++        continue;
++      }
++      if (aN.Dot(gp_Vec2d(aPi, aPj)) > aTol && aN.Dot(gp_Vec2d(aQi, aQj)) < -aTol)
++      {
++        return true; // the traces of the two sides have passed each other
++      }
++    }
++  }
++  return false;
++}
++
++//! True if the offset face theOF of the face theFI is collapsed (see above).
++static bool collapsedTraces034(
++  const TopoDS_Face&                                                              theOF,
++  const TopoDS_Face&                                                              theFI,
++  const NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theBuild,
++  const occ::handle<BRepAlgo_AsDes>&                                              theAsDes)
++{
++  const TopoDS_Face aFI = TopoDS::Face(theFI.Oriented(TopAbs_FORWARD));
++  const TopoDS_Face aOF = TopoDS::Face(theOF.Oriented(TopAbs_FORWARD));
++  TopoDS_Wire       aW;
++  for (TopoDS_Iterator anIt(aFI); anIt.More(); anIt.Next())
++  {
++    if (anIt.Value().ShapeType() != TopAbs_WIRE || !aW.IsNull())
++    {
++      return false; // one wire only
++    }
++    aW = TopoDS::Wire(anIt.Value());
++  }
++  if (aW.IsNull())
++  {
++    return false;
++  }
++  NCollection_Sequence<TopoDS_Edge>   anEdges, aTraces;
++  NCollection_Sequence<TopoDS_Vertex> aVertices; // the vertex after each edge
++  for (BRepTools_WireExplorer anExp(aW, aFI); anExp.More(); anExp.Next())
++  {
++    const TopoDS_Edge& anE = anExp.Current();
++    if (BRep_Tool::Degenerated(anE))
++    {
++      return false;
++    }
++    // the trace of the edge on this face: the one section edge of the
++    // pair (the compound Build keeps for the edge) that lies on theOF
++    const TopoDS_Shape* aB = theBuild.Seek(anE);
++    TopoDS_Shape        aT;
++    for (TopExp_Explorer aTExp(aB != nullptr ? *aB : TopoDS_Shape(), TopAbs_EDGE); aTExp.More();
++         aTExp.Next())
++    {
++      bool isOn = false;
++      if (theAsDes->HasAscendant(aTExp.Current()))
++      {
++        for (NCollection_List<TopoDS_Shape>::Iterator anAIt(theAsDes->Ascendant(aTExp.Current()));
++             anAIt.More() && !isOn;
++             anAIt.Next())
++        {
++          isOn = anAIt.Value().IsSame(theOF);
++        }
++      }
++      if (isOn)
++      {
++        if (!aT.IsNull() && !aT.IsSame(aTExp.Current()))
++        {
++          return false; // several traces: undecided
++        }
++        aT = aTExp.Current();
++      }
++    }
++    anEdges.Append(anE);
++    aTraces.Append(aT.IsNull() ? TopoDS_Edge() : TopoDS::Edge(aT)); // null: no trace
++    aVertices.Append(TopExp::LastVertex(anE, true));
++  }
++  const int aNb = anEdges.Length();
++  if (aNb < 3)
++  {
++    return false;
++  }
++  if (stripCollapsed034(aFI, aOF, anEdges, aTraces))
++  {
++    return true;
++  }
++  NCollection_Sequence<gp_Pnt2d> aPs, aQs;
++  for (int i = 1; i <= aNb; ++i)
++  {
++    if (aTraces(i).IsNull() || aTraces(i < aNb ? i + 1 : 1).IsNull())
++    {
++      return false; // a trace is missing: the corners are undecided
++    }
++    const int     j = i < aNb ? i + 1 : 1;
++    TopoDS_Vertex aT1, aT2, aU1, aU2;
++    TopExp::Vertices(aTraces(i), aT1, aT2);
++    TopExp::Vertices(aTraces(j), aU1, aU2);
++    TopoDS_Vertex aC; // the corner shared by the two traces
++    for (const TopoDS_Vertex& aV : {aT1, aT2})
++    {
++      if (!aV.IsNull() && (aV.IsSame(aU1) || aV.IsSame(aU2)))
++      {
++        if (!aC.IsNull() && !aC.IsSame(aV))
++        {
++          return false; // two corners: undecided
++        }
++        aC = aV;
++      }
++    }
++    gp_Pnt2d aP, aQ;
++    if (aC.IsNull() || !uvOfVertex034(aVertices(i), anEdges(i), aFI, aP)
++        || !uvOfVertex034(aC, aTraces(i), aOF, aQ))
++    {
++      return false;
++    }
++    aPs.Append(aP);
++    aQs.Append(aQ);
++  }
++  const double aA0 = polygonArea034(aPs);
++  const double aA1 = polygonArea034(aQs);
++  Bnd_Box2d    aBox;
++  for (int i = 1; i <= aNb; ++i)
++  {
++    aBox.Add(aPs(i));
++    aBox.Add(aQs(i));
++  }
++  double aU0, aV0, aU1, aV1;
++  aBox.Get(aU0, aV0, aU1, aV1);
++  const double aTol = 1.e-9 * ((aU1 - aU0) * (aU1 - aU0) + (aV1 - aV0) * (aV1 - aV0));
++  return aA0 * aA1 < 0. && std::abs(aA0) > aTol && std::abs(aA1) > aTol;
++}
++
++//! The collapsed offset faces among theLFE (see above; read only).
++static void collapsedFaces034(
++  const NCollection_List<TopoDS_Shape>&                                           theLFE,
++  const NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theOrigins,
++  const NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theBuild,
++  const occ::handle<BRepAlgo_AsDes>&                                              theAsDes,
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>&                         theCollapsed)
++{
++  for (NCollection_List<TopoDS_Shape>::Iterator anIt(theLFE); anIt.More(); anIt.Next())
++  {
++    const TopoDS_Shape* aFI = theOrigins.Seek(anIt.Value());
++    if (aFI == nullptr || aFI->ShapeType() != TopAbs_FACE)
++    {
++      continue;
++    }
++    try
++    {
++      OCC_CATCH_SIGNALS
++      if (collapsedTraces034(TopoDS::Face(anIt.Value()), TopoDS::Face(*aFI), theBuild, theAsDes))
++      {
++        theCollapsed.Add(anIt.Value());
++      }
++    }
++    catch (Standard_Failure const&)
++    {
++    }
++  }
++}
++
++//! Removes from the offset faces theLFE the traces they share with a
++//! collapsed offset face (theCollapsed), and the edges whose origin edge
++//! (theEdgesOrigins of TrimEdges) borders the initial face of a collapsed
++//! one - the image of that edge as a free boundary, where the offset of
++//! the collapsed neighbour does not reach the offset surface at all (the
++//! rim of the neck hole on a chamber smaller than the neck + 2|d|);
++//! theRemoved keeps them to be put back.
++static void dropCollapsedTraces034(
++  const NCollection_List<TopoDS_Shape>&                         theLFE,
++  const NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>& aCollapsed,
++  const NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& theOrigins,
++  const NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>&
++                                     theEdgesOrigins,
++  const BRepOffset_Analyse&          theAnalyse,
++  const occ::handle<BRepAlgo_AsDes>& theAsDes,
++  NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>&
++    theRemoved)
++{
++  if (aCollapsed.IsEmpty())
++  {
++    return;
++  }
++  // the initial faces of the collapsed offset faces
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aCollapsedFI;
++  for (NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>::Iterator anIt(aCollapsed); anIt.More();
++       anIt.Next())
++  {
++    if (const TopoDS_Shape* aFI = theOrigins.Seek(anIt.Value()))
++    {
++      aCollapsedFI.Add(*aFI);
++    }
++  }
++  for (NCollection_List<TopoDS_Shape>::Iterator anIt(theLFE); anIt.More(); anIt.Next())
++  {
++    const TopoDS_Shape& anOF = anIt.Value();
++    if (aCollapsed.Contains(anOF) || !theAsDes->HasDescendant(anOF))
++    {
++      continue;
++    }
++    NCollection_List<TopoDS_Shape>& aLE = theAsDes->ChangeDescendant(anOF);
++    for (NCollection_List<TopoDS_Shape>::Iterator anEIt(aLE); anEIt.More();)
++    {
++      bool isDrop = false;
++      if (theAsDes->HasAscendant(anEIt.Value()))
++      {
++        for (NCollection_List<TopoDS_Shape>::Iterator anAIt(theAsDes->Ascendant(anEIt.Value()));
++             anAIt.More() && !isDrop;
++             anAIt.Next())
++        {
++          isDrop = !anAIt.Value().IsSame(anOF) && aCollapsed.Contains(anAIt.Value());
++        }
++      }
++      const TopoDS_Shape* aFI = theOrigins.Seek(anOF);
++      if (!isDrop && aFI != nullptr)
++      {
++        if (const NCollection_List<TopoDS_Shape>* anOr = theEdgesOrigins.Seek(anEIt.Value()))
++        {
++          for (NCollection_List<TopoDS_Shape>::Iterator anOIt(*anOr); anOIt.More() && !isDrop; anOIt.Next())
++          {
++            if (anOIt.Value().ShapeType() != TopAbs_EDGE)
++            {
++              continue;
++            }
++            for (NCollection_List<TopoDS_Shape>::Iterator aGIt(theAnalyse.Ancestors(anOIt.Value()));
++                 aGIt.More() && !isDrop;
++                 aGIt.Next())
++            {
++              isDrop = !aGIt.Value().IsSame(*aFI) && aCollapsedFI.Contains(aGIt.Value());
++            }
++          }
++        }
++      }
++      if (isDrop)
++      {
++        if (!theRemoved.IsBound(anOF))
++        {
++          theRemoved.Bind(anOF, NCollection_List<TopoDS_Shape>());
++        }
++        theRemoved.ChangeFind(anOF).Append(anEIt.Value());
++        aLE.Remove(anEIt);
++      }
++      else
++      {
++        anEIt.Next();
++      }
++    }
++  }
++  // The crossings of the dropped traces with the kept ones are vertices of
++  // the kept traces too (BRepOffset_Inter2d), oriented to keep the pieces
++  // inside the old loop: they go with the dropped traces - the kept trace
++  // runs on through them (the whole wall of the chamber closes on the
++  // ceiling). A vertex where two kept traces of the face meet stays.
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aDroppedV;
++  for (NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>::
++         Iterator anIt(theRemoved);
++       anIt.More();
++       anIt.Next())
++  {
++    for (NCollection_List<TopoDS_Shape>::Iterator anEIt(anIt.Value()); anEIt.More(); anEIt.Next())
++    {
++      for (TopExp_Explorer aVExp(anEIt.Value(), TopAbs_VERTEX); aVExp.More(); aVExp.Next())
++      {
++        aDroppedV.Add(aVExp.Current());
++      }
++      if (theAsDes->HasDescendant(anEIt.Value()))
++      {
++        for (NCollection_List<TopoDS_Shape>::Iterator aVIt(theAsDes->Descendant(anEIt.Value()));
++             aVIt.More();
++             aVIt.Next())
++        {
++          aDroppedV.Add(aVIt.Value());
++        }
++      }
++    }
++  }
++  NCollection_List<TopoDS_Shape> aFaces;
++  for (NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>::
++         Iterator anIt(theRemoved);
++       anIt.More();
++       anIt.Next())
++  {
++    aFaces.Append(anIt.Key());
++  }
++  for (NCollection_List<TopoDS_Shape>::Iterator aFIt(aFaces); aFIt.More(); aFIt.Next())
++  {
++    const NCollection_List<TopoDS_Shape>& aLE = theAsDes->Descendant(aFIt.Value());
++    // the vertices of the kept traces of the face, with the number of traces
++    NCollection_DataMap<TopoDS_Shape, int, TopTools_ShapeMapHasher> aNbE;
++    for (NCollection_List<TopoDS_Shape>::Iterator anEIt(aLE); anEIt.More(); anEIt.Next())
++    {
++      NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aSeen;
++      if (!theAsDes->HasDescendant(anEIt.Value()))
++      {
++        continue;
++      }
++      for (NCollection_List<TopoDS_Shape>::Iterator aVIt(theAsDes->Descendant(anEIt.Value()));
++           aVIt.More();
++           aVIt.Next())
++      {
++        if (aSeen.Add(aVIt.Value()))
++        {
++          int* aNb = aNbE.ChangeSeek(aVIt.Value());
++          if (aNb == nullptr)
++          {
++            aNbE.Bind(aVIt.Value(), 1);
++          }
++          else
++          {
++            ++*aNb;
++          }
++        }
++      }
++    }
++    for (NCollection_List<TopoDS_Shape>::Iterator anEIt(aLE); anEIt.More(); anEIt.Next())
++    {
++      const TopoDS_Shape& anE = anEIt.Value();
++      if (!theAsDes->HasDescendant(anE))
++      {
++        continue;
++      }
++      NCollection_List<TopoDS_Shape>& aLV = theAsDes->ChangeDescendant(anE);
++      for (NCollection_List<TopoDS_Shape>::Iterator aVIt(aLV); aVIt.More();)
++      {
++        const int* aNb = aNbE.Seek(aVIt.Value());
++        if (aDroppedV.Contains(aVIt.Value()) && (aNb == nullptr || *aNb < 2))
++        {
++          if (!theRemoved.IsBound(anE))
++          {
++            theRemoved.Bind(anE, NCollection_List<TopoDS_Shape>());
++          }
++          theRemoved.ChangeFind(anE).Append(aVIt.Value());
++          aLV.Remove(aVIt);
++        }
++        else
++        {
++          aVIt.Next();
++        }
++      }
++    }
++  }
++}
++
++
++
++
++//! True if the shape holds no face.
++static bool hasNoFace034(const TopoDS_Shape& theS)
++{
++  return theS.IsNull() || !TopExp_Explorer(theS, TopAbs_FACE).More();
++}
++
++//=======================================================================
++// Issue 034 stage A2: structural guard of offset and thick solids.
++//
++// The boundary of a valid solid is a set of closed, coherently oriented
++// 2-manifold shells: every edge of a shell bounds two of its faces and
++// is used by them with opposite orientations (Requicha 1980). A thick
++// solid made with removed faces (shelling, Forsyth 1995)
++// has one more rule: each connected piece of the remaining input faces
++// that has a free boundary (the rim of the opening) is joined to its
++// offset into ONE shell; a piece without free boundary (e.g. the wall
++// of an inner void) keeps its own shell and gets a second one from its
++// offset. So a thick solid never has more shells than
++//   sum over the pieces: 1 (piece with a free boundary) or 2 (closed piece).
++// A result that breaks these counts is broken whatever the geometry:
++// an opening that was not cut leaves the offset shell closed and apart
++// (e.g. a box filleted on all edges with the top face removed).
++// The checks are pure topology, linear in the number of edges.
++//=======================================================================
++
++//! Uses of the edges of one shell: for each non-degenerated edge the
++//! number of FORWARD and REVERSED uses and the first face using it.
++struct EdgeUses034
++{
++  int NbF   = 0;
++  int NbR   = 0;
++  int Face1 = 0;
++  int Face2 = 0; //!< the first face of the second use (0 = none)
++};
++
++//! Collects the edge uses of the FORWARD/REVERSED faces of theS
++//! (orientations composed as in the shape, like BRepCheck_Shell).
++static void collectEdgeUses034(
++  const TopoDS_Shape&                                            theS,
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theEdges,
++  NCollection_DynamicArray<EdgeUses034>&                         theUses)
++{
++  int aFaceIdx = 0;
++  for (TopExp_Explorer aFExp(theS, TopAbs_FACE); aFExp.More(); aFExp.Next())
++  {
++    const TopAbs_Orientation aFOr = aFExp.Current().Orientation();
++    if (aFOr != TopAbs_FORWARD && aFOr != TopAbs_REVERSED)
++    {
++      continue;
++    }
++    ++aFaceIdx;
++    for (TopExp_Explorer anEExp(aFExp.Current(), TopAbs_EDGE); anEExp.More(); anEExp.Next())
++    {
++      const TopoDS_Edge&       anE  = TopoDS::Edge(anEExp.Current());
++      const TopAbs_Orientation anOr = anE.Orientation();
++      if ((anOr != TopAbs_FORWARD && anOr != TopAbs_REVERSED) || BRep_Tool::Degenerated(anE))
++      {
++        continue;
++      }
++      const int anIdx = theEdges.Add(anE); // indices come in order 1, 2, ...
++      if (anIdx > theUses.Length())
++      {
++        theUses.Append(EdgeUses034());
++      }
++      EdgeUses034& aU = theUses.ChangeValue(anIdx - 1);
++      if (aU.NbF + aU.NbR == 0)
++      {
++        aU.Face1 = aFaceIdx;
++      }
++      else if (aU.NbF + aU.NbR == 1)
++      {
++        aU.Face2 = aFaceIdx;
++      }
++      (anOr == TopAbs_FORWARD ? aU.NbF : aU.NbR)++;
++    }
++  }
++}
++
++//! True if a shell of a solid of theS is open or incoherently oriented:
++//! a non-degenerated edge used once (BRepCheck_NotClosed), or used by two
++//! different faces with the same orientation (BRepCheck_BadOrientationOf
++//! Subshape). Edges with more than two uses are left to BRepCheck.
++static bool shellBroken034(const TopoDS_Shape& theShell)
++{
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> anEdges;
++  NCollection_DynamicArray<EdgeUses034>                         aUses;
++  collectEdgeUses034(theShell, anEdges, aUses);
++  for (int i = 0; i < aUses.Length(); ++i)
++  {
++    const EdgeUses034& aU  = aUses.Value(i);
++    const int          aNb = aU.NbF + aU.NbR;
++    if (aNb == 1 || (aNb == 2 && aU.NbF != 1 && aU.Face1 != aU.Face2))
++    {
++      return true;
++    }
++  }
++  return false;
++}
++
++static bool solidShellsBroken034(const TopoDS_Shape& theS)
++{
++  for (TopExp_Explorer aSoExp(theS, TopAbs_SOLID); aSoExp.More(); aSoExp.Next())
++  {
++    for (TopExp_Explorer aShExp(aSoExp.Current(), TopAbs_SHELL); aShExp.More(); aShExp.Next())
++    {
++      if (shellBroken034(aShExp.Current()))
++      {
++        return true;
++      }
++    }
++  }
++  return false;
++}
++
++//! Issue 034, lane cav: the same test on every shell of theS, also on the
++//! shells outside any solid. MakeSolid() puts a shell that is not closed
++//! loose into a compound, where solidShellsBroken034() does not look; for
++//! a closed input (isClosedInput034) such a shell is a broken offset.
++static bool anyShellBroken034(const TopoDS_Shape& theS)
++{
++  for (TopExp_Explorer aShExp(theS, TopAbs_SHELL); aShExp.More(); aShExp.Next())
++  {
++    if (shellBroken034(aShExp.Current()))
++    {
++      return true;
++    }
++  }
++  return false;
++}
++
++//! Issue 034, lane cav: true if no edge of the faces to offset is a free
++//! bound (the input is closed: the offset of a closed boundary is closed).
++static bool isClosedInput034(const TopoDS_Shape& theFaceComp, const BRepOffset_Analyse& theAnalyse)
++{
++  for (TopExp_Explorer anEExp(theFaceComp, TopAbs_EDGE); anEExp.More(); anEExp.Next())
++  {
++    const TopoDS_Edge& anE = TopoDS::Edge(anEExp.Current());
++    if (BRep_Tool::Degenerated(anE) || !theAnalyse.HasAncestor(anE)
++        || theAnalyse.Ancestors(anE).Extent() >= 2)
++    {
++      continue;
++    }
++    const NCollection_List<BRepOffset_Interval>& aType = theAnalyse.Type(anE);
++    if (!aType.IsEmpty() && aType.First().Type() == ChFiDS_FreeBound)
++    {
++      return false;
++    }
++  }
++  return true;
++}
++
++//! Number of shells of theS.
++static int nbShells034(const TopoDS_Shape& theS)
++{
++  int aNb = 0;
++  for (TopExp_Explorer aShExp(theS, TopAbs_SHELL); aShExp.More(); aShExp.Next())
++  {
++    ++aNb;
++  }
++  return aNb;
++}
++
++//! Largest number of shells a thick solid glued from the faces of theRest
++//! (the input without the removed faces) and their offsets can have: per
++//! connected piece of theRest, 1 if the piece has a free edge, else 2.
++static int maxThickShells034(const TopoDS_Shape& theRest)
++{
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aFaces;
++  for (TopExp_Explorer aFExp(theRest, TopAbs_FACE); aFExp.More(); aFExp.Next())
++  {
++    aFaces.Add(aFExp.Current());
++  }
++  const int aNbF = aFaces.Extent();
++  if (aNbF == 0)
++  {
++    return 0;
++  }
++  // union-find over the faces through their shared edges
++  NCollection_Array1<int> aParent(0, aNbF);
++  for (int i = 0; i <= aNbF; ++i)
++  {
++    aParent(i) = i;
++  }
++  auto aFind = [&aParent](int theI) {
++    while (aParent(theI) != theI)
++    {
++      aParent(theI) = aParent(aParent(theI));
++      theI          = aParent(theI);
++    }
++    return theI;
++  };
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> anEdges;
++  NCollection_DynamicArray<int> anEdgeFace; // first face of an edge
++  NCollection_DynamicArray<int> anEdgeUses;
++  for (int iF = 1; iF <= aNbF; ++iF)
++  {
++    for (TopExp_Explorer anEExp(aFaces(iF), TopAbs_EDGE); anEExp.More(); anEExp.Next())
++    {
++      const TopoDS_Edge& anE = TopoDS::Edge(anEExp.Current());
++      if (BRep_Tool::Degenerated(anE))
++      {
++        continue;
++      }
++      const int anIdx = anEdges.Add(anE); // indices come in order 1, 2, ...
++      if (anIdx > anEdgeFace.Length())
++      {
++        anEdgeFace.Append(iF);
++        anEdgeUses.Append(0);
++      }
++      ++anEdgeUses.ChangeValue(anIdx - 1);
++      const int aR1 = aFind(anEdgeFace.Value(anIdx - 1)), aR2 = aFind(iF);
++      if (aR1 != aR2)
++      {
++        aParent(aR1) = aR2;
++      }
++    }
++  }
++  NCollection_Map<int> anOpenRoots, aRoots;
++  for (int i = 0; i < anEdgeUses.Length(); ++i)
++  {
++    if (anEdgeUses.Value(i) == 1)
++    {
++      anOpenRoots.Add(aFind(anEdgeFace.Value(i)));
++    }
++  }
++  int aMax = 0;
++  for (int iF = 1; iF <= aNbF; ++iF)
++  {
++    const int aR = aFind(iF);
++    if (aRoots.Add(aR))
++    {
++      aMax += anOpenRoots.Contains(aR) ? 1 : 2;
++    }
++  }
++  return aMax;
++}
++
++//! Stage A2: true if the join is the intersection and a free-form face of
++//! theFaces has a tangent edge (BRepOffset_Analyse: ChFiDS_Tangential): the
++//! offsets of the two faces are tangent along the edge and their
++//! intersection is ill-conditioned; the result can come back valid for
++//! BRepCheck but self-intersecting. Such results are checked like the ones
++//! where a face can fold. Analytic faces are left out (their tangency is
++//! handled exactly).
++static bool tangentFreeFormJoin034(const TopoDS_Shape&       theFaces,
++                                   const GeomAbs_JoinType    theJoin,
++                                   const BRepOffset_Analyse& theAnalyse)
++{
++  if (theJoin != GeomAbs_Intersection)
++  {
++    return false;
++  }
++  try
++  {
++    OCC_CATCH_SIGNALS
++    NCollection_List<TopoDS_Shape> aTangent;
++    for (TopExp_Explorer aFExp(theFaces, TopAbs_FACE); aFExp.More(); aFExp.Next())
++    {
++      const TopoDS_Face&               aF = TopoDS::Face(aFExp.Current());
++      TopLoc_Location                  aLoc;
++      const occ::handle<Geom_Surface>& aS = BRep_Tool::Surface(aF, aLoc);
++      if (aS.IsNull())
++      {
++        continue;
++      }
++      switch (GeomAdaptor_Surface(aS).GetType())
++      {
++        case GeomAbs_Plane:
++        case GeomAbs_Cylinder:
++        case GeomAbs_Cone:
++        case GeomAbs_Sphere:
++        case GeomAbs_Torus:
++          continue;
++        default:
++          break;
++      }
++      theAnalyse.Edges(aF, ChFiDS_Tangential, aTangent);
++      if (!aTangent.IsEmpty())
++      {
++        return true;
++      }
++    }
++  }
++  catch (Standard_Failure const&)
++  {
++    return true;
++  }
++  return false;
++}
++
++//=======================================================================
++// Issue 034 stage A2, round 2: which shells a thick solid may have.
++//
++// A thick solid is the input minus its inner offset (Rossignac-Requicha
++// 1986). The inner offset can split into several components: where the
++// input is thinner than 2|t| (a neck) the offset pinches off, and a
++// component that no opening reaches stays a closed cavity. So the shells
++// of a correct thick solid are of two kinds only:
++//  - ANCHORED: it holds kept input faces (one per connected piece of them);
++//  - CAVITY: offset faces only (images of kept faces, edges, vertices):
++//    the offset of a closed piece, or a pinched-off part of the hollow.
++// The wall of an opening (the image of a removed face) is the band of the
++// removed face between its rim (edges shared with kept faces) and the
++// offset; every piece of the band touches the rim, so the wall lies in an
++// anchored shell and meets offset faces there. Hence:
++//  - a shell without kept faces that holds a wall is impossible: the
++//    opening was not cut, the offset shell was closed across it (Broken);
++//  - more shells than the pieces give (maxThickShells034) are legal
++//    exactly when the extra ones are cavities: every shell without kept
++//    faces is made of known offset faces only, and every wall meets an
++//    offset face (the opening is cut through to the offset). Otherwise
++//    the extra shell is not explained by the construction (Proven false).
++// Pure topology on the history of the offset (myInitOffsetFace) and on the
++// copies made by the gluing; linear in the number of faces and edges.
++//=======================================================================
++struct ThickShells034
++{
++  bool Broken = false; //!< a shell without kept faces holds a wall
++  bool Proven = true;  //!< every shell is anchored or a cavity, every wall meets an offset face
++};
++
++static TopoDS_Shape glued034(const BRepTools_Quilt& theGlue, const TopoDS_Shape& theS)
++{
++  return theGlue.IsCopied(theS) ? theGlue.Copy(theS) : theS;
++}
++
++static ThickShells034 thickShells034(
++  const TopoDS_Shape&                                                  theSolid,
++  const TopoDS_Shape&                                                  theKept,
++  const BRepTools_Quilt&                                               theGlue,
++  const BRepAlgo_Image&                                                theInit,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theRemoved)
++{
++  ThickShells034                                         aRes;
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aKept, aWalls, anOffsets;
++  for (TopExp_Explorer aFExp(theKept, TopAbs_FACE); aFExp.More(); aFExp.Next())
++  {
++    aKept.Add(glued034(theGlue, aFExp.Current()));
++  }
++  for (NCollection_List<TopoDS_Shape>::Iterator aRIt(theInit.Roots()); aRIt.More(); aRIt.Next())
++  {
++    const TopoDS_Shape& aRoot = aRIt.Value();
++    if (!theInit.HasImage(aRoot))
++    {
++      continue;
++    }
++    const bool                     isWall = theRemoved.Contains(aRoot);
++    NCollection_List<TopoDS_Shape> anImages;
++    theInit.LastImage(aRoot, anImages);
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt(anImages); anIt.More(); anIt.Next())
++    {
++      for (TopExp_Explorer aFExp(anIt.Value(), TopAbs_FACE); aFExp.More(); aFExp.Next())
++      {
++        const TopoDS_Shape aF = glued034(theGlue, aFExp.Current());
++        (isWall ? aWalls : anOffsets).Add(aF);
++      }
++    }
++  }
++  // shells: a shell without kept faces must be a cavity of offset faces
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> anOffsetEdges;
++  for (TopExp_Explorer aShExp(theSolid, TopAbs_SHELL); aShExp.More(); aShExp.Next())
++  {
++    bool isAnchored = false, hasWall = false, hasUnknown = false;
++    for (TopExp_Explorer aFExp(aShExp.Current(), TopAbs_FACE); aFExp.More(); aFExp.Next())
++    {
++      const TopoDS_Shape& aF = aFExp.Current();
++      if (aKept.Contains(aF))
++      {
++        isAnchored = true;
++      }
++      else if (aWalls.Contains(aF))
++      {
++        hasWall = true;
++      }
++      else if (anOffsets.Contains(aF))
++      {
++        for (TopExp_Explorer anEExp(aF, TopAbs_EDGE); anEExp.More(); anEExp.Next())
++        {
++          anOffsetEdges.Add(anEExp.Current());
++        }
++      }
++      else
++      {
++        hasUnknown = true;
++      }
++    }
++    if (!isAnchored && hasWall)
++    {
++      aRes.Broken = true;
++      aRes.Proven = false;
++      return aRes;
++    }
++    if (!isAnchored && hasUnknown)
++    {
++      aRes.Proven = false;
++    }
++  }
++  // walls: each one meets an offset face (the opening reaches the offset)
++  for (TopExp_Explorer aFExp(theSolid, TopAbs_FACE); aRes.Proven && aFExp.More(); aFExp.Next())
++  {
++    if (!aWalls.Contains(aFExp.Current()))
++    {
++      continue;
++    }
++    bool isMet = false;
++    for (TopExp_Explorer anEExp(aFExp.Current(), TopAbs_EDGE); !isMet && anEExp.More();
++         anEExp.Next())
++    {
++      isMet = anOffsetEdges.Contains(anEExp.Current());
++    }
++    aRes.Proven = isMet;
++  }
++  return aRes;
++}
++
++//! Issue 034 A3. True if theF1 and theF2 are G1 along theE, with the same
++//! criterion as BRepOffset_Analyse (EdgeAnalyse): two planes only by the
++//! continuity flag of the edge, other pairs by ChFi3d::IsTangentFaces.
++static bool edgeTangent034(const TopoDS_Edge& theE,
++                           const TopoDS_Face& theF1,
++                           const TopoDS_Face& theF2)
++{
++  const BRepAdaptor_Surface aS1(theF1, false), aS2(theF2, false);
++  if (aS1.GetType() == GeomAbs_Plane && aS2.GetType() == GeomAbs_Plane)
++  {
++    return BRep_Tool::Continuity(theE, theF1, theF2) > GeomAbs_C0;
++  }
++  return ChFi3d::IsTangentFaces(theE, theF1, theF2);
++}
++
++//! Issue 034 A3. How the offset of a kept face F meets the removed face C
++//! ("cork") across a shared edge E (round 2). Heights are measured along the
++//! common outward normal n of F and C (G1 along E). At distance s from E into
++//! F, with k_F and k_C the normal curvatures of F and C across E (along n):
++//!   offset of F:  h(s) = t + k_off s^2 / 2,  k_off = k_F / (1 - t k_F)
++//!   surface of C: h(s) =     k_C   s^2 / 2   (C continued across E)
++//! so the gap is g(s) = t + (k_off - k_C) s^2 / 2 (Maekawa 1999 for k_off):
++//!  - t (k_off - k_C) < 0: the offset CROSSES the cork surface next to E
++//!    (convex edge outward, concave edge inward, a cylinder under a
++//!    hemisphere inward): trimming by the cork is well posed and its limit
++//!    for a vanishing blend radius is the sharp-edge rule of OCCT (the
++//!    offset is extended to the cork and cut there) -> context cork;
++//!  - otherwise the offset runs AWAY from the cork (convex inward, concave
++//!    outward): no crossing, the rim is the wall E -> E + t n; its limit
++//!    at r = |t| is again the sharp rule (the offset of the next face meets
++//!    the cork plane at the wall's foot);
++//!  - 1 - t k <= margin (a principal factor at E): the offset of F
++//!    collapses at the rim (a blend smaller than the offset): neither rule,
++//!    the vanishing-face construction of lane B2 or the stock path.
++enum RimKind034
++{
++  RimKind034_Sharp    = 0, //!< not tangent
++  RimKind034_Cross    = 1, //!< tangent, the offset crosses the cork surface
++  RimKind034_Away     = 2, //!< tangent, the offset runs away from it (wall)
++  RimKind034_Collapse = 3, //!< tangent, the offset collapses at the rim
++  RimKind034_Unknown  = 4  //!< tangent, kind changes along the edge or not computable
++};
++
++//! Normal curvature of theS at (theU, theV) along the parameter direction
++//! (theA, theB), signed along theN (unit). False at a singular point.
++static bool normalCurvature034(const BRepAdaptor_Surface& theS,
++                               const double               theU,
++                               const double               theV,
++                               const double               theA,
++                               const double               theB,
++                               const gp_Vec&              theN,
++                               double&                    theK)
++{
++  gp_Pnt aP;
++  gp_Vec aSu, aSv, aSuu, aSvv, aSuv;
++  theS.D2(theU, theV, aP, aSu, aSv, aSuu, aSvv, aSuv);
++  const double aI = aSu.SquareMagnitude() * theA * theA + 2. * aSu.Dot(aSv) * theA * theB
++                    + aSv.SquareMagnitude() * theB * theB;
++  if (aI <= 1.e-300)
++  {
++    return false;
++  }
++  theK = (aSuu.Dot(theN) * theA * theA + 2. * aSuv.Dot(theN) * theA * theB
++          + aSvv.Dot(theN) * theB * theB)
++         / aI;
++  return true;
++}
++
++//! Outward unit normal of theF at (theU, theV); false where undefined.
++static bool outwardNormal034(const BRepAdaptor_Surface& theS,
++                             const TopoDS_Face&         theF,
++                             const double               theU,
++                             const double               theV,
++                             gp_Vec&                    theN)
++{
++  gp_Pnt aP;
++  gp_Vec aSu, aSv;
++  theS.D1(theU, theV, aP, aSu, aSv);
++  theN             = aSu.Crossed(aSv);
++  const double aNm = theN.Magnitude();
++  if (aNm <= 1.e-12 * std::max(aSu.Magnitude() * aSv.Magnitude(), 1.e-300))
++  {
++    return false;
++  }
++  theN.Divide(theF.Orientation() == TopAbs_REVERSED ? -aNm : aNm);
++  return true;
++}
++
++//! Issue 034 A3 round 2. Plane of a planar removed face theC (in the
++//! coordinates of the shape) and its outward unit normal theN. A B-spline or
++//! Bezier surface is planar when all its poles lie on the plane (convex hull
++//! property; positive weights): this holds whatever the placement of the
++//! poles, where the inertia test of GeomLib_IsPlanarSurface can miss a plane
++//! written in general position. Other surfaces: GeomLib_IsPlanarSurface.
++static bool corkPlane034(const TopoDS_Face& theC, gp_Pln& thePln, gp_Vec& theN)
++{
++  TopLoc_Location                  aLoc;
++  const occ::handle<Geom_Surface>& aS = BRep_Tool::Surface(theC, aLoc);
++  if (aS.IsNull())
++  {
++    return false;
++  }
++  const BRepAdaptor_Surface aBAS(theC, false);
++  double                    aU0, aU1, aV0, aV1;
++  BRepTools::UVBounds(theC, aU0, aU1, aV0, aV1);
++  const double aUm = 0.5 * (aU0 + aU1), aVm = 0.5 * (aV0 + aV1);
++  if (!outwardNormal034(aBAS, theC, aUm, aVm, theN))
++  {
++    return false;
++  }
++  const gp_Pnt        aP0 = aBAS.Value(aUm, aVm); // with the location
++  const gp_Dir        aD(theN);
++  const double        aTol = Precision::Confusion();
++  const GeomAdaptor_Surface aGAS(aS);
++  const gp_Trsf       aT = aLoc.Transformation();
++  auto aOnPlane = [&aP0, &aD, aTol, &aT](const gp_Pnt& theP) {
++    return std::abs(gp_Vec(aP0, theP.Transformed(aT)).Dot(gp_Vec(aD))) <= aTol;
++  };
++  if (aGAS.GetType() == GeomAbs_Plane)
++  {
++    thePln = gp_Pln(aP0, aD);
++    return true;
++  }
++  if (aGAS.GetType() == GeomAbs_BSplineSurface)
++  {
++    const occ::handle<Geom_BSplineSurface> aB = aGAS.BSpline();
++    for (int i = 1; i <= aB->NbUPoles(); ++i)
++    {
++      for (int j = 1; j <= aB->NbVPoles(); ++j)
++      {
++        if (!aOnPlane(aB->Pole(i, j)))
++        {
++          return false;
++        }
++      }
++    }
++    thePln = gp_Pln(aP0, aD);
++    return true;
++  }
++  if (aGAS.GetType() == GeomAbs_BezierSurface)
++  {
++    const occ::handle<Geom_BezierSurface> aB = aGAS.Bezier();
++    for (int i = 1; i <= aB->NbUPoles(); ++i)
++    {
++      for (int j = 1; j <= aB->NbVPoles(); ++j)
++      {
++        if (!aOnPlane(aB->Pole(i, j)))
++        {
++          return false;
++        }
++      }
++    }
++    thePln = gp_Pln(aP0, aD);
++    return true;
++  }
++  GeomLib_IsPlanarSurface aPlanarity(aS, aTol);
++  if (!aPlanarity.IsPlanar())
++  {
++    return false;
++  }
++  gp_Pln aPln = aPlanarity.Plan();
++  aPln.Transform(aT);
++  if (!aPln.Axis().Direction().IsParallel(aD, Precision::Angular()) || !aOnPlane(aPln.Location().Transformed(aT.Inverted())))
++  {
++    return false;
++  }
++  thePln = gp_Pln(aP0, aD);
++  return true;
++}
++
++//! Issue 034 A3. Kind of the rim edge theE between the kept face theF
++//! (offset theOffset) and the cork theC (see RimKind034). Five samples
++//! inside the edge; every sample must give the same kind.
++static RimKind034 rimEdgeKind034(const TopoDS_Edge& theE,
++                                 const TopoDS_Face& theF,
++                                 const TopoDS_Face& theC,
++                                 const double       theOffset,
++                                 double&            theCross)
++{
++  if (!edgeTangent034(theE, theF, theC))
++  {
++    return RimKind034_Sharp;
++  }
++  try
++  {
++    OCC_CATCH_SIGNALS
++    // orientation of theE on the natural side of theF (material on its left)
++    TopAbs_Orientation anOrF = TopAbs_EXTERNAL;
++    int                aNbUse = 0;
++    for (TopExp_Explorer anExp(theF.Oriented(TopAbs_FORWARD), TopAbs_EDGE); anExp.More();
++         anExp.Next())
++    {
++      if (anExp.Current().IsSame(theE))
++      {
++        anOrF = anExp.Current().Orientation();
++        ++aNbUse;
++      }
++    }
++    if (aNbUse != 1 || (anOrF != TopAbs_FORWARD && anOrF != TopAbs_REVERSED)
++        || std::abs(theOffset) <= Precision::Confusion())
++    {
++      return RimKind034_Unknown; // seam or internal use: not a rim
++    }
++    double                          aF0, aL0, aC0, aC1;
++    const occ::handle<Geom2d_Curve> aPCF = BRep_Tool::CurveOnSurface(theE, theF, aF0, aL0);
++    const occ::handle<Geom2d_Curve> aPCC = BRep_Tool::CurveOnSurface(theE, theC, aC0, aC1);
++    if (aPCF.IsNull() || aPCC.IsNull())
++    {
++      return RimKind034_Unknown;
++    }
++    const BRepAdaptor_Surface aSF(theF), aSC(theC);
++    const BRepAdaptor_Curve   aCE(theE);
++    const double              aMargin = Precision::Confusion() / std::abs(theOffset);
++    int                       aKind   = -1;
++    for (int i = 1; i <= 5; ++i)
++    {
++      const double aW = aF0 + (aL0 - aF0) * i / 6.;
++      gp_Pnt2d     aUVF;
++      gp_Vec2d     aTF;
++      aPCF->D1(aW, aUVF, aTF);
++      // the same point on theC through the 3D curve parameter (SameParameter)
++      const gp_Pnt2d aUVC = aPCC->Value(aC0 + (aC1 - aC0) * (aW - aF0) / (aL0 - aF0));
++      gp_Vec         aNF, aNC;
++      if (!outwardNormal034(aSF, theF, aUVF.X(), aUVF.Y(), aNF)
++          || !outwardNormal034(aSC, theC, aUVC.X(), aUVC.Y(), aNC) || aNF.Dot(aNC) <= 0.)
++      {
++        return RimKind034_Unknown;
++      }
++      // regularity of the offset of theF at the rim: every principal factor
++      double aFct = 1.;
++      {
++        TopLoc_Location                  aLoc;
++        const occ::handle<Geom_Surface>& aGS = BRep_Tool::Surface(theF, aLoc);
++        double                           aU0, aU1, aV0, aV1;
++        BRepTools::UVBounds(theF, aU0, aU1, aV0, aV1);
++        const double aD = (theF.Orientation() == TopAbs_REVERSED) ? -theOffset : theOffset;
++        if (!aGS.IsNull()
++            && offsetFactor034(*aGS, aUVF.X(), aUVF.Y(), aU1 - aU0, aV1 - aV0, aD, aFct)
++            && aFct <= aMargin)
++        {
++          if (aKind >= 0 && aKind != RimKind034_Collapse)
++          {
++            return RimKind034_Unknown;
++          }
++          aKind = RimKind034_Collapse;
++          continue;
++        }
++      }
++      // direction across theE into theF: left of the pcurve on the natural side
++      const double aS = (anOrF == TopAbs_FORWARD) ? 1. : -1.;
++      const double aA = -aS * aTF.Y(), aB = aS * aTF.X();
++      double       aKF, aKC;
++      if (!normalCurvature034(aSF, aUVF.X(), aUVF.Y(), aA, aB, aNF, aKF))
++      {
++        return RimKind034_Unknown;
++      }
++      // the same 3D direction in the parameters of theC
++      gp_Pnt aP;
++      gp_Vec aSu, aSv, aCu, aCv;
++      aSF.D1(aUVF.X(), aUVF.Y(), aP, aSu, aSv);
++      const gp_Vec aDir = aSu * aA + aSv * aB;
++      aSC.D1(aUVC.X(), aUVC.Y(), aP, aCu, aCv);
++      const double anE = aCu.SquareMagnitude(), aFF = aCu.Dot(aCv), aG = aCv.SquareMagnitude();
++      const double aDet = anE * aG - aFF * aFF;
++      if (aDet <= 1.e-300)
++      {
++        return RimKind034_Unknown;
++      }
++      const double aDu = aDir.Dot(aCu), aDv = aDir.Dot(aCv);
++      if (!normalCurvature034(aSC,
++                              aUVC.X(),
++                              aUVC.Y(),
++                              (aG * aDu - aFF * aDv) / aDet,
++                              (anE * aDv - aFF * aDu) / aDet,
++                              aNF,
++                              aKC))
++      {
++        return RimKind034_Unknown;
++      }
++      const double aKOff = aKF / (1. - theOffset * aKF);
++      // |t (k_off - k_C)| <= 1e-9: a crossing would lie more than ~4.5e4 |t|
++      // away from the rim - parallel (decision D-A3-7)
++      const double aGap  = theOffset * (aKOff - aKC);
++      const int    aHere = aGap < -1.e-9 ? RimKind034_Cross : RimKind034_Away;
++      if (aHere == RimKind034_Cross)
++      {
++        // second-order distance of the crossing from E: 2|t| / |k_off - k_C|
++        // (not below the true one on circular sections)
++        theCross = std::max(theCross, std::sqrt(2. * std::abs(theOffset) / std::abs(aKOff - aKC)));
++      }
++      if (aKind >= 0 && aKind != aHere)
++      {
++        return RimKind034_Unknown;
++      }
++      aKind = aHere;
++    }
++    return aKind < 0 ? RimKind034_Unknown : static_cast<RimKind034>(aKind);
++  }
++  catch (Standard_Failure const&)
++  {
++  }
++  return RimKind034_Unknown;
++}
++
++//! Issue 034 A3. Class of a removed face ("cork") of a thick solid:
++//! 0 - no tangent rim edge (stock path, unchanged);
++//! 1 - WALL cork: every rim edge tangent with the offset running away from
++//!     the cork and regular (no image, walls E -> E + t n);
++//! 2 - CONTEXT cork with tangent crossing edges (the others sharp): stock
++//!     trimming by the cork, the result is checked;
++//! 3 - anything else with a tangent edge (collapsing offset at the rim,
++//!     wall and trimming edges on one cork, kind not computable, or, arc
++//!     join, a tube of a sharp kept edge ending on the rim of a wall cork):
++//!     stock path, the result is checked;
++//! 4 - like 2 with crossing edges only: stock trimming first; where it
++//!     fails, the wall construction with the rim bead cut off by the plane
++//!     of the removed face (the flush construction in MakeThickSolid()). theCross: largest second-order
++//!     distance of the crossing from the rim.
++//! theEF: edge -> faces of the whole input; theCorks: all removed faces.
++static int corkKind034(
++  const TopoDS_Shape& theCork,
++  const NCollection_IndexedDataMap<TopoDS_Shape,
++                                   NCollection_List<TopoDS_Shape>,
++                                   TopTools_ShapeMapHasher>&                   theEF,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>&         theCorks,
++  const double                                                                 theOffset,
++  const NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>&    theFaceOffset,
++  const NCollection_DataMap<TopoDS_Shape, TopoDS_Shape, TopTools_ShapeMapHasher>& thePlanface,
++  const NCollection_IndexedDataMap<TopoDS_Shape,
++                                   NCollection_List<TopoDS_Shape>,
++                                   TopTools_ShapeMapHasher>&                   theVE,
++  const GeomAbs_JoinType                                                       theJoin,
++  double&                                                                      theCross)
++{
++  int aNb[5] = {0, 0, 0, 0, 0};
++  theCross   = 0.;
++  for (TopExp_Explorer anExp(theCork, TopAbs_EDGE); anExp.More(); anExp.Next())
++  {
++    const TopoDS_Edge& anE = TopoDS::Edge(anExp.Current());
++    if (BRep_Tool::Degenerated(anE))
++    {
++      continue;
++    }
++    const NCollection_List<TopoDS_Shape>* aLF = theEF.Seek(anE);
++    if (aLF == nullptr)
++    {
++      continue;
++    }
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt(*aLF); anIt.More(); anIt.Next())
++    {
++      const TopoDS_Shape& aF = anIt.Value();
++      if (aF.IsSame(theCork) || theCorks.Contains(aF))
++      {
++        continue;
++      }
++      const double* anOff = theFaceOffset.Seek(aF);
++      if (anOff == nullptr)
++      {
++        const TopoDS_Shape* aPF = thePlanface.Seek(aF);
++        anOff                   = aPF != nullptr ? theFaceOffset.Seek(*aPF) : nullptr;
++      }
++      ++aNb[rimEdgeKind034(anE,
++                           TopoDS::Face(aF),
++                           TopoDS::Face(theCork),
++                           anOff != nullptr ? *anOff : theOffset,
++                           theCross)];
++    }
++  }
++  const int aNbTan = aNb[1] + aNb[2] + aNb[3] + aNb[4];
++  if (aNbTan == 0)
++  {
++    return 0;
++  }
++  if (aNb[3] + aNb[4] != 0 || (aNb[2] != 0 && aNb[0] + aNb[1] != 0))
++  {
++    return 3;
++  }
++  if (aNb[1] != 0)
++  {
++    // tangent crossing edges, the others sharp; 4 = crossing edges only
++    return aNb[0] == 0 ? 4 : 2;
++  }
++  if (theJoin == GeomAbs_Arc)
++  {
++    // A sharp kept edge ending on the rim that gets an arc tube (convex for
++    // an outward offset, concave for an inward one): the tube meets the rim
++    // in an arc whose angle vanishes where the edge ends tangentially; the
++    // walls do not model that end -> not a wall cork.
++    const ChFiDS_TypeOfConcavity aTubeType = theOffset > 0. ? ChFiDS_Convex : ChFiDS_Concave;
++    for (TopExp_Explorer aVExp(theCork, TopAbs_VERTEX); aVExp.More(); aVExp.Next())
++    {
++      const NCollection_List<TopoDS_Shape>* aLE = theVE.Seek(aVExp.Current());
++      if (aLE == nullptr)
++      {
++        continue;
++      }
++      for (NCollection_List<TopoDS_Shape>::Iterator anItE(*aLE); anItE.More(); anItE.Next())
++      {
++        const TopoDS_Edge&                    anE = TopoDS::Edge(anItE.Value());
++        const NCollection_List<TopoDS_Shape>* aLF = theEF.Seek(anE);
++        if (BRep_Tool::Degenerated(anE) || aLF == nullptr || aLF->Extent() != 2)
++        {
++          continue;
++        }
++        const TopoDS_Face& aF1 = TopoDS::Face(aLF->First());
++        const TopoDS_Face& aF2 = TopoDS::Face(aLF->Last());
++        if (theCorks.Contains(aF1) || theCorks.Contains(aF2) || edgeTangent034(anE, aF1, aF2))
++        {
++          continue;
++        }
++        if (ChFi3d::DefineConnectType(anE, aF1, aF2, std::sin(Precision::Angular()), false)
++            == aTubeType)
++        {
++          return 3;
++        }
++      }
++    }
++  }
++  return 1;
++}
++
++//! Issue 034 A3. A vertex on a free boundary where every other edge is
++//! tangent: all its faces share the normal there, so the offset of the
++//! vertex is one point and the offset faces must share one vertex (as for a
++//! vertex inside a tangent fan). Free edges impose no normal; degenerated
++//! edges (poles) are points and count neither way. Without a free edge the
++//! stock rule applies unchanged.
++static bool tangentFan034(const BRepOffset_Analyse& theA, const TopoDS_Vertex& theV)
++{
++  int  aNbTan  = 0;
++  bool isOpen  = false;
++  for (NCollection_List<TopoDS_Shape>::Iterator anIt(theA.Ancestors(theV)); anIt.More(); anIt.Next())
++  {
++    const TopoDS_Edge& anE = TopoDS::Edge(anIt.Value());
++    if (BRep_Tool::Degenerated(anE))
++    {
++      continue;
++    }
++    const NCollection_List<BRepOffset_Interval>& aLI = theA.Type(anE);
++    if (aLI.IsEmpty())
++    {
++      return false;
++    }
++    for (NCollection_List<BRepOffset_Interval>::Iterator anItI(aLI); anItI.More(); anItI.Next())
++    {
++      if (anItI.Value().Type() != aLI.First().Type())
++      {
++        return false;
++      }
++    }
++    if (aLI.First().Type() == ChFiDS_Tangential)
++    {
++      ++aNbTan;
++    }
++    else if (aLI.First().Type() == ChFiDS_FreeBound)
++    {
++      isOpen = true;
++    }
++    else
++    {
++      return false;
++    }
++  }
++  return aNbTan > 0 && isOpen;
++}
++
++//! Issue 034 A3. Record of SetFaces() for the object that runs (no new
++//! members: the class layout stays that of OCCT 8.0.1): the removed faces
++//! that are context faces (the offsets of their neighbours are extended to
++//! them and they are trimmed to the rim) - all of them except the wall
++//! corks, which get no image - in the order of myFaces; and whether some
++//! removed face has a tangent rim edge (then the result is checked).
++struct CorkRecord034
++{
++  const void*                                                   Owner = nullptr;
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> Context;
++  bool                                                          Tangent = false;
++  //! planar removed faces (as given) whose rim edges all cross, with the
++  //! crossing distance: the flush fallback of MakeThickSolid()
++  NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher> Crossing;
++};
++
++thread_local CorkRecord034 THE_CORK_RECORD_034;
++
++//! The object whose crossing corks are built as wall corks (the inner run
++//! of the flush fallback). Set only through ScopedOwner034.
++thread_local const void* THE_FORCE_WALLS_034 = nullptr;
++
++//! Sets a thread-local owner pointer for the lifetime of the scope and puts
++//! the previous value back on EVERY exit of the scope: normal return,
++//! Standard_Failure, any other C++ exception (and, built with /EHa, a
++//! structured exception). An owner pointer left behind by an exception
++//! would name a destroyed object, and a later object created at the same
++//! address would take that object's role (review offset-A3 r2, R1).
++class ScopedOwner034
++{
++public:
++  ScopedOwner034(const void*& theSlot, const void* theOwner)
++      : mySlot(theSlot),
++        myPrev(theSlot)
++  {
++    mySlot = theOwner;
++  }
++
++  ~ScopedOwner034() { mySlot = myPrev; }
++
++  ScopedOwner034(const ScopedOwner034&)            = delete;
++  ScopedOwner034& operator=(const ScopedOwner034&) = delete;
++
++private:
++  const void*& mySlot;
++  const void*  myPrev;
++};
++
++//! The context corks of theOwner: the removed faces that have an image (all
++//! but the wall corks), taken from theFaces as they are NOW, in their order
++//! and orientation (MakeOffsetShape() re-keys the removed faces with their
++//! orientation in the shape after SetFaces(), RemoveCorks()): rebuilt at
++//! every call, so the steps see exactly the stock list when no cork is a
++//! wall cork.
++static const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& contextCorks034(
++  const void*                                                          theOwner,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theFaces,
++  const BRepAlgo_Image&                                                theInitOffsetFace)
++{
++  CorkRecord034& aRec = THE_CORK_RECORD_034;
++  if (aRec.Owner != theOwner)
++  {
++    aRec.Owner   = theOwner;
++    aRec.Tangent = false;
++    aRec.Crossing.Clear();
++  }
++  aRec.Context.Clear();
++  for (int i = 1; i <= theFaces.Extent(); ++i)
++  {
++    if (theInitOffsetFace.HasImage(theFaces(i)))
++    {
++      aRec.Context.Add(theFaces(i));
++    }
++  }
++  return aRec.Context;
++}
++
++//! Releases the record of theOwner (the shapes it holds).
++struct CorkRecordRelease034
++{
++  const void* Owner;
++
++  ~CorkRecordRelease034()
++  {
++    if (THE_CORK_RECORD_034.Owner == Owner)
++    {
++      THE_CORK_RECORD_034.Owner   = nullptr;
++      THE_CORK_RECORD_034.Tangent = false;
++      THE_CORK_RECORD_034.Context.Clear();
++      THE_CORK_RECORD_034.Crossing.Clear();
++    }
++  }
++};
++} // namespace
++
++//=======================================================================
++// Issue 034, lane R-034-inner: removed faces with a loop that leads to
++// material.
++//
++// A removed face (cork) can separate the kept faces into several pieces:
++// the plate top over a blind pocket (the pocket rim is an inner loop of
++// the top; the pocket walls and floor are a piece of their own), a pocket
++// floor around an island. The thick solid is the input minus its inner
++// offset with the removed faces as openings (Rossignac-Requicha 1986); the
++// offset of a union is the union of the offsets (the Minkowski sum
++// distributes over the union), so the thick solid of such an input is the
++// union of the thick solids of the pieces: one lump per piece, disjoint
++// unless two pieces come closer than the thickness. The offset
++// construction is local (faces, edges, vertices and their neighbours), so
++// it builds every piece as it stands; three global places assumed one
++// piece: the input check, the side of the trace on the cork, and the
++// assembly of the result into one solid.
++//
++// Side of the trace. The offset of a kept face next to a cork is cut by
++// the cork surface; the wall of the opening is the band of that surface
++// between the rim edge and the trace. For a CONVEX rim edge and an inward
++// offset (a concave rim edge and an outward offset) the trace lies inside
++// the cork; for the two other combinations it lies outside (the band
++// extends the cork beyond its boundary: the floor of a pocket with sharp
++// walls, the base of an island). The stock code takes the side from the
++// sign of the offset only (marked "Temporary" there), i.e. it assumes
++// convex rims. A cork whose rim edges are all concave gets the other side
++// here; every other cork keeps the stock rule.
++//
++// Crossing traces. Where the offsets of the two neighbours of a rim vertex
++// overlap (a sharp concave edge and an outward offset: the rim of a
++// pocket or of a hole in the removed top; a sharp convex edge and an
++// inward offset at a concave cork: the base of an island), their traces
++// cross on the cork. On a cork whose band is built on the face as it
++// stands (InSide false) the stock 2D intersection gave the crossing
++// vertex the opposite orientation to the one of the offset faces, which
++// lost their loops (intersectCork034in()).
++//=======================================================================
++namespace
++{
++//! Number of connected pieces (shells glued through shared edges) of the faces of theS.
++static int nbPieces034in(const TopoDS_Shape& theS)
++{
++  BRepTools_Quilt aGlue;
++  for (TopExp_Explorer aFExp(theS, TopAbs_FACE); aFExp.More(); aFExp.Next())
++  {
++    aGlue.Add(aFExp.Current());
++  }
++  int aNb = 0;
++  for (TopExp_Explorer aShExp(aGlue.Shells(), TopAbs_SHELL); aShExp.More(); aShExp.Next())
++  {
++    ++aNb;
++  }
++  return aNb;
++}
++
++//! True if the kept faces theKept together with the removed faces theCorks
++//! are one connected piece (the removal alone split the kept faces).
++static bool connectedWithCorks034in(
++  const TopoDS_Shape&                                                  theKept,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theCorks)
++{
++  TopoDS_Compound aC;
++  BRep_Builder    aB;
++  aB.MakeCompound(aC);
++  for (TopExp_Explorer aFExp(theKept, TopAbs_FACE); aFExp.More(); aFExp.Next())
++  {
++    aB.Add(aC, aFExp.Current());
++  }
++  for (int i = 1; i <= theCorks.Extent(); ++i)
++  {
++    aB.Add(aC, theCorks(i));
++  }
++  return nbPieces034in(aC) == 1;
++}
++
++//! Sine of the angular tolerance of the edge analysis, as computed in
++//! MakeOffsetShape() for BRepOffset_Analyse::Perform().
++static double analyseSinTol034in(const double theTol, const double theOffset)
++{
++  const double aCoeff =
++    std::min(theTol / (std::abs(theOffset * 0.5) + Precision::Confusion()), 1.0);
++  return std::abs(std::sin(4. * std::asin(aCoeff)));
++}
++
++//! True if every rim edge of the cork theCork (an edge it shares with a
++//! kept face) is a sharp CONCAVE edge of the input, and the cork has no free
++//! edge and shares no edge or vertex with another cork. The convexity is the
++//! one of BRepOffset_Analyse (ChFi3d::DefineConnectType, same tolerance).
++static bool concaveCork034in(
++  const TopoDS_Face&                                                   theCork,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theCorks,
++  const BRepOffset_Analyse&                                            theAnalyse,
++  const double                                                         theSinTol)
++{
++  bool isAny = false;
++  try
++  {
++    OCC_CATCH_SIGNALS
++    for (TopExp_Explorer anEExp(theCork, TopAbs_EDGE); anEExp.More(); anEExp.Next())
++    {
++      const TopoDS_Edge& anE = TopoDS::Edge(anEExp.Current());
++      if (BRep_Tool::Degenerated(anE))
++      {
++        continue;
++      }
++      if (!theAnalyse.HasAncestor(anE) || theAnalyse.Ancestors(anE).Extent() != 1)
++      {
++        return false; // free edge, edge between corks, or non-manifold
++      }
++      const TopoDS_Face& aF = TopoDS::Face(theAnalyse.Ancestors(anE).First());
++      if (BRep_Tool::Continuity(anE, theCork, aF) > GeomAbs_C0
++          || ChFi3d::DefineConnectType(anE, theCork, aF, theSinTol, false) != ChFiDS_Concave)
++      {
++        return false;
++      }
++      isAny = true;
++    }
++    // no vertex shared with another cork (the loops of such corks are built together)
++    for (int i = 1; i <= theCorks.Extent(); ++i)
++    {
++      if (theCorks(i).IsSame(theCork))
++      {
++        continue;
++      }
++      NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aVs;
++      for (TopExp_Explorer aVExp(theCorks(i), TopAbs_VERTEX); aVExp.More(); aVExp.Next())
++      {
++        aVs.Add(aVExp.Current());
++      }
++      for (TopExp_Explorer aVExp(theCork, TopAbs_VERTEX); aVExp.More(); aVExp.Next())
++      {
++        if (aVs.Contains(aVExp.Current()))
++        {
++          return false;
++        }
++      }
++    }
++  }
++  catch (Standard_Failure const&)
++  {
++    return false;
++  }
++  return isAny;
++}
++
++//! Splits the corks by the side of the trace of the offsets of their
++//! neighbours: theIn (inside the cork, the stock rule of an inward offset)
++//! and theOut. Every cork follows the stock rule (side given by the sign of
++//! the offset) except the concave ones. Returns true when some cork is on
++//! the other side than the stock rule gives.
++//! 034 integration: theCorks are the context corks of the step (issue 034
++//! A3: the removed faces with an image; wall corks are built as walls and
++//! take no part), theAll all removed faces (a cork that shares a vertex
++//! with any removed face is not concave); both are myFaces when there is
++//! no wall cork, as in lane R-034-inner.
++static bool splitCorks034in(
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theCorks,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theAll,
++  const BRepOffset_Analyse&                                            theAnalyse,
++  const double                                                         theOffset,
++  const double                                                         theTol,
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>&       theIn,
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>&       theOut)
++{
++  const double aSinTol   = analyseSinTol034in(theTol, theOffset);
++  const bool   isStockIn = (theOffset < 0.);
++  bool         isChanged = false;
++  for (int i = 1; i <= theCorks.Extent(); ++i)
++  {
++    const bool isConcave =
++      concaveCork034in(TopoDS::Face(theCorks(i)), theAll, theAnalyse, aSinTol);
++    const bool isIn = isConcave ? !isStockIn : isStockIn;
++    isChanged       = isChanged || isConcave;
++    if (isIn)
++    {
++      theIn.Add(theCorks(i));
++    }
++    else
++    {
++      theOut.Add(theCorks(i));
++    }
++  }
++  return isChanged;
++}
++
++//! Reverses, on each cork of theConcave, the edges that the intersection
++//! with the offsets stored on it (the traces; the cork's own edges are left
++//! as they are). The intersection orients a trace for a convex rim (band
++//! between the rim outside and the trace inside); on a concave cork the
++//! band lies between the trace outside and the rim inside.
++//! theOnOffsets: the same trace is also reversed on the offset faces that
++//! hold it (join by intersection: BRepOffset_Tool::Inter3D orients the
++//! section on BOTH faces from the normals as for a convex rim, so the
++//! offset of a wall on a concave rim would keep its part on the wrong
++//! side of the cork; the arc join orients the offset side by itself).
++static void reverseTraces034in(
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theConcave,
++  const occ::handle<BRepAlgo_AsDes>&                                   theAsDes,
++  const bool                                                           theOnOffsets = false)
++{
++  for (int i = 1; i <= theConcave.Extent(); ++i)
++  {
++    const TopoDS_Shape& aCork = theConcave(i);
++    if (!theAsDes->HasDescendant(aCork))
++    {
++      continue;
++    }
++    NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> anOwn;
++    for (TopExp_Explorer anEExp(aCork, TopAbs_EDGE); anEExp.More(); anEExp.Next())
++    {
++      anOwn.Add(anEExp.Current());
++    }
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt(theAsDes->ChangeDescendant(aCork));
++         anIt.More();
++         anIt.Next())
++    {
++      if (anOwn.Contains(anIt.Value()))
++      {
++        continue;
++      }
++      anIt.ChangeValue().Reverse();
++      if (!theOnOffsets || !theAsDes->HasAscendant(anIt.Value()))
++      {
++        continue;
++      }
++      for (NCollection_List<TopoDS_Shape>::Iterator anAIt(theAsDes->Ascendant(anIt.Value()));
++           anAIt.More();
++           anAIt.Next())
++      {
++        const TopoDS_Shape& anOF = anAIt.Value();
++        if (anOF.IsSame(aCork) || anOF.ShapeType() != TopAbs_FACE
++            || !theAsDes->HasDescendant(anOF))
++        {
++          continue;
++        }
++        for (NCollection_List<TopoDS_Shape>::Iterator anOIt(theAsDes->ChangeDescendant(anOF));
++             anOIt.More();
++             anOIt.Next())
++        {
++          if (anOIt.Value().IsSame(anIt.Value()))
++          {
++            anOIt.ChangeValue().Reverse();
++          }
++        }
++      }
++    }
++  }
++}
++
++//! 2D intersection on a cork whose band is built on the face as it stands
++//! (BuildOnContext() with InSide false), with the crossings of its traces
++//! (the edges an offset face holds too) oriented as on the offset faces.
++//!
++//! BRepOffset_Inter2d orients a crossing vertex on an edge from the
++//! orientation of the OTHER edge in the face being intersected. Two traces
++//! that cross each other on the cork (the offsets of the two neighbours of
++//! a rim vertex overlap: a sharp concave edge with an outward offset, a
++//! sharp convex edge with an inward one at a concave cork) meet where the
++//! offset faces themselves meet, and the same vertex is computed on those
++//! offset faces. The trace is kept between its crossings on both faces,
++//! but on the cork it lies on the far side of the other trace's band, so
++//! with the band as material the cork gives the opposite orientation. The
++//! fused vertex then sits twice on the trace with both orientations and
++//! the offset face loses its loop: its wall and the band of the cork are
++//! missing (stock: "command not done" for a removed top over a through
++//! hole with an outward offset). On a cork built reversed (InSide true)
++//! the material side is the other one and both faces agree.
++//!
++//! The trace x trace pairs are therefore intersected first, with the
++//! traces reversed; every other pair (a trace with an edge of the cork or
++//! with an edge between corks) is intersected as in the stock code, the
++//! trace pairs being marked as done in theEdgeIntEdges for that pass.
++static void intersectCork034in(
++  const TopoDS_Face&                                                   theCork,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theCorks,
++  const occ::handle<BRepAlgo_AsDes>&                                   theAsDes,
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& theNewEdges,
++  const double                                                         theTol,
++  NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>&
++    theEdgeIntEdges,
++  NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>&
++                               theDMVV,
++  const Message_ProgressRange& theRange)
++{
++  Message_ProgressScope          aPS(theRange, nullptr, 2);
++  NCollection_List<TopoDS_Shape> aTraces;
++  if (theAsDes->HasDescendant(theCork))
++  {
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt(theAsDes->Descendant(theCork)); anIt.More();
++         anIt.Next())
++    {
++      if (!theAsDes->HasAscendant(anIt.Value()))
++      {
++        continue;
++      }
++      for (NCollection_List<TopoDS_Shape>::Iterator anAIt(theAsDes->Ascendant(anIt.Value()));
++           anAIt.More();
++           anAIt.Next())
++      {
++        if (anAIt.Value().ShapeType() == TopAbs_FACE && !theCorks.Contains(anAIt.Value()))
++        {
++          aTraces.Append(anIt.Value());
++          break;
++        }
++      }
++    }
++  }
++  if (aTraces.Extent() < 2)
++  {
++    BRepOffset_Inter2d::Compute(theAsDes,
++                                theCork,
++                                theNewEdges,
++                                theTol,
++                                theEdgeIntEdges,
++                                theDMVV,
++                                aPS.Next(2));
++    return;
++  }
++  // pass 1: the traces alone, reversed
++  const NCollection_List<TopoDS_Shape> aSaved = theAsDes->Descendant(theCork);
++  NCollection_List<TopoDS_Shape>&      aList  = theAsDes->ChangeDescendant(theCork);
++  aList.Clear();
++  for (NCollection_List<TopoDS_Shape>::Iterator anIt(aTraces); anIt.More(); anIt.Next())
++  {
++    aList.Append(anIt.Value().Reversed());
++  }
++  BRepOffset_Inter2d::Compute(theAsDes,
++                              theCork,
++                              theNewEdges,
++                              theTol,
++                              theEdgeIntEdges,
++                              theDMVV,
++                              aPS.Next());
++  aList = aSaved;
++  // pass 2: the whole list, the trace x trace pairs marked as done
++  NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> aKept;
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aNew;
++  for (NCollection_List<TopoDS_Shape>::Iterator anIt(aTraces); anIt.More(); anIt.Next())
++  {
++    const TopoDS_Shape& aT = anIt.Value();
++    if (theEdgeIntEdges.IsBound(aT))
++    {
++      if (!aKept.IsBound(aT))
++      {
++        aKept.Bind(aT, theEdgeIntEdges(aT));
++      }
++    }
++    else if (aNew.Add(aT))
++    {
++      theEdgeIntEdges.Bind(aT, NCollection_List<TopoDS_Shape>());
++    }
++    for (NCollection_List<TopoDS_Shape>::Iterator anIt2(aTraces); anIt2.More(); anIt2.Next())
++    {
++      if (!anIt2.Value().IsSame(aT))
++      {
++        theEdgeIntEdges.ChangeFind(aT).Append(anIt2.Value());
++      }
++    }
++  }
++  BRepOffset_Inter2d::Compute(theAsDes,
++                              theCork,
++                              theNewEdges,
++                              theTol,
++                              theEdgeIntEdges,
++                              theDMVV,
++                              aPS.Next());
++  for (NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>::Iterator anIt(aNew); anIt.More();
++       anIt.Next())
++  {
++    theEdgeIntEdges.UnBind(anIt.Key());
++  }
++  for (NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>::
++         Iterator anIt(aKept);
++       anIt.More();
++       anIt.Next())
++  {
++    theEdgeIntEdges.ChangeFind(anIt.Key()) = anIt.Value();
++  }
++}
++
++//! Signed volume enclosed by a closed shell (positive: an outer shell).
++static double shellVolume034in(const TopoDS_Shape& theShell)
++{
++  GProp_GProps aProps;
++  BRepGProp::VolumeProperties(theShell, aProps, true);
++  return aProps.Mass();
++}
++
++//! Full check of a result of the new constructions: BRepCheck and BOP
++//! self-interference (resultIsBroken034), and every solid encloses a
++//! positive volume (not inside out). An exception counts as broken.
++static bool innerResultBroken034in(const TopoDS_Shape& theRes)
++{
++  try
++  {
++    OCC_CATCH_SIGNALS
++    if (resultIsBroken034(theRes))
++    {
++      return true;
++    }
++    int aNbSolids = 0;
++    for (TopExp_Explorer aSoExp(theRes, TopAbs_SOLID); aSoExp.More(); aSoExp.Next())
++    {
++      ++aNbSolids;
++      GProp_GProps aProps;
++      BRepGProp::VolumeProperties(aSoExp.Current(), aProps, true);
++      if (aProps.Mass() <= Precision::Confusion())
++      {
++        return true;
++      }
++    }
++    return aNbSolids == 0;
++  }
++  catch (Standard_Failure const&)
++  {
++    return true;
++  }
++}
++
++//! Largest vertex tolerance of theS.
++static double maxVertexTol034in(const TopoDS_Shape& theS)
++{
++  double aTol = 0.;
++  for (TopExp_Explorer aVExp(theS, TopAbs_VERTEX); aVExp.More(); aVExp.Next())
++  {
++    aTol = std::max(aTol, BRep_Tool::Tolerance(TopoDS::Vertex(aVExp.Current())));
++  }
++  return aTol;
++}
++
++//! Splits a thick solid glued into ONE solid from several pieces into its
++//! lumps: every shell of positive volume is the outer shell of one solid,
++//! every shell of negative volume (a cavity of the hollow) goes to the
++//! smallest outer shell that holds it. Returns false (the shells are not a
++//! set of disjoint solids) when a shell encloses no volume, a cavity has no
++//! holder, there are fewer than two outer shells, or two lumps touch,
++//! overlap or nest (two pieces came closer than the thickness; their union
++//! would need a Boolean fuse).
++static bool splitLumps034in(const TopoDS_Shape& theSolid, TopoDS_Shape& theResult)
++{
++  BRep_Builder                   aB;
++  NCollection_List<TopoDS_Shape> anOuters, aCavities;
++  NCollection_List<double>       anOuterVols;
++  for (TopoDS_Iterator anIt(theSolid); anIt.More(); anIt.Next())
++  {
++    const TopoDS_Shape& aSh  = anIt.Value();
++    const double        aVol = shellVolume034in(aSh);
++    if (std::abs(aVol) <= Precision::Confusion())
++    {
++      return false;
++    }
++    if (aVol > 0.)
++    {
++      anOuters.Append(aSh);
++      anOuterVols.Append(aVol);
++    }
++    else
++    {
++      aCavities.Append(aSh);
++    }
++  }
++  if (anOuters.Extent() < 2)
++  {
++    return false;
++  }
++  NCollection_DynamicArray<TopoDS_Solid> aSolids;
++  NCollection_DynamicArray<double>       aVols;
++  NCollection_List<double>::Iterator     aVolIt(anOuterVols);
++  for (NCollection_List<TopoDS_Shape>::Iterator anIt(anOuters); anIt.More();
++       anIt.Next(), aVolIt.Next())
++  {
++    TopoDS_Solid aSol;
++    aB.MakeSolid(aSol);
++    aB.Add(aSol, anIt.Value());
++    aSol.Closed(true);
++    aSolids.Append(aSol);
++    aVols.Append(aVolIt.Value());
+   }
+-
+-  // Normalize steps
+-  for (int i = theSteps.Lower(); i <= theSteps.Upper(); ++i)
++  // every cavity goes to the smallest outer shell holding it (decided on the outer shells alone)
++  NCollection_DynamicArray<int> aHolder;
++  for (NCollection_List<TopoDS_Shape>::Iterator aCIt(aCavities); aCIt.More(); aCIt.Next())
+   {
+-    theSteps(i) = theWhole * theSteps(i) / aSum;
++    TopExp_Explorer aVExp(aCIt.Value(), TopAbs_VERTEX);
++    if (!aVExp.More())
++    {
++      return false;
++    }
++    const TopoDS_Vertex& aV    = TopoDS::Vertex(aVExp.Current());
++    int                  aBest = -1;
++    for (int k = 0; k < aSolids.Length(); ++k)
++    {
++      BRepClass3d_SolidClassifier aClass(aSolids.Value(k),
++                                         BRep_Tool::Pnt(aV),
++                                         BRep_Tool::Tolerance(aV));
++      if (aClass.State() == TopAbs_IN && (aBest < 0 || aVols.Value(k) < aVols.Value(aBest)))
++      {
++        aBest = k;
++      }
++    }
++    if (aBest < 0)
++    {
++      return false;
++    }
++    aHolder.Append(aBest);
++  }
++  int k = 0;
++  for (NCollection_List<TopoDS_Shape>::Iterator aCIt(aCavities); aCIt.More(); aCIt.Next(), ++k)
++  {
++    aB.Add(aSolids.ChangeValue(aHolder.Value(k)), aCIt.Value());
++  }
++  // the lumps must be disjoint: no contact, no overlap, no nesting
++  for (int i = 0; i < aSolids.Length(); ++i)
++  {
++    Bnd_Box aBoxI;
++    BRepBndLib::Add(aSolids.Value(i), aBoxI);
++    for (int j = i + 1; j < aSolids.Length(); ++j)
++    {
++      Bnd_Box aBoxJ;
++      BRepBndLib::Add(aSolids.Value(j), aBoxJ);
++      if (aBoxI.IsOut(aBoxJ))
++      {
++        continue;
++      }
++      const double aTol = maxVertexTol034in(aSolids.Value(i)) + maxVertexTol034in(aSolids.Value(j));
++      BRepExtrema_DistShapeShape aDist(aSolids.Value(i), aSolids.Value(j));
++      if (!aDist.IsDone() || aDist.InnerSolution() || aDist.Value() <= aTol)
++      {
++        return false;
++      }
++    }
++  }
++  TopoDS_Compound aC;
++  aB.MakeCompound(aC);
++  for (int i = 0; i < aSolids.Length(); ++i)
++  {
++    aB.Add(aC, aSolids.Value(i));
+   }
++  theResult = aC;
++  return true;
+ }
+-
+ } // namespace
+ 
+ //=======================================================================
+@@ -794,9 +3961,45 @@ static void EvalMax(const TopoDS_Shape& S, double& Tol)
+ 
+ void BRepOffset_MakeOffset::SetFaces()
+ {
++  // Issue 034 A3: edge -> faces of the whole input, to classify the corks.
++  NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>
++    anEF, aVE;
++  if (!myOriginalFaces.IsEmpty())
++  {
++    TopExp::MapShapesAndAncestors(myShape, TopAbs_EDGE, TopAbs_FACE, anEF);
++    TopExp::MapShapesAndUniqueAncestors(myShape, TopAbs_VERTEX, TopAbs_EDGE, aVE);
++  }
++  bool                                                               hasTangentRim = false;
++  NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher> aCrossing;
++  // the removed faces with their orientation in the shape (a face given with
++  // the other orientation, e.g. taken from the reversed solid, has the
++  // opposite normal)
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aShapeFaces;
++  if (!myOriginalFaces.IsEmpty())
++  {
++    TopExp::MapShapes(myShape, TopAbs_FACE, aShapeFaces);
++  }
+   for (int ii = 1; ii <= myOriginalFaces.Extent(); ii++)
+   {
+-    TopoDS_Face         aFace     = TopoDS::Face(myOriginalFaces(ii));
++    TopoDS_Face aFace   = TopoDS::Face(myOriginalFaces(ii));
++    const int   anIdx   = aShapeFaces.FindIndex(aFace);
++    const TopoDS_Face aCorkO = anIdx > 0 ? TopoDS::Face(aShapeFaces(anIdx)) : aFace;
++    double      aCross  = 0.;
++    const int   aKind   = corkKind034(aCorkO,
++                                  anEF,
++                                  myOriginalFaces,
++                                  myOffset,
++                                  myFaceOffset,
++                                  myFacePlanfaceMap,
++                                  aVE,
++                                  myJoin,
++                                  aCross);
++    hasTangentRim = hasTangentRim || aKind != 0;
++    if (aKind == 4)
++    {
++      aCrossing.Bind(aCorkO, aCross);
++    }
++    const bool isWallCork = aKind == 1 || (aKind == 4 && THE_FORCE_WALLS_034 == this);
+     const TopoDS_Shape* aPlanface = myFacePlanfaceMap.Seek(aFace);
+     if (aPlanface)
+     {
+@@ -804,6 +4007,12 @@ void BRepOffset_MakeOffset::SetFaces()
+     }
+ 
+     myFaces.Add(aFace);
++    if (isWallCork)
++    {
++      // Issue 034 A3: a cork whose neighbours' offsets all run away from it
++      // is no context face: no image (it is deleted), its edges get walls.
++      continue;
++    }
+     //-------------
+     // MAJ SD.
+     //-------------
+@@ -811,6 +4020,12 @@ void BRepOffset_MakeOffset::SetFaces()
+     myInitOffsetFace.Bind(aFace, aFace);
+     myImageOffset.SetRoot(aFace);
+   }
++  // Issue 034 A3: the record of this object (the context corks themselves
++  // are read from myFaces when a step needs them).
++  THE_CORK_RECORD_034.Owner = nullptr;
++  contextCorks034(this, myFaces, myInitOffsetFace);
++  THE_CORK_RECORD_034.Tangent  = hasTangentRim;
++  THE_CORK_RECORD_034.Crossing = aCrossing;
+ }
+ 
+ //=================================================================================================
+@@ -837,6 +4052,183 @@ void BRepOffset_MakeOffset::SetFacesWithOffset()
+ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRange)
+ {
+   myDone = false;
++  if (!offsetArcPairs034().Enabled && !offsetArcPairs034().Collapse)
++  {
++    offsetArcPairs034().Candidates = 0;
++    THE_LOST_RECORD_034.Owner      = nullptr;
++    THE_LOST_RECORD_034.Lost.Clear();
++    offsetArcPairs034().Collapsed = 0;
++  }
++  // Issue 034, lane cav: the arc join intersects the tubes and spheres of
++  // neighbouring edges and vertices only (BRepOffset_Inter3d::
++  // ConnexIntByArc). Where the input is thinner than 2|t| the tubes of
++  // edges on opposite sides of the thin part meet too, and the offset of
++  // the part behind it (a chamber pinched off by a neck) cannot close: its
++  // shell is dropped by SelectShells() and its faces lose their images.
++  // The same holds outward: the tubes of the rims of a slot narrower than
++  // 2|t| meet across the slot (the slot seals, the chamber under it
++  // becomes a cavity), and a plain offset of a closed input came out with
++  // open shells (debris) left loose next to the solid.
++  // Such tubes exist when some pairs of non-neighbour tubes have
++  // overlapping boxes. Then, if the first construction is proven defective
++  // (a kept face without image that owns a point of the offset - the
++  // lost-piece control - or an open shell of the offset of a closed
++  // input), the offset is built a second time with those pairs intersected
++  // as well, and the second construction replaces the first when it is
++  // closed where the input is closed, keeps an image for more of the kept
++  // faces (or repairs an open first result) and is itself valid (BRepCheck)
++  // and free of self-interference by the deterministic distance test of
++  // offsetTooClose034() (round 2: the BOP self-interference check decided
++  // at random on the same construction). A construction whose extra sections break it
++  // (degenerate meetings of four tubes at one point) is not taken; the
++  // first construction is kept as it was and the checks below decide.
++  // Topology (history, closedness) decides; the geometry comes from the
++  // intersections only.
++  // Round 3: the intersection join gets its second construction too, on
++  // the same proof of a defect, with the traces of the collapsed offset
++  // faces dropped (dropCollapsedTraces034: the hole a collapsed neck wall
++  // cut into the ceiling of a chamber closes); not for the planar
++  // self-intersecting mode, which builds its faces by
++  // BuildSplitsOfExtendedFaces instead of the loops.
++  // Round 3: a construction of the intersection join that FAILED (an
++  // error in MakeShells or MakeSolid, or a result rejected by the checks at
++  // the end of this function) while some of its offset faces collapsed is
++  // also built a second time (the traces of the collapsed faces left loops
++  // the loop builder could not close); no result is lost there, and the
++  // result of the second construction passes the same checks.
++  const auto aSecond034 = [this](const bool theFailed) -> bool {
++    const bool isArc = offsetArcPairs034().Candidates > 0 && myJoin == GeomAbs_Arc;
++    const bool isInt = myJoin == GeomAbs_Intersection && !(myInter && myIsPlanar)
++                       && offsetArcPairs034().Collapsed > 0;
++    if (offsetArcPairs034().Enabled || offsetArcPairs034().Collapse || !(isArc || isInt)
++        || (theFailed && !isInt) || myMode != BRepOffset_Skin || myThickening
++        || !myFaceOffset.IsEmpty())
++    {
++      return false;
++    }
++    NCollection_List<TopoDS_Shape> aLost1;
++    facesWithoutImage034(myFaceComp, myInitOffsetFace, aLost1);
++    const bool isClosed = myFaces.IsEmpty() && isClosedInput034(myFaceComp, myAnalyse);
++    const bool isOpen1 =
++      !theFailed && isClosed && !myOffsetShape.IsNull() && anyShellBroken034(myOffsetShape);
++    // round 2: built only when the first construction is proven defective -
++    // an open shell of a closed input, or a kept face without image that
++    // owns a point of the offset (the control; its answer is kept for the
++    // control of the result) - or (round 3) failed with collapsed faces.
++    // A face that legally lost its image (a neck side thinner than 2|t|)
++    // does not cost a second offset.
++    if (!theFailed && !isOpen1
++        && (aLost1.IsEmpty()
++            || !lostOffset034(myFaceComp,
++                              myInitialShape,
++                              myInitOffsetFace,
++                              myFaceOffset,
++                              myMode,
++                              myJoin,
++                              myThickening,
++                              myOffset,
++                              myTol,
++                              this)))
++    {
++      return false;
++    }
++    BRepOffset_MakeOffset aSecond;
++    aSecond.Initialize(myInitialShape,
++                       myOffset,
++                       myTol,
++                       myMode,
++                       myInter,
++                       mySelfInter,
++                       myJoin,
++                       myThickening,
++                       myRemoveIntEdges);
++    aSecond.AllowLinearization(myIsLinearizationAllowed);
++    for (int i = 1; i <= myOriginalFaces.Extent(); ++i)
++    {
++      aSecond.AddFace(TopoDS::Face(myOriginalFaces(i)));
++    }
++    // 034 integration: the second construction writes the A3 cork record
++    // (SetFaces); the record describes the corks of THIS object (same input),
++    // so it is put back on every exit, whether the second one is taken or not.
++    struct CorkRecordKeep034
++    {
++      CorkRecord034 mySaved;
++      const void*   myOwner;
++
++      explicit CorkRecordKeep034(const void* theOwner)
++          : mySaved(THE_CORK_RECORD_034),
++            myOwner(theOwner)
++      {
++      }
++
++      ~CorkRecordKeep034()
++      {
++        if (mySaved.Owner == myOwner)
++        {
++          THE_CORK_RECORD_034 = mySaved;
++        }
++        else if (THE_CORK_RECORD_034.Owner != myOwner)
++        {
++          THE_CORK_RECORD_034.Owner = nullptr;
++          THE_CORK_RECORD_034.Tangent = false;
++          THE_CORK_RECORD_034.Context.Clear();
++          THE_CORK_RECORD_034.Crossing.Clear();
++        }
++      }
++    } aCorkKeep034(this);
++    {
++      struct EnablePairs034
++      {
++        explicit EnablePairs034(const bool theArc)
++            : myArc(theArc)
++        {
++          (myArc ? offsetArcPairs034().Enabled : offsetArcPairs034().Collapse) = true;
++        }
++
++        ~EnablePairs034()
++        {
++          (myArc ? offsetArcPairs034().Enabled : offsetArcPairs034().Collapse) = false;
++        }
++
++        const bool myArc;
++      } anEnable(isArc);
++      try
++      {
++        OCC_CATCH_SIGNALS
++        aSecond.MakeOffsetShape();
++      }
++      catch (Standard_Failure const&)
++      {
++        aSecond.myDone = false;
++      }
++    }
++    if (!aSecond.myDone)
++    {
++      return false;
++    }
++    NCollection_List<TopoDS_Shape> aLost2;
++    facesWithoutImage034(aSecond.myFaceComp, aSecond.myInitOffsetFace, aLost2);
++    const bool isOpen2 = isClosed && anyShellBroken034(aSecond.myOffsetShape);
++    if (isOpen2 || !(theFailed || isOpen1 || aLost2.Extent() < aLost1.Extent())
++        || resultIsInvalid034(aSecond.myOffsetShape)
++        || offsetTooClose034(aSecond.myOffsetShape,
++                             aSecond.myFaceComp,
++                             aSecond.myFaces,
++                             aSecond.myInitOffsetFace,
++                             myOffset,
++                             myTol))
++    {
++      return false;
++    }
++    *this                     = aSecond;
++    THE_LOST_RECORD_034.Owner = nullptr; // another construction
++    if (THE_FOLD_RECORD_034.Owner == &aSecond)
++    {
++      THE_FOLD_RECORD_034.Owner = this; // its fold record is this one's now
++    }
++    return true;
++  };
++
+   //
+ 
+   // check if shape consists of only planar faces
+@@ -983,7 +4375,11 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+ 
+   aPSInter.Close();
+ 
+-  if (myThickening)
++  // Issue 034 A3: the edges of tangent corks (no context faces) get walls
++  // like the free edges of a thickened shell.
++  const bool hasTangentCorks034 =
++    !myThickening && contextCorks034(this, myFaces, myInitOffsetFace).Extent() < myFaces.Extent();
++  if (myThickening || hasTangentCorks034)
+   {
+     MakeMissingWalls(aPS.Next(aSteps(PIOperation_MakeMissingWalls)));
+     if (myError != BRepOffset_NoError)
+@@ -998,12 +4394,18 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+   MakeShells(aPS.Next(aSteps(PIOperation_MakeShells)));
+   if (myError != BRepOffset_NoError)
+   {
++    const BRepOffset_Error anError = myError; // lane cav round 3 (aSecond034)
++    if (!aSecond034(true))
++    {
++      myError = anError;
++    }
+     return;
+   }
+   if (myOffsetShape.IsNull())
+   {
+     // not done
+     myDone = false;
++    aSecond034(true); // lane cav round 3
+     return;
+   }
+   //--------------
+@@ -1031,6 +4433,11 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+   MakeSolid(aPS.Next(aSteps(PIOperation_MakeSolid)));
+   if (myError != BRepOffset_NoError)
+   {
++    const BRepOffset_Error anError = myError; // lane cav round 3 (aSecond034)
++    if (!aSecond034(true))
++    {
++      myError = anError;
++    }
+     return;
+   }
+   //-----------------------------
+@@ -1075,6 +4482,95 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+     }
+   }
+ 
++  // Issue 034, lane cav: the second construction (aSecond034 above).
++  aSecond034(false);
++
++  // Issue 034 guard. An empty result is not a success.
++  if (hasNoFace034(myOffsetShape))
++  {
++    myError = BRepOffset_UnknownError;
++    aSecond034(true); // lane cav round 3 (collapsed faces)
++    return;
++  }
++  // Can the offset of some face fold? Then check the result: for a plain
++  // offset here, for a thick solid in MakeThickSolid() after the caps.
++  const bool isFold = offsetMayFold034(myFaceComp, myOffset, myFaceOffset);
++  // Stage A2: a tangent edge of a free-form face under the intersection
++  // join is checked the same way.
++  const bool isCheck = isFold || tangentFreeFormJoin034(myFaceComp, myJoin, myAnalyse);
++  THE_FOLD_RECORD_034.Owner = this;
++  THE_FOLD_RECORD_034.Fold  = isFold;
++  THE_FOLD_RECORD_034.Check = isCheck;
++  if (isCheck && myFaces.IsEmpty())
++  {
++    bool isBroken = resultIsBroken034(myOffsetShape);
++    if (!isBroken && isFold && !myThickening)
++    {
++      double aMinAbs = std::abs(myOffset);
++      bool   isSame  = true;
++      for (NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>::Iterator anIt(
++             myFaceOffset);
++           anIt.More();
++           anIt.Next())
++      {
++        isSame  = isSame && (anIt.Value() * myOffset > 0.);
++        aMinAbs = std::min(aMinAbs, std::abs(anIt.Value()));
++      }
++      isBroken = isSame && resultTooClose034(myOffsetShape, myShape, aMinAbs, myTol);
++    }
++    if (isBroken)
++    {
++      myError = BRepOffset_CannotTrimEdges;
++      aSecond034(true); // lane cav round 3 (collapsed faces)
++      return;
++    }
++  }
++  // Stage A2: the shells of the solids of the result must be closed and
++  // coherently oriented (the thick solid is checked in MakeThickSolid()).
++  if (myFaces.IsEmpty() && solidShellsBroken034(myOffsetShape))
++  {
++    myError = BRepOffset_UnknownError;
++    aSecond034(true); // lane cav round 3 (collapsed faces)
++    return;
++  }
++  // Lane cav: the offset of a closed input (skin mode, no thickening) is
++  // closed, also where it changes topology (a neck pinched off, a slot
++  // sealed: more shells than the input); a shell left open (loose in the
++  // compound) is a broken result, and a result with more shells than the
++  // input (cavities, pieces) must pass BRepCheck (the new shells are not
++  // explained by the construction of the input's shells).
++  if (myFaces.IsEmpty() && !myThickening && myMode == BRepOffset_Skin
++      && isClosedInput034(myFaceComp, myAnalyse)
++      && (anyShellBroken034(myOffsetShape)
++          || (nbShells034(myOffsetShape) > nbShells034(myShape) && resultIsInvalid034(myOffsetShape))))
++  {
++    myError = BRepOffset_UnknownError;
++    aSecond034(true); // lane cav round 3 (collapsed faces)
++    return;
++  }
++  // Issue 034, lane cav: a kept face whose offset exists (a point of the
++  // offset owned by it) must have an image; a shell of it dropped as
++  // debris (e.g. the cavity of a chamber pinched off behind a neck) would
++  // otherwise leave a valid solid of the wrong volume.
++  // (a thick solid is controlled at the end of MakeThickSolid(), after its
++  // own checks, so that their error codes stay as they were)
++  if (myFaces.IsEmpty()
++      && lostOffset034(myFaceComp,
++                       myInitialShape,
++                       myInitOffsetFace,
++                       myFaceOffset,
++                       myMode,
++                       myJoin,
++                       myThickening,
++                       myOffset,
++                       myTol,
++                       this))
++  {
++    myError = BRepOffset_UnknownError;
++    aSecond034(true); // lane cav round 3 (collapsed faces)
++    return;
++  }
++
+   myDone = true;
+ }
+ 
+@@ -1082,6 +4578,265 @@ void BRepOffset_MakeOffset::MakeOffsetShape(const Message_ProgressRange& theRang
+ 
+ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange)
+ {
++  // Issue 034 A3 round 2: the stock construction runs in the nested call;
++  // where it fails on removed faces whose rim edges all cross (the offset of
++  // each neighbour crosses the removed face's plane next to the edge), the
++  // flush rim is built from the wall construction (the flush construction in MakeThickSolid()).
++  thread_local const void* THE_IN_STOCK_034 = nullptr;
++  if (THE_IN_STOCK_034 != this)
++  {
++    const CorkRecordRelease034 aRelease034{this};
++    // an exception of the stock construction is kept and raised again
++    // unless the flush construction below replaces the result
++    std::exception_ptr aStockException;
++    {
++      // restored on every exit of the stock run, exceptions included
++      const ScopedOwner034 anInStock(THE_IN_STOCK_034, this);
++      try
++      {
++        MakeThickSolid(theRange);
++      }
++      catch (Standard_Failure const&)
++      {
++        if (THE_CORK_RECORD_034.Owner != this || THE_CORK_RECORD_034.Crossing.IsEmpty())
++        {
++          throw;
++        }
++        aStockException = std::current_exception();
++        myDone          = false;
++      }
++    }
++    if (!myDone && myError != BRepOffset_UserBreak && THE_FORCE_WALLS_034 != this
++        && THE_CORK_RECORD_034.Owner == this && !THE_CORK_RECORD_034.Crossing.IsEmpty()
++        && myFaceOffset.IsEmpty() && !myThickening)
++    {
++      // Issue 034 A3 round 2: flush rim of crossing tangent edges.
++      //
++      // At a tangent rim edge E where the offset of the kept neighbour
++      // CROSSES the plane of the removed face (convex edge outward, concave
++      // edge inward), the rim continuous with the sharp-edge rule is flush:
++      // the offset is cut by that plane. Where the stock trimming failed (the
++      // offsets of faces that touch the removed face only at a vertex of a
++      // tangent fan are never trimmed; an inward cap is not enlarged), the
++      // same body is built from the wall construction: the walls
++      // E -> E + t n close the thick solid beyond the plane, and the part
++      // beyond the plane next to the rim (the bead: walls, offsets, plane) is
++      // cut off by the plane region of the removed face grown by the
++      // crossing distance. flush = wall body minus the bead (the bead lies
++      // beyond the plane within the crossing distance of E). Pieces cut off
++      // must hold a wall and no kept input face; exactly one piece with kept
++      // faces must remain; the result gets the full check. Anything else
++      // keeps the stock error.
++      const NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher> aCrossing =
++        THE_CORK_RECORD_034.Crossing;
++      const BRepOffset_Error aStockError = myError;
++      try
++      {
++        OCC_CATCH_SIGNALS
++        // planes and grown regions of the crossing corks
++        NCollection_List<TopoDS_Shape> aTools;
++        // the planes of the crossing corks: point and unit normal pointing to
++        // the side of the bead (sign(t) times the outward normal)
++        NCollection_List<gp_Ax1>       aBeadSides;
++        bool                           isPlanar = true;
++        for (NCollection_DataMap<TopoDS_Shape, double, TopTools_ShapeMapHasher>::Iterator anIt(
++               aCrossing);
++             anIt.More() && isPlanar;
++             anIt.Next())
++        {
++          const TopoDS_Face& aCork = TopoDS::Face(anIt.Key());
++          gp_Pln             aPln;
++          gp_Vec             aN;
++          if (!corkPlane034(aCork, aPln, aN))
++          {
++            isPlanar = false;
++            break;
++          }
++          aBeadSides.Append(gp_Ax1(aPln.Location(), gp_Dir(myOffset > 0. ? aN : -aN)));
++          const TopoDS_Wire aWire = BRepTools::OuterWire(aCork);
++          BRepBuilderAPI_MakeFace aMF(aPln, aWire, true);
++          if (!aMF.IsDone())
++          {
++            isPlanar = false;
++            break;
++          }
++          BRepOffsetAPI_MakeOffset aGrow(aMF.Face(), GeomAbs_Arc);
++          aGrow.Perform(anIt.Value() + std::abs(myOffset));
++          if (!aGrow.IsDone())
++          {
++            isPlanar = false;
++            break;
++          }
++          TopoDS_Wire aGrown;
++          for (TopExp_Explorer aWExp(aGrow.Shape(), TopAbs_WIRE); aWExp.More(); aWExp.Next())
++          {
++            aGrown = TopoDS::Wire(aWExp.Current());
++          }
++          BRepBuilderAPI_MakeFace aToolF(aPln, aGrown, true);
++          if (aGrown.IsNull() || !aToolF.IsDone())
++          {
++            isPlanar = false;
++            break;
++          }
++          aTools.Append(aToolF.Face());
++        }
++        if (isPlanar && !aTools.IsEmpty())
++        {
++          // the wall construction for the crossing corks (nested object)
++          BRepOffset_MakeOffset anInner;
++          anInner.Initialize(myInitialShape,
++                             myOffset,
++                             myTol,
++                             myMode,
++                             myInter,
++                             mySelfInter,
++                             myJoin,
++                             myThickening,
++                             myRemoveIntEdges);
++          anInner.AllowLinearization(myIsLinearizationAllowed);
++          for (int i = 1; i <= myOriginalFaces.Extent(); ++i)
++          {
++            anInner.AddFace(TopoDS::Face(myOriginalFaces(i)));
++          }
++          {
++            // restored on every exit, also when the wall construction throws
++            // (the exception is swallowed below and the stock error kept)
++            const ScopedOwner034 aForceWalls(THE_FORCE_WALLS_034, &anInner);
++            anInner.MakeThickSolid(Message_ProgressRange());
++          }
++          if (anInner.IsDone() && !anInner.myWalls.IsEmpty())
++          {
++            BOPAlgo_Splitter aSplit;
++            aSplit.AddArgument(anInner.Shape());
++            aSplit.SetTools(aTools);
++            aSplit.SetRunParallel(false);
++            aSplit.Perform();
++            if (!aSplit.HasErrors())
++            {
++              // faces of the walls and of the kept input faces, after the split
++              NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aWallF, aKeptF;
++              auto aCollect = [&aSplit](const TopoDS_Shape&                                     theF,
++                                        NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher>& theSet) {
++                theSet.Add(theF);
++                for (NCollection_List<TopoDS_Shape>::Iterator anIt(aSplit.Modified(theF)); anIt.More();
++                     anIt.Next())
++                {
++                  theSet.Add(anIt.Value());
++                }
++              };
++              for (NCollection_List<TopoDS_Shape>::Iterator anIt(anInner.myWalls); anIt.More(); anIt.Next())
++              {
++                aCollect(anIt.Value(), aWallF);
++              }
++              for (TopExp_Explorer aFExp(anInner.myShape, TopAbs_FACE); aFExp.More(); aFExp.Next())
++              {
++                aCollect(aFExp.Current(), aKeptF);
++              }
++              TopoDS_Shape aMain;
++              int          aNbMain = 0;
++              bool         isBeadOk = true;
++              for (TopExp_Explorer aSoExp(aSplit.Shape(), TopAbs_SOLID); aSoExp.More(); aSoExp.Next())
++              {
++                bool hasKept = false, hasWall = false;
++                for (TopExp_Explorer aFExp(aSoExp.Current(), TopAbs_FACE); aFExp.More(); aFExp.Next())
++                {
++                  hasKept = hasKept || aKeptF.Contains(aFExp.Current());
++                  hasWall = hasWall || aWallF.Contains(aFExp.Current());
++                }
++                if (hasKept)
++                {
++                  ++aNbMain;
++                  aMain    = aSoExp.Current();
++                  isBeadOk = isBeadOk && !hasWall; // no wall is left in the body
++                }
++                else if (!hasWall)
++                {
++                  // a cut-off piece without a wall (where two crossing corks
++                  // meet, the bead of their common neighbour is cut by both
++                  // planes) must lie on the bead side of one of the planes
++                  bool isBeyond = false;
++                  for (NCollection_List<gp_Ax1>::Iterator aSIt(aBeadSides); aSIt.More() && !isBeyond;
++                       aSIt.Next())
++                  {
++                    isBeyond = true;
++                    for (TopExp_Explorer aVExp(aSoExp.Current(), TopAbs_VERTEX); aVExp.More() && isBeyond;
++                         aVExp.Next())
++                    {
++                      const TopoDS_Vertex& aV   = TopoDS::Vertex(aVExp.Current());
++                      const gp_Vec         aD(aSIt.Value().Location(), BRep_Tool::Pnt(aV));
++                      isBeyond = aD.Dot(gp_Vec(aSIt.Value().Direction()))
++                                 >= -(BRep_Tool::Tolerance(aV) + Precision::Confusion());
++                    }
++                  }
++                  isBeadOk = isBeadOk && isBeyond;
++                }
++              }
++              // a piece of the grown region that runs inside the material of
++              // the body (it reaches another part of the shell) does not cut
++              // anything off and would stay as an internal face: not flush
++              for (TopExp_Explorer aFExp(aMain, TopAbs_FACE); aFExp.More() && isBeadOk;
++                   aFExp.Next())
++              {
++                const TopAbs_Orientation anOr = aFExp.Current().Orientation();
++                isBeadOk = anOr == TopAbs_FORWARD || anOr == TopAbs_REVERSED;
++              }
++              if (aNbMain == 1 && isBeadOk && !resultIsBroken034(aMain, true)
++                  && !solidShellsBroken034(aMain))
++              {
++                myOffsetShape    = aMain;
++                myInitOffsetFace = anInner.myInitOffsetFace;
++                myInitOffsetEdge = anInner.myInitOffsetEdge;
++                myImageOffset    = anInner.myImageOffset;
++                // history: the offset faces and edges cut by the plane region
++                // continue into their pieces (Generated() keeps those in the
++                // result)
++                auto aCompose = [&aSplit](BRepAlgo_Image& theImg) {
++                  NCollection_List<TopoDS_Shape> aLeaves;
++                  for (NCollection_List<TopoDS_Shape>::Iterator aRIt(theImg.Roots()); aRIt.More();
++                       aRIt.Next())
++                  {
++                    theImg.LastImage(aRIt.Value(), aLeaves);
++                  }
++                  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aDone;
++                  for (NCollection_List<TopoDS_Shape>::Iterator aLIt(aLeaves); aLIt.More(); aLIt.Next())
++                  {
++                    const TopoDS_Shape& aLeaf = aLIt.Value();
++                    if (!aDone.Add(aLeaf) || theImg.HasImage(aLeaf))
++                    {
++                      continue;
++                    }
++                    const NCollection_List<TopoDS_Shape>& aPieces = aSplit.Modified(aLeaf);
++                    if (!aPieces.IsEmpty())
++                    {
++                      theImg.Bind(aLeaf, aPieces);
++                    }
++                  }
++                };
++                aCompose(myInitOffsetFace);
++                aCompose(myInitOffsetEdge);
++                myResMap.Clear();
++                myError = BRepOffset_NoError;
++                myDone  = true;
++              }
++            }
++          }
++        }
++      }
++      catch (Standard_Failure const&)
++      {
++      }
++      if (!myDone)
++      {
++        myError = aStockError;
++      }
++    }
++    if (!myDone && aStockException)
++    {
++      std::rethrow_exception(aStockException);
++    }
++    return;
++  }
++  const double anOffset034 = myOffset; // myOffset is reset to 0 below for a plate
+   //--------------------------------------------------------------
+   // Construction of shell parallel to shell (initial without cap).
+   //--------------------------------------------------------------
+@@ -1092,11 +4847,28 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     // Save return code and myDone state.
+     return;
+   }
++  // Issue 034 R-034-inner: the new constructions (kept faces in several
++  // pieces, a cork whose wall lies on the other side of its rim) are
++  // checked in full below.
++  bool isInner034in = false;
++  if (!myFaces.IsEmpty())
++  {
++    NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aCorksIn, aCorksOut;
++    isInner034in = nbPieces034in(myShape) > 1
++                   || splitCorks034in(contextCorks034(this, myFaces, myInitOffsetFace),
++                                      myFaces,
++                                      myAnalyse,
++                                      myOffset,
++                                      myTol,
++                                      aCorksIn,
++                                      aCorksOut);
++  }
+ 
+   //--------------------------------------------------------------------
+   // Construction of a solid with the initial shell, parallel shell
+   // limited by caps.
+   //--------------------------------------------------------------------
++  ThickShells034 aThickShells; // issue 034 A2: origin of the shells
+   if (!myFaces.IsEmpty())
+   {
+     TopoDS_Solid    Res;
+@@ -1148,6 +4920,7 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     }
+     Res.Closed(true);
+     myOffsetShape = Res;
++    aThickShells = thickShells034(Res, myShape, Glue, myInitOffsetFace, myFaces);
+ 
+     // Test of Validity of the result of thick Solid
+     // more face than the initial solid.
+@@ -1164,7 +4937,23 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     }
+     if (NbOF == NbF)
+     {
++      // Issue 034 guard: no offset shell was built when the solid glued
++      // from the input faces and the offset shell is the input itself.
++      if (sameSolid034(myOffsetShape, myInitialShape))
++      {
++        myDone  = false;
++        myError = BRepOffset_UnknownError;
++        return;
++      }
+       myOffset = 0;
++      // Issue 034 guard: the solid is not reversed below (offset 0); an
++      // outward plate glued here comes out inside out (negative volume).
++      GProp_GProps aProps;
++      BRepGProp::VolumeProperties(myOffsetShape, aProps);
++      if (aProps.Mass() < 0.)
++      {
++        myOffsetShape.Reverse();
++      }
+     }
+   }
+ 
+@@ -1173,6 +4962,108 @@ void BRepOffset_MakeOffset::MakeThickSolid(const Message_ProgressRange& theRange
+     myOffsetShape.Reverse();
+   }
+ 
++  // Issue 034 A3: a removed face with a tangent rim edge. Wall corks (no
++  // image: read from what was built) add walls that are never intersected
++  // with the other offset faces, and the stock trimming of tangent crossing
++  // edges is new ground: every such thick solid gets the full check
++  // (BRepCheck + BOP self-interference); a failing one is an error.
++  bool hasWallCork = false;
++  for (int i = 1; i <= myFaces.Extent() && !hasWallCork; ++i)
++  {
++    hasWallCork = !myInitOffsetFace.HasImage(myFaces(i));
++  }
++  const bool isTangentRim =
++    THE_FORCE_WALLS_034 != this
++    && (hasWallCork || (THE_CORK_RECORD_034.Owner == this && THE_CORK_RECORD_034.Tangent));
++
++  // Issue 034 R-034-inner: kept faces in several pieces (split by the
++  // removed faces) give one lump per piece. The glued shells are split
++  // into disjoint solids (outer shell + the cavities it holds); a result
++  // that is not such a set (the pieces came closer than the thickness) is
++  // an error, never one solid with several outer shells.
++  if (!myFaces.IsEmpty() && myOffsetShape.ShapeType() == TopAbs_SOLID && nbPieces034in(myShape) > 1)
++  {
++    TopoDS_Shape aLumps;
++    if (!splitLumps034in(myOffsetShape, aLumps))
++    {
++      myDone  = false;
++      myError = BRepOffset_CannotTrimEdges;
++      return;
++    }
++    myOffsetShape = aLumps;
++  }
++  if (isInner034in && innerResultBroken034in(myOffsetShape))
++  {
++    myDone  = false;
++    myError = BRepOffset_CannotTrimEdges;
++    return;
++  }
++
++  // Issue 034 guard: some offset face can fold (or, stage A2, a tangent
++  // free-form join) -> check the thick solid.
++  const bool isFoldCheck = THE_FOLD_RECORD_034.Owner == this && THE_FOLD_RECORD_034.Check;
++  if (isFoldCheck && resultIsBroken034(myOffsetShape))
++  {
++    myDone  = false;
++    myError = BRepOffset_CannotTrimEdges;
++    return;
++  }
++  // Issue 034 stage A2: structure of the thick solid. Its shells must be
++  // closed and coherently oriented; a shell without kept input faces must
++  // not hold the wall of an opening (the opening was not cut and the offset
++  // shell was closed across it). More shells than the pieces of the kept
++  // faces give are legal cavities (the offset pinched off at a neck thinner
++  // than 2|t|) when thickShells034() explains every shell; a result it does
++  // not explain is checked (BRepCheck + BOP self-interference).
++  if (!myFaces.IsEmpty())
++  {
++    int aNbShells = 0;
++    for (TopExp_Explorer aShExp(myOffsetShape, TopAbs_SHELL); aShExp.More(); aShExp.Next())
++    {
++      ++aNbShells;
++    }
++    // Lane cav: a proven cavity is explained by its origin (offset faces
++    // only), not by its geometry: a cavity shell made of debris of the
++    // offset faces (a pinched-off neck mouth, an inverted piece) is proven
++    // as well, so every result with cavities must also pass BRepCheck.
++    if (solidShellsBroken034(myOffsetShape) || aThickShells.Broken
++        || (aNbShells > maxThickShells034(myShape)
++            && (aThickShells.Proven ? resultIsInvalid034(myOffsetShape)
++                                    : resultIsBroken034(myOffsetShape))))
++    {
++      myDone  = false;
++      myError = BRepOffset_UnknownError;
++      return;
++    }
++  }
++  // Issue 034 A3: the full check of a thick solid with a tangent rim edge,
++  // after the structural checks of stage A2 (their error code is kept where
++  // they already refuse the result); not repeated after the fold check.
++  if (isTangentRim && !isFoldCheck && resultIsBroken034(myOffsetShape, true))
++  {
++    myDone  = false;
++    myError = BRepOffset_CannotTrimEdges;
++    return;
++  }
++  // Issue 034, lane cav: a kept face whose offset exists must have an image
++  // (see lostOffsetFace034); last, after the checks above.
++  if (!myFaces.IsEmpty()
++      && lostOffset034(myFaceComp,
++                       myInitialShape,
++                       myInitOffsetFace,
++                       myFaceOffset,
++                       myMode,
++                       myJoin,
++                       myThickening,
++                       anOffset034,
++                       myTol,
++                       this))
++  {
++    myDone  = false;
++    myError = BRepOffset_UnknownError;
++    return;
++  }
++
+   myDone = true;
+ }
+ 
+@@ -1243,7 +5134,7 @@ void BRepOffset_MakeOffset::MakeOffsetFaces(
+         {
+           myAnalyse.Edges(V1, ChFiDS_Tangential, LE);
+           const NCollection_List<TopoDS_Shape>& LA = myAnalyse.Ancestors(V1);
+-          if (LE.Extent() == LA.Extent())
++          if (LE.Extent() == LA.Extent() || tangentFan034(myAnalyse, V1))
+           {
+             ShapeTgt.Bind(V1, OV1);
+           }
+@@ -1253,7 +5144,7 @@ void BRepOffset_MakeOffset::MakeOffsetFaces(
+           LE.Clear();
+           myAnalyse.Edges(V2, ChFiDS_Tangential, LE);
+           const NCollection_List<TopoDS_Shape>& LA = myAnalyse.Ancestors(V2);
+-          if (LE.Extent() == LA.Extent())
++          if (LE.Extent() == LA.Extent() || tangentFan034(myAnalyse, V2))
+           {
+             ShapeTgt.Bind(V2, OV2);
+           }
+@@ -1372,16 +5263,35 @@ void BRepOffset_MakeOffset::BuildOffsetByInter(const Message_ProgressRange& theR
+     myError = BRepOffset_UserBreak;
+     return;
+   }
+-  // Intersection with caps.
+-  Inter3.ContextIntByInt(myFaces,
+-                         ExtentContext,
+-                         MapSF,
+-                         myAnalyse,
+-                         MES,
+-                         Build,
+-                         Failed,
+-                         aPSOuter.Next(aSteps(BuildOffsetByInter_ContextIntByInt)),
+-                         myIsPlanar);
++  // Intersection with caps (issue 034 A3: the context corks, wall corks
++  // excluded). Issue 034 R-034-inner: the trace of the
++  // offsets lies outside a concave cork for an inward offset (inside it
++  // for an outward one): such a cork is enlarged the other way round, and
++  // its traces bound the band from outside (reverseTraces034in()).
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& aContext =
++    contextCorks034(this, myFaces, myInitOffsetFace);
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aCorksIn, aCorksOut;
++  if (splitCorks034in(aContext, myFaces, myAnalyse, myOffset, myTol, aCorksIn, aCorksOut))
++  {
++    Message_ProgressScope aPSC(aPSOuter.Next(aSteps(BuildOffsetByInter_ContextIntByInt)),
++                               nullptr,
++                               2);
++    Inter3.ContextIntByInt(aCorksIn, false, MapSF, myAnalyse, MES, Build, Failed, aPSC.Next(), myIsPlanar);
++    Inter3.ContextIntByInt(aCorksOut, true, MapSF, myAnalyse, MES, Build, Failed, aPSC.Next(), myIsPlanar);
++    reverseTraces034in(myOffset < 0. ? aCorksOut : aCorksIn, AsDes, true);
++  }
++  else
++  {
++    Inter3.ContextIntByInt(aContext,
++                           ExtentContext,
++                           MapSF,
++                           myAnalyse,
++                           MES,
++                           Build,
++                           Failed,
++                           aPSOuter.Next(aSteps(BuildOffsetByInter_ContextIntByInt)),
++                           myIsPlanar);
++  }
+   if (!aPSOuter.More())
+   {
+     myError = BRepOffset_UserBreak;
+@@ -1478,14 +5388,14 @@ void BRepOffset_MakeOffset::BuildOffsetByInter(const Message_ProgressRange& theR
+   //----------------------------------------------
+   int                   i;
+   Message_ProgressScope aPS2dCaps(aPS2d.Next(2. * aDeepeningsPart), nullptr, myFaces.Extent());
+-  for (i = 1; i <= myFaces.Extent(); i++)
++  for (i = 1; i <= aContext.Extent(); i++)
+   {
+     if (!aPS2dCaps.More())
+     {
+       myError = BRepOffset_UserBreak;
+       return;
+     }
+-    const TopoDS_Face& Cork         = TopoDS::Face(myFaces(i));
++    const TopoDS_Face& Cork         = TopoDS::Face(aContext(i));
+     double             aCurrFaceTol = BRep_Tool::Tolerance(Cork);
+     BRepOffset_Inter2d::Compute(AsDes,
+                                 Cork,
+@@ -1527,11 +5437,37 @@ void BRepOffset_MakeOffset::BuildOffsetByInter(const Message_ProgressRange& theR
+   }
+   else
+   {
++    // lane cav round 3: in the second construction the traces of the
++    // collapsed offset faces bound nothing (dropCollapsedTraces034)
++    NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>
++      aDropped034;
++    NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aCollapsed034;
++    collapsedFaces034(LFE, aFacesOrigins, Build, AsDes, aCollapsed034);
++    offsetArcPairs034().Collapsed = aCollapsed034.Extent();
++    if (offsetArcPairs034().Collapse)
++    {
++      dropCollapsedTraces034(LFE,
++                             aCollapsed034,
++                             aFacesOrigins,
++                             anEdgesOrigins,
++                             myAnalyse,
++                             AsDes,
++                             aDropped034);
++    }
+     myMakeLoops.Build(LFE,
+                       AsDes,
+                       IMOE,
+                       myImageVV,
+                       aPSOuter.Next(aSteps(BuildOffsetByInter_BuildFaces)));
++    // the lists of the faces as they were (the history below reads them)
++    for (NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>::
++           Iterator anIt(aDropped034);
++         anIt.More();
++         anIt.Next())
++    {
++      NCollection_List<TopoDS_Shape> aLE = anIt.Value();
++      AsDes->ChangeDescendant(anIt.Key()).Append(aLE);
++    }
+     if (!aPSOuter.More())
+     {
+       myError = BRepOffset_UserBreak;
+@@ -1766,14 +5702,14 @@ void BRepOffset_MakeOffset::BuildOffsetByInter(const Message_ProgressRange& theR
+   Message_ProgressScope aPSHist2(aPSOuter.Next(aSteps(BuildOffsetByInter_FillHistoryForDeepenings)),
+                                  "Fill history for deepening faces",
+                                  myFaces.Extent());
+-  for (i = 1; i <= myFaces.Extent(); i++, aPSHist2.Next())
++  for (i = 1; i <= aContext.Extent(); i++, aPSHist2.Next())
+   {
+     if (!aPSHist2.More())
+     {
+       myError = BRepOffset_UserBreak;
+       return;
+     }
+-    const TopoDS_Shape&                   Cork = myFaces(i);
++    const TopoDS_Shape&                   Cork = aContext(i);
+     const NCollection_List<TopoDS_Shape>& LE   = AsDes->Descendant(Cork);
+     for (itLF.Initialize(LE); itLF.More(); itLF.Next())
+     {
+@@ -2204,10 +6140,12 @@ void BRepOffset_MakeOffset::ToContext(
+   // Determine the edges and faces reconstructed by
+   // intersection.
+   //---------------------------------------------------------
+-  int j;
+-  for (j = 1; j <= myFaces.Extent(); j++)
++  int                                                                 j;
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& aContext =
++    contextCorks034(this, myFaces, myInitOffsetFace);
++  for (j = 1; j <= aContext.Extent(); j++)
+   {
+-    const TopoDS_Face& CF = TopoDS::Face(myFaces(j));
++    const TopoDS_Face& CF = TopoDS::Face(aContext(j));
+     for (exp.Init(CF.Oriented(TopAbs_FORWARD), TopAbs_EDGE); exp.More(); exp.Next())
+     {
+       const TopoDS_Edge& E = TopoDS::Edge(exp.Current());
+@@ -2881,7 +6819,9 @@ void BRepOffset_MakeOffset::Intersection3D(BRepOffset_Inter3d&          Inter,
+   NCollection_List<TopoDS_Shape> OffsetFaces; // list of faces // created.
+   MakeList(OffsetFaces, myInitOffsetFace, myFaces);
+ 
+-  if (!myFaces.IsEmpty())
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& aContext =
++    contextCorks034(this, myFaces, myInitOffsetFace);
++  if (!aContext.IsEmpty())
+   {
+     bool InSide = (myOffset < 0.); // Temporary
+     // it is necessary to calculate Inside taking account of the concavity or convexity of edges
+@@ -2889,12 +6829,20 @@ void BRepOffset_MakeOffset::Intersection3D(BRepOffset_Inter3d&          Inter,
+ 
+     if (myJoin == GeomAbs_Arc)
+     {
+-      Inter.ContextIntByArc(myFaces,
++      Inter.ContextIntByArc(aContext,
+                             InSide,
+                             myAnalyse,
+                             myInitOffsetFace,
+                             myInitOffsetEdge,
+                             aPS.Next());
++      // Issue 034 R-034-inner: on a concave cork the traces bound the wall
++      // band from outside (see MakeLoops()). InSide above matters only for
++      // cork edges without a kept neighbour, which a concave cork has none.
++      NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aCorksIn, aCorksOut;
++      if (splitCorks034in(aContext, myFaces, myAnalyse, myOffset, myTol, aCorksIn, aCorksOut))
++      {
++        reverseTraces034in(InSide ? aCorksOut : aCorksIn, myAsDes);
++      }
+     }
+   }
+   if (myInter)
+@@ -2963,6 +6911,25 @@ void BRepOffset_MakeOffset::Intersection2D(
+                         aDMVV;
+   int                   i;
+   Message_ProgressScope aPS(theRange, "Intersection 2D", Modif.Extent());
++  // Issue 034 R-034-inner: corks whose band is built with InSide false
++  // (see MakeLoops()) get their crossing trace vertices oriented as on the
++  // offset faces (intersectCork034in()). Arc join only: the join by
++  // intersection builds the caps in BuildOffsetByInter().
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aCorksFlip034in;
++  if (myJoin == GeomAbs_Arc && !myFaces.IsEmpty())
++  {
++    NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aCorksIn;
++    const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& aContext =
++      contextCorks034(this, myFaces, myInitOffsetFace);
++    if (!splitCorks034in(aContext, myFaces, myAnalyse, myOffset, myTol, aCorksIn, aCorksFlip034in))
++    {
++      aCorksFlip034in.Clear();
++      if (myOffset > 0.)
++      {
++        aCorksFlip034in = aContext;
++      }
++    }
++  }
+   for (i = 1; i <= Modif.Extent(); i++)
+   {
+     if (!aPS.More())
+@@ -2971,6 +6938,11 @@ void BRepOffset_MakeOffset::Intersection2D(
+       return;
+     }
+     const TopoDS_Face& F = TopoDS::Face(Modif(i));
++    if (aCorksFlip034in.Contains(F))
++    {
++      intersectCork034in(F, myFaces, myAsDes, NewEdges, myTol, myEdgeIntEdges, aDMVV, aPS.Next());
++      continue;
++    }
+     BRepOffset_Inter2d::Compute(myAsDes, F, NewEdges, myTol, myEdgeIntEdges, aDMVV, aPS.Next());
+   }
+   //
+@@ -3032,9 +7004,11 @@ void BRepOffset_MakeOffset::MakeLoops(
+   //-----------------------------------------
+   // unwinding of caps.
+   //-----------------------------------------
+-  for (i = 1; i <= myFaces.Extent(); i++)
++  const NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher>& aContext =
++    contextCorks034(this, myFaces, myInitOffsetFace);
++  for (i = 1; i <= aContext.Extent(); i++)
+   {
+-    LC.Append(myFaces(i));
++    LC.Append(aContext(i));
+   }
+ 
+   bool InSide = true;
+@@ -3042,7 +7016,31 @@ void BRepOffset_MakeOffset::MakeLoops(
+   {
+     InSide = false;
+   }
+-  myMakeLoops.BuildOnContext(LC, myAnalyse, myAsDes, myImageOffset, InSide, aPS.Next(LC.Extent()));
++  // Issue 034 R-034-inner: a cork whose rim edges are all concave. Its
++  // wall band lies on the other side of the rim (between the rim and a
++  // trace outside the cork for an inward offset, inside it for an outward
++  // one): the band is built on the other side (face and rim reversed; the
++  // traces were reversed after the intersection with the cork).
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aCorksIn, aCorksOut;
++  if (splitCorks034in(aContext, myFaces, myAnalyse, myOffset, myTol, aCorksIn, aCorksOut))
++  {
++    NCollection_List<TopoDS_Shape> aLCIn, aLCOut;
++    for (i = 1; i <= aCorksIn.Extent(); i++)
++    {
++      aLCIn.Append(aCorksIn(i));
++    }
++    for (i = 1; i <= aCorksOut.Extent(); i++)
++    {
++      aLCOut.Append(aCorksOut(i));
++    }
++    Message_ProgressScope aPSC(aPS.Next(LC.Extent()), nullptr, 2);
++    myMakeLoops.BuildOnContext(aLCIn, myAnalyse, myAsDes, myImageOffset, true, aPSC.Next());
++    myMakeLoops.BuildOnContext(aLCOut, myAnalyse, myAsDes, myImageOffset, false, aPSC.Next());
++  }
++  else
++  {
++    myMakeLoops.BuildOnContext(LC, myAnalyse, myAsDes, myImageOffset, InSide, aPS.Next(LC.Extent()));
++  }
+ 
+ #ifdef OCCT_DEBUG
+   if (ChronBuild)
+@@ -3155,6 +7153,38 @@ void BRepOffset_MakeOffset::MakeMissingWalls(const Message_ProgressRange& theRan
+   double OffsetVal = std::abs(myOffset);
+ 
+   FillContours(myFaceComp, myAnalyse, Contours, MapEF);
++  if (!myThickening)
++  {
++    // Issue 034 A3 (thick solid): walls only along the edges of the corks
++    // tangent to their neighbours; the other free edges are trimmed by
++    // their context faces.
++    NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aTanEdges;
++    for (int i = 1; i <= myFaces.Extent(); ++i)
++    {
++      if (!myInitOffsetFace.HasImage(myFaces(i)))
++      {
++        for (TopExp_Explorer anExp(myFaces(i), TopAbs_EDGE); anExp.More(); anExp.Next())
++        {
++          aTanEdges.Add(anExp.Current());
++        }
++      }
++    }
++    NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>
++      aKept;
++    for (int ic = 1; ic <= Contours.Extent(); ++ic)
++    {
++      bool isAll = true;
++      for (NCollection_List<TopoDS_Shape>::Iterator anIt(Contours(ic)); anIt.More(); anIt.Next())
++      {
++        isAll = isAll && aTanEdges.Contains(anIt.Value());
++      }
++      if (isAll)
++      {
++        aKept.Add(Contours.FindKey(ic), Contours(ic));
++      }
++    }
++    Contours = aKept;
++  }
+ 
+   Message_ProgressScope aPS(theRange, "Making missing walls", Contours.Extent());
+   for (int ic = 1; ic <= Contours.Extent(); ic++, aPS.Next())
+@@ -3744,6 +7774,15 @@ void BRepOffset_MakeOffset::MakeShells(const Message_ProgressRange& theRange)
+       aLSF.Append(aF);
+     }
+   }
++  else
++  {
++    // Issue 034 A3: walls of tangent corks. They are oriented like the input
++    // faces; the offset faces here are not, MakeThickSolid() reverses them.
++    for (it.Initialize(myWalls); it.More(); it.Next())
++    {
++      aLSF.Append(it.Value().Reversed());
++    }
++  }
+   //
+   if (aLSF.IsEmpty())
+   {
+@@ -4411,8 +8450,11 @@ bool BRepOffset_MakeOffset::CheckInputData(const Message_ProgressRange& theRange
+     }
+   }
+ 
+-  // Connectivity of input shape.
+-  if (!IsConnectedShell(myFaceComp))
++  // Connectivity of input shape. Issue 034 R-034-inner: kept faces split
++  // into pieces by the removed faces only (a removed face with a loop that
++  // leads to material) are legal; every piece is offset on its own.
++  if (!IsConnectedShell(myFaceComp)
++      && (myFaces.IsEmpty() || !connectedWithCorks034in(myFaceComp, myFaces)))
+   {
+     myError = BRepOffset_NotConnectedShell;
+     return false;
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/FILES.cmake b/src/ModelingAlgorithms/TKOffset/BRepOffset/FILES.cmake
+index 58fec132fa..59454986c6 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/FILES.cmake
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/FILES.cmake
+@@ -7,6 +7,7 @@ set(OCCT_BRepOffset_FILES
+   BRepOffset_Analyse.cxx
+   BRepOffset_Analyse.hxx
+ 
++  BRepOffset_Cav034.pxx
+   BRepOffset_Error.hxx
+   BRepOffset_Inter2d.cxx
+   BRepOffset_Inter2d.hxx

@@ -1,0 +1,41 @@
+From dd78fbf16b624f3d0c8102ccd27c1bd26c15a80d Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Mon, 28 Sep 2026 11:09:24 +0700
+Subject: [PATCH] PartDesign: Thickness never keeps one lump of a multi-solid
+ result silently (issue 034 R-034-inner)
+
+A thick solid can have several lumps when the removed face has a loop that
+leads to material (the top of a plate over a blind pocket, a pocket floor
+around an island): OCCT now builds them (perf/801-034in). Thickness took the
+first solid silently; it now applies the Body's single-solid rule like
+Fillet, Chamfer and Draft (error unless Allow Compound is on).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/PartDesign/App/FeatureThickness.cpp | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/src/Mod/PartDesign/App/FeatureThickness.cpp b/src/Mod/PartDesign/App/FeatureThickness.cpp
+index 60847c2..dcdc5ae 100644
+--- a/src/Mod/PartDesign/App/FeatureThickness.cpp
++++ b/src/Mod/PartDesign/App/FeatureThickness.cpp
+@@ -269,6 +269,16 @@ App::DocumentObjectExecReturn* Thickness::execute()
+     // store shape before refinement
+     this->rawShape = result;
+     result = refineShapeIfActive(result);
++    // A thick solid can have several lumps (issue 034 R-034-inner: a removed
++    // face whose loop leads to material, e.g. the top of a plate over a blind
++    // pocket or a pocket floor around an island): never keep only the first
++    // solid silently.
++    if (!isSingleSolidRuleSatisfied(result.getShape())) {
++        return new App::DocumentObjectExecReturn(QT_TRANSLATE_NOOP(
++            "Exception",
++            "Result has multiple solids: enable 'Allow Compound' in the active body."
++        ));
++    }
+     this->Shape.setValue(getSolid(result));
+     return App::DocumentObject::StdReturn;
+ }
+-- 
+2.52.0.windows.1
+
