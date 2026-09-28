@@ -1,0 +1,66 @@
+Integration kernel-accepted (FreeCAD 26.3dev weekly 019f5c5 / OCCT 8.0.1 + our patches; installed 28.09.2026 ~20:35)
+
+Owner 28.09 ~18:45: "kernel first" - secondary lanes paused, accepted kernel work must not stay uninstalled.
+Accepted lanes (ledger C:/dev/occt8-mig/progress.md): Review R-032 r1, Review R-032b r1, Review R-001 r1, Review R-009 r2.
+
+Installed into C:/dev/FreeCAD-occt8-perf (install-all.sh, md5-guarded, stock kept in _replaced; log
+C:/dev/occt8-mig/delivery/install-k28.log):
+  bin/TKFillet.dll      6819298d (weekly) -> c6ffab198b76fd315d7f8c8394d99c06 (was 6c6be47d = 001)
+  bin/TKBO.dll          4ae8f637 (weekly) -> c7aae83400dcf7b1d1777c5728241f9c (was 59704e00 = 009+027)
+  lib/_PartDesign.pyd   8ce304c2 (weekly) -> 432b1d94334efa0cf3dd4f4c07daa55c (was 21b4e6b7 = 029+032)
+  unchanged: PartDesignGui.pyd 853c19e5 (032+037), TKGeomBase.dll 7f2384e2 (027), TKOffset.dll f5fcd5a0 (034A+A2).
+  Staged copies: freecad-kernel-fixes/build/variants801/int-k28 (MD5SUMS.txt).
+
+Sources:
+  TKFillet = OCCT perf/801-int-k28 df23e3986d (worktree C:/dev/occt-801-intk28) = perf/801-032d 38747b2018 (R-032 r1 95a02354
+    + R-032b r1) + merge of perf/801-001c b68b11a531 (R-001 r1), both on delivered 001 a86b84db5f. Disjoint changes,
+    ChFi3d_Builder.cxx auto-merged. Built once (build_tk.py, MSVC 19.50.35739, /MP4, 0 warnings /W4) from the clean
+    committed tree (git status clean, no source newer than the DLL). Toolchain D0 as in the R-032b / R-001 reviews.
+  TKBO = perf/801-009c a97814d613 (R-009 r1 + r2) on delivered perf/801-027; the staged review build c7aae834 IS the
+    commit (Review R-009 r2 D0). TKGeomBase not touched by R-009.
+  _PartDesign = fc-chamfer mig/chamfer-032c 3771005 (83a7a09 validity check + 3771005 geometric tie break) on delivered
+    cb851d2; the reviewed pyd 432b1d94 (Review R-032 r1 D0: object code identical). FreeCAD record branch
+    mig/int-kernel-28 5bbb777 = 3771005 (App) + mig/vr6-body ec79350 (delivered PartDesignGui 853c19e5); no header/ABI
+    change between them. NOT included: the R-034-inner FeatureThickness change (its round 3 is open; TKOffset unchanged).
+
+Files here:
+  occt-8.0.1/perf-801-int-k28.bundle   (V8_0_1..perf/801-int-k28, verify OK, head df23e3986d)
+  occt-8.0.1/perf-801-009c.bundle      (V8_0_1..perf/801-009c, verify OK, head a97814d613)
+  occt-8.0.1/TKFillet-int-k28-vs-V8_0_1.patch  git apply --cached on V8_0_1 -> TKFillet subtree daa5a342 == df23e3986d
+  occt-8.0.1/TKBO-009-027-R009-vs-V8_0_1.patch  -> TKBO subtree 2b5df6df == a97814d613 (== Review R-009 r2)
+    Mutant (one context byte changed) refused.
+  freecad-26.3/0001, 0002 (byte-exact CRLF, *.patch -text): onto cb851d2 -> tree 2481cfdc == 3771005.
+
+Gates re-run on the integrated run copy (C:/dev/occt8-mig/intk28/rc/new = delivery + the three files; fcslot, own
+config copies, <= 600 s per FreeCAD; kb1 peak 209 MB), evidence C:/dev/occt8-mig/intk28/runs:
+  R-032 audit gate ch_class.py (CA_VAR=d): 116/116 lines == R-032b review (NEG: delivered differs in 20 lines).
+  R-032 r1 families famA/N/R1/P (ch032u): 82/82 result lines incl. result hash == R-032b build (NEG: delivered 6/6 INV).
+  R-032b families a0/a1: 31/31 == lane; b0 (fold at a G1 junction, declared not fixed): INV from d kg 1.05, as reviewed.
+  R-032b review members rvm.py: 45/45 lines incl. md5 == review; NEG oracle (t +1 %) 23/23 winpass False.
+  Failure-path mutant (review injection point, rebuilt on the merged tree): RVX=f/s -> md5 = delivered 9/9, input
+    unchanged; RVX=c -> exception propagates, input unchanged 9/9; NEG RVX_NORESTORE -> 9/9 differ.
+  FreeCAD net fcnet2.py: 20/20 lines == review (Consistent -> Touched/Invalid + Flip hint; Legacy -> warning only).
+  R-001 audit family (seamclass, 196): 196/196 valid + clean; order-free fingerprints == review except 2 scale-100
+    members whose INPUT Boolean differs by ~1e-10 (live cut, not stored; edgeL 1499.6875 vs 1499.68749999999, ok/clean
+    identical). Review members 30 + 16 + 5 = 51/51 fingerprints identical (NEG: delivered memD/mem2D differ 17 / 9).
+  R-009 gen009 / gen009b / gen009r / gen009m A-B-C / gen009x A-B: 147 cases, all J lines (except timing) == Review R-009
+    r2 (NEG: delivered mA differs 19/19, xA 7/10).
+  Native fillet+chamfer corpus (r001rv filrv.exe, 3437 ops): == Review R-001 new 3437/3437; vs delivery 7 differ = the
+    reviewed 7 (BOP-cleaner, same volume/faces).
+  kb1 corpus (fil,bool,mesh,files; 821 leaves): 1 differs = fil/d001/edge_on_seam brep_md5 (R-001 class member:
+    volume/area/valid/check identical); console identical except the known flaky duplicate hicmos App message on dlv.
+    Paired time 16.94 s (dlv) -> 16.48 s (new).
+  FreeCAD suites: TestPartApp 299 OK, TestPartDesignApp 226 (2 known 5829 Thickness failures), TestChamfer 1, TestFillet 3,
+    TopoShapeTest 61: per-test verdicts == R-032b p1 run copy (NEG doctored verdict -> 2 diff lines).
+  HD test_chamfer: master d655292 16/16; hd-chamfer fix/chamfer-validity 876083e 18/18 incl. test_15 (fold class)
+    (NEG: on the old delivery test_15 is skipped).
+  ABI: TKFillet exports 1382 == weekly, import DLL set equal, 56 extra imported symbols all resolved in the delivery bin
+    (NEG: empty bin dir -> 6 missing DLLs); TKBO exports 961 == weekly, imports == delivered.
+After install, on C:/dev/FreeCAD-occt8-perf itself: gen009m A 19/19 and gen009 23/23 == run copy (NEG dlv mA 19/19 differ);
+  HD test_chamfer 16/16 (master) and 18/18 (fix/chamfer-validity). Owner userdata/user.cfg untouched (27.09 17:45).
+
+Delivery bookkeeping: delivery/install-all.sh (+ .before-k28), revert.bat (+ groups "fillet", "boolean"; copied into the
+delivery), DELIVERED.txt section 15 (Russian), C:/dev/tools/build-package-26.ps1 md5 guards + sources
+(C:/dev/hd-package/sources-k28 = the patches here). Colleague zip not rebuilt.
+Open (next rounds, all = delivered behaviour, none silent in PartDesign): see Reviews R-032 r1 / R-032b r1 / R-001 r1 /
+R-009 r2 "ROUND 2" lists.

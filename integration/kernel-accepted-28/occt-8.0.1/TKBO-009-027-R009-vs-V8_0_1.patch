@@ -1,0 +1,916 @@
+diff --git a/src/ModelingAlgorithms/TKBO/BOPTools/BOPTools_AlgoTools2D.cxx b/src/ModelingAlgorithms/TKBO/BOPTools/BOPTools_AlgoTools2D.cxx
+index 4ba27198bf..d579d414e7 100644
+--- a/src/ModelingAlgorithms/TKBO/BOPTools/BOPTools_AlgoTools2D.cxx
++++ b/src/ModelingAlgorithms/TKBO/BOPTools/BOPTools_AlgoTools2D.cxx
+@@ -242,6 +242,99 @@ void BOPTools_AlgoTools2D::AdjustPCurveOnFace(const TopoDS_Face&
+   BOPTools_AlgoTools2D::AdjustPCurveOnSurf(*pBAS, theFirst, theLast, theC2D, theC2DA);
+ }
+ 
++//=================================================================================================
++// function : pickPeriodCopy
++// purpose  : R-009. On a face whose range along a periodic direction is wider than one period the same
++//            3D curve has several parametric copies, u2 + k*P, inside [theMin, theMax]; a curve lying on
++//            a valid face lies in exactly one of them. AdjustPCurveOnSurf tests one copy and moves by at
++//            most one period, which is not enough when more than two copies exist. theOffset is the offset
++//            that the stock test chose along the direction (theIsU: U, else V; theOther is the offset
++//            already fixed along the other direction). It is kept when its midpoint is not OUT of the face
++//            (the stock result). Otherwise every other copy inside the range is tested at the midpoint and
++//            at the parameters 1/4 and 3/4 of the curve; the first copy (nearest to theOffset) that has the
++//            midpoint and both other points IN or ON is taken, else the copy with the most such points and
++//            the midpoint IN or ON, else theOffset.
++//=================================================================================================
++static double pickPeriodCopy(const TopoDS_Face&               theF,
++                             const occ::handle<Geom2d_Curve>& theC2D,
++                             const double                     theFirst,
++                             const double                     theLast,
++                             const bool                       theIsU,
++                             const double                     theOffset,
++                             const double                     theOther,
++                             const double                     thePeriod,
++                             const double                     theMin,
++                             const double                     theMax,
++                             const double                     theDelta)
++{
++  const double aT[3] = {0.5 * (theFirst + theLast),
++                        theFirst + 0.25 * (theLast - theFirst),
++                        theFirst + 0.75 * (theLast - theFirst)};
++  gp_Pnt2d     aP[3];
++  for (int i = 0; i < 3; ++i)
++  {
++    theC2D->D0(aT[i], aP[i]);
++  }
++  // number of the tested points of the copy with the given offset that are IN or ON the face;
++  // theNb = 1 tests the midpoint only
++  auto aNbIn = [&](const double theOff, const int theNb) {
++    int aNb = 0;
++    for (int i = 0; i < theNb; ++i)
++    {
++      const gp_Pnt2d aPi = theIsU ? gp_Pnt2d(aP[i].X() + theOff, aP[i].Y() + theOther)
++                                  : gp_Pnt2d(aP[i].X() + theOther, aP[i].Y() + theOff);
++      BRepClass_FaceClassifier aClassifier;
++      aClassifier.Perform(theF, aPi, theDelta);
++      if (aClassifier.State() != TopAbs_OUT)
++      {
++        ++aNb;
++      }
++      else if (i == 0)
++      {
++        return 0;
++      }
++    }
++    return aNb;
++  };
++  if (aNbIn(theOffset, 1) > 0)
++  {
++    return theOffset;
++  }
++  const double aX0    = theIsU ? aP[0].X() : aP[0].Y();
++  double       aBest  = theOffset;
++  int          aNbMax = 0;
++  for (int k = 1;; ++k)
++  {
++    bool isInRange = false;
++    for (int aSign = 1; aSign >= -1; aSign -= 2)
++    {
++      const double anOff = theOffset + aSign * k * thePeriod;
++      const double aX    = aX0 + anOff;
++      if (aX < theMin - theDelta || aX > theMax + theDelta)
++      {
++        continue;
++      }
++      isInRange     = true;
++      const int aNb = aNbIn(anOff, 3);
++      if (aNb == 3)
++      {
++        return anOff;
++      }
++      if (aNb > aNbMax)
++      {
++        aNbMax = aNb;
++        aBest  = anOff;
++      }
++    }
++    if (!isInRange && (aX0 + theOffset - k * thePeriod < theMin - theDelta)
++        && (aX0 + theOffset + k * thePeriod > theMax + theDelta))
++    {
++      break;
++    }
++  }
++  return aBest;
++}
++
+ //=================================================================================================
+ 
+ void BOPTools_AlgoTools2D::AdjustPCurveOnSurf(const BRepAdaptor_Surface&       aBAS,
+@@ -287,7 +380,10 @@ void BOPTools_AlgoTools2D::AdjustPCurveOnSurf(const BRepAdaptor_Surface&       a
+       u2 = UMin + aUPeriod;
+     }
+     // b. compute du again using clarified value of u2
+-    GeomInt::AdjustPeriodic(u2, UMin, UMax, aUPeriod, u2, du, 0.);
++    // The shifted parameter must not overwrite u2: the classification below
++    // tests u2 + du, which would count the shift twice.
++    double aU2Shifted;
++    GeomInt::AdjustPeriodic(u2, UMin, UMax, aUPeriod, aU2Shifted, du, 0.);
+     //
+     if (du == 0.)
+     {
+@@ -361,6 +457,7 @@ void BOPTools_AlgoTools2D::AdjustPCurveOnSurf(const BRepAdaptor_Surface&       a
+           if (Status == TopAbs_OUT)
+           {
+             du += (u > (UMin + aDelta + aUPeriod)) ? -aUPeriod : aUPeriod;
++            du = pickPeriodCopy(aF, aC2D, aFirst, aLast, true, du, dv, aUPeriod, UMin, UMax, aDelta);
+           }
+         }
+       }
+@@ -380,6 +477,7 @@ void BOPTools_AlgoTools2D::AdjustPCurveOnSurf(const BRepAdaptor_Surface&       a
+           if (Status == TopAbs_OUT)
+           {
+             dv += (v > (VMin + aDelta + aVPeriod)) ? -aVPeriod : aVPeriod;
++            dv = pickPeriodCopy(aF, aC2D, aFirst, aLast, false, dv, du, aVPeriod, VMin, VMax, aDelta);
+           }
+         }
+       }
+diff --git a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx
+index ad2f8e1f5d..e40b339a00 100644
+--- a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx
++++ b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.cxx
+@@ -22,7 +22,9 @@
+ #include <Geom2d_TrimmedCurve.hxx>
+ #include <Geom2dHatch_Hatcher.hxx>
+ #include <Geom2dHatch_Intersector.hxx>
++#include <Geom_BezierCurve.hxx>
+ #include <Geom_BoundedCurve.hxx>
++#include <Geom_BSplineCurve.hxx>
+ #include <Geom_Curve.hxx>
+ #include <GeomAdaptor_Curve.hxx>
+ #include <GeomAPI_ProjectPointOnCurve.hxx>
+@@ -47,6 +49,109 @@
+ IMPLEMENT_STANDARD_RTTIEXT(IntTools_Context, Standard_Transient)
+ 
+ //
++//=================================================================================================
++// 027: far-vertex rejection in IsVertexOnLine.
++// A B-spline or Bezier curve with positive weights lies in the convex hull of its poles, hence in
++// the axis-aligned box of the poles, over its whole parameter range (Boehm 1980; Sederberg-Nishita
++// 1990 use the same property to discard curve pieces). The distance from a point to that box is a
++// lower bound of its distance to every point of the curve, including the points the projector
++// returns and the curve ends. When that bound exceeds the vertex/curve tolerance sum (with a margin
++// for rounding of the evaluated curve points), IsVertexOnLine returns false on every path, so the
++// projection (O(number of spans) per vertex, run for every vertex x every section curve) is skipped.
++namespace
++{
++//! Returns the distance from thePnt to the box of the poles of theCurve, or -1 when the curve is not
++//! exactly a Geom_BSplineCurve or Geom_BezierCurve. theScale receives the largest absolute coordinate
++//! of the box and the point (for the rounding margin).
++static double distanceToPolesBox(const occ::handle<Geom_Curve>& theCurve,
++                                 const gp_Pnt&                  thePnt,
++                                 double&                        theScale)
++{
++  const NCollection_Array1<gp_Pnt>* aPoles = nullptr;
++  if (theCurve->DynamicType() == STANDARD_TYPE(Geom_BSplineCurve))
++  {
++    aPoles = &static_cast<const Geom_BSplineCurve*>(theCurve.get())->Poles();
++  }
++  else if (theCurve->DynamicType() == STANDARD_TYPE(Geom_BezierCurve))
++  {
++    aPoles = &static_cast<const Geom_BezierCurve*>(theCurve.get())->Poles();
++  }
++  if (aPoles == nullptr || aPoles->IsEmpty())
++  {
++    return -1.;
++  }
++  double aMin[3], aMax[3];
++  const gp_XYZ& aP0 = aPoles->First().XYZ();
++  for (int k = 0; k < 3; ++k)
++  {
++    aMin[k] = aMax[k] = aP0.Coord(k + 1);
++  }
++  for (NCollection_Array1<gp_Pnt>::Iterator anIt(*aPoles); anIt.More(); anIt.Next())
++  {
++    const gp_XYZ& aP = anIt.Value().XYZ();
++    for (int k = 0; k < 3; ++k)
++    {
++      const double aC = aP.Coord(k + 1);
++      aMin[k]         = std::min(aMin[k], aC);
++      aMax[k]         = std::max(aMax[k], aC);
++    }
++  }
++  double aSq = 0.;
++  theScale   = 0.;
++  for (int k = 0; k < 3; ++k)
++  {
++    const double aC = thePnt.XYZ().Coord(k + 1);
++    const double aD = aC < aMin[k] ? aMin[k] - aC : (aC > aMax[k] ? aC - aMax[k] : 0.);
++    aSq += aD * aD;
++    theScale = std::max(theScale, std::max(std::abs(aC), std::max(std::abs(aMin[k]), std::abs(aMax[k]))));
++  }
++  return std::sqrt(aSq);
++}
++
++//! True when the vertex point is provably farther than theTolSum from every point of theCurve.
++static bool isFarFromCurveHull(const occ::handle<Geom_Curve>& theCurve,
++                               const gp_Pnt&                  thePnt,
++                               const double                   theTolSum)
++{
++  double       aScale = 0.;
++  const double aDist  = distanceToPolesBox(theCurve, thePnt, aScale);
++  if (!(aDist >= 0.)) // other curve types, NaN
++  {
++    return false;
++  }
++  // margin: rounding of evaluated curve points and of the distances (far above 1e-15 * scale)
++  const double aMargin = 1.e-7 + 1.e-9 * aScale;
++#ifdef INTTOOLS_027_MUTANT_A
++  (void)aMargin;
++  return true; // negative control: every projection is skipped, also for vertices on the line
++#else
++  return aDist > theTolSum + aMargin;
++#endif
++}
++} // namespace
++
++#ifdef INTTOOLS_027_VERIFY
++#include <atomic>
++#include <cstdio>
++#include <cstdlib>
++namespace
++{
++struct Verify027Counters
++{
++  std::atomic<long long> Checked{0}, Far{0}, Mismatch{0};
++  ~Verify027Counters()
++  {
++    std::fprintf(stderr,
++                 "027-VERIFY IsVertexOnLine projections=%lld far=%lld mismatch=%lld\n",
++                 (long long)Checked,
++                 (long long)Far,
++                 (long long)Mismatch);
++  }
++};
++static Verify027Counters THE_027_COUNTERS;
++} // namespace
++#endif
++
+ //=================================================================================================
+ 
+ IntTools_Context::IntTools_Context()
+@@ -939,10 +1044,46 @@ bool IntTools_Context::IsVertexOnLine(const TopoDS_Vertex&  aV,
+     return true;
+   }
+   //
++#ifndef INTTOOLS_027_VERIFY
++  if (isFarFromCurveHull(aC3D, aPv, aTolSum))
++  {
++    return false; // 027: the projection below cannot come closer than aTolSum
++  }
++#else
++  const bool aFar027 = isFarFromCurveHull(aC3D, aPv, aTolSum);
++#endif
+   GeomAPI_ProjectPointOnCurve& aProjector = ProjPT(aC3D);
+   aProjector.Perform(aPv);
+ 
+   aNbProj = aProjector.NbPoints();
++#ifdef INTTOOLS_027_VERIFY
++  {
++    // the stock outcome of the code below, compared with the far-vertex rejection
++    bool aStockOn = false;
++    if (!aNbProj)
++    {
++      occ::handle<Geom_BoundedCurve> aBC0 = occ::down_cast<Geom_BoundedCurve>(aC3D);
++      aStockOn = !aBC0.IsNull()
++                 && (aPv.Distance(aBC0->StartPoint()) < aTolSum
++                     || aPv.Distance(aBC0->EndPoint()) < aTolSum);
++    }
++    else
++    {
++      aStockOn = !(aProjector.LowerDistance() > aTolSum);
++    }
++    ++THE_027_COUNTERS.Checked;
++    if (aFar027)
++    {
++      ++THE_027_COUNTERS.Far;
++      if (aStockOn)
++      {
++        ++THE_027_COUNTERS.Mismatch;
++        std::fprintf(stderr, "027-VERIFY-MISMATCH IsVertexOnLine tolsum=%.17g\n", aTolSum);
++        std::abort();
++      }
++    }
++  }
++#endif
+   if (!aNbProj)
+   {
+     occ::handle<Geom_BoundedCurve> aBC = occ::down_cast<Geom_BoundedCurve>(aC3D);
+diff --git a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.hxx b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.hxx
+index 300aa8e404..267dae9626 100644
+--- a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.hxx
++++ b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_Context.hxx
+@@ -236,6 +236,10 @@ public:
+   //! correct value for all projectors
+   Standard_EXPORT void SetPOnSProjectionTolerance(const double theValue);
+ 
++  //! Returns the tolerance used by the point-on-surface projectors of ProjPS().
++  //! (Inline, not exported: added by 027 for projectors built outside the context.)
++  double POnSProjectionTolerance() const { return myPOnSTolerance; }
++
+   DEFINE_STANDARD_RTTIEXT(IntTools_Context, Standard_Transient)
+ 
+ protected:
+diff --git a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FClass2d.cxx b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FClass2d.cxx
+index 1ac1ade150..40c2daa035 100644
+--- a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FClass2d.cxx
++++ b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FClass2d.cxx
+@@ -632,6 +632,45 @@ TopAbs_State IntTools_FClass2d::PerformInfinitePoint() const
+   return (Perform(P, false));
+ }
+ 
++//=================================================================================================
++// function : nextPeriodCopy
++// purpose  : Moves theX to the next period copy tested by the periodic recadrage of Perform() and
++//            TestOnRestriction(). The stock order is kept: theStart, theStart + P, ... while <= theMax.
++//            A face whose parametric range is wider than one period holds several copies of one
++//            surface point; GeomInt::AdjustPeriodic returns the highest copy for a parameter below
++//            theMin, so the copies below theStart were never tested and a point of the face could be
++//            classified OUT. On such a face (theIsWide) the scan continues downwards from
++//            theStart - P while >= theMin. Returns false when the scan is exhausted.
++//=================================================================================================
++static bool nextPeriodCopy(double&      theX,
++                           bool&        theIsDown,
++                           const double theStart,
++                           const double theMin,
++                           const double theMax,
++                           const double thePeriod,
++                           const bool   theIsWide)
++{
++  if (!theIsDown)
++  {
++    theX += thePeriod;
++    if (!(theX > theMax))
++    {
++      return true;
++    }
++    if (!theIsWide)
++    {
++      return false;
++    }
++    theIsDown = true;
++    theX      = theStart - thePeriod;
++  }
++  else
++  {
++    theX -= thePeriod;
++  }
++  return !(theX < theMin);
++}
++
+ //=================================================================================================
+ 
+ TopAbs_State IntTools_FClass2d::Perform(const gp_Pnt2d& _Puv, const bool RecadreOnPeriodic) const
+@@ -658,6 +697,10 @@ TopAbs_State IntTools_FClass2d::Perform(const gp_Pnt2d& _Puv, const bool Recadre
+   const double vperiod = IsVPer ? surf->VPeriod() : 0.0;
+ 
+   bool urecadre, vrecadre, bUseClassifier;
++  // R-009: faces wider than one period hold several copies of a point (see nextPeriodCopy)
++  const bool isUWide = IsUPer && (Umax - Umin) > uperiod;
++  const bool isVWide = IsVPer && (Vmax - Vmin) > vperiod;
++  bool       isUDown = false, isVDown = false;
+   int  dedans = 1;
+   //
+   urecadre = false;
+@@ -765,37 +808,35 @@ TopAbs_State IntTools_FClass2d::Perform(const gp_Pnt2d& _Puv, const bool Recadre
+       return aStatus;
+     }
+ 
++    bool isUNext = false;
+     if (!urecadre)
+     {
+       u        = uu;
+       urecadre = true;
++      isUNext  = IsUPer && !(u > Umax);
+     }
+-    else
++    else if (IsUPer)
+     {
+-      if (IsUPer)
+-      {
+-        u += uperiod;
+-      }
++      isUNext = nextPeriodCopy(u, isUDown, uu, Umin, Umax, uperiod, isUWide);
+     }
+-
+-    if (u > Umax || !IsUPer)
++    if (!isUNext)
+     {
++      isUDown      = false;
++      bool isVNext = false;
+       if (!vrecadre)
+       {
+         v        = vv;
+         vrecadre = true;
++        isVNext  = IsVPer && !(v > Vmax);
+       }
+-      else
++      else if (IsVPer)
+       {
+-        if (IsVPer)
+-        {
+-          v += vperiod;
+-        }
++        isVNext = nextPeriodCopy(v, isVDown, vv, Vmin, Vmax, vperiod, isVWide);
+       }
+ 
+       u = uu;
+ 
+-      if (v > Vmax || !IsVPer)
++      if (!isVNext)
+       {
+         return aStatus;
+       }
+@@ -829,6 +870,10 @@ TopAbs_State IntTools_FClass2d::TestOnRestriction(const gp_Pnt2d& _Puv,
+   TopAbs_State aStatus  = TopAbs_UNKNOWN;
+   bool         urecadre = false, vrecadre = false;
+   int          dedans = 1;
++  // R-009: faces wider than one period hold several copies of a point (see nextPeriodCopy)
++  const bool isUWide = IsUPer && (Umax - Umin) > uperiod;
++  const bool isVWide = IsVPer && (Vmax - Vmin) > vperiod;
++  bool       isUDown = false, isVDown = false;
+ 
+   if (RecadreOnPeriodic)
+   {
+@@ -911,30 +956,35 @@ TopAbs_State IntTools_FClass2d::TestOnRestriction(const gp_Pnt2d& _Puv,
+       return aStatus;
+     }
+ 
++    bool isUNext = false;
+     if (!urecadre)
+     {
+       u        = uu;
+       urecadre = true;
++      isUNext  = IsUPer && !(u > Umax);
+     }
+     else if (IsUPer)
+     {
+-      u += uperiod;
++      isUNext = nextPeriodCopy(u, isUDown, uu, Umin, Umax, uperiod, isUWide);
+     }
+-    if (u > Umax || !IsUPer)
++    if (!isUNext)
+     {
++      isUDown      = false;
++      bool isVNext = false;
+       if (!vrecadre)
+       {
+         v        = vv;
+         vrecadre = true;
++        isVNext  = IsVPer && !(v > Vmax);
+       }
+       else if (IsVPer)
+       {
+-        v += vperiod;
++        isVNext = nextPeriodCopy(v, isVDown, vv, Vmin, Vmax, vperiod, isVWide);
+       }
+ 
+       u = uu;
+ 
+-      if (v > Vmax || !IsVPer)
++      if (!isVNext)
+       {
+         return aStatus;
+       }
+diff --git a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FaceFace.cxx b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FaceFace.cxx
+index 226edfa143..16191415d0 100644
+--- a/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FaceFace.cxx
++++ b/src/ModelingAlgorithms/TKBO/IntTools/IntTools_FaceFace.cxx
+@@ -54,6 +54,13 @@
+ #include <TopoDS_Edge.hxx>
+ #include <gp_Elips.hxx>
+ #include <ApproxInt_KnotTools.hxx>
++#include <Extrema_POnSurfParams.hxx>
++#include <Geom_BSplineSurface.hxx>
++#include <NCollection_Vector.hxx>
++#include <OSD_Parallel.hxx>
++
++#include <algorithm>
++#include <memory>
+ 
+ static void Parameters(const occ::handle<GeomAdaptor_Surface>&,
+                        const occ::handle<GeomAdaptor_Surface>&,
+@@ -135,6 +142,11 @@ static double FindMaxDistance(const occ::handle<Geom_Curve>&       theCurve,
+                               const TopoDS_Face&                   theFace,
+                               const occ::handle<IntTools_Context>& theContext);
+ 
++static double FindMaxDistance(const occ::handle<Geom_Curve>& theCurve,
++                              const double                   theFirst,
++                              const double                   theLast,
++                              GeomAPI_ProjectPointOnSurf&    theProjPS);
++
+ static void CorrectPlaneBoundaries(double& aUmin, double& aUmax, double& aVmin, double& aVmax);
+ 
+ //=================================================================================================
+@@ -323,6 +335,66 @@ static bool isTreatAnalityc(const BRepAdaptor_Surface& theBAS1,
+   }
+ }
+ 
++//=================================================================================================
++// function : restrictToOnePeriod009
++// purpose  : R-009 r2. The intersectors (IntPatch walking and approximation, GeomInt pcurves) work on
++//            the parametric domain loaded into the adaptor and assume that the surface map is one to
++//            one on it. A face whose range along a periodic direction is wider than one period (a
++//            Refine-merged thread strip, a band wound several times around a torus tube) gives a domain
++//            that covers part of the surface several times. A section curve that winds along that
++//            direction then lifts to one open arc running through all the copies: the walking line
++//            covers the same 3D points up to [range/period] times, its approximation overlaps itself,
++//            paves projected on it land on an arbitrary pass, and pieces that lie on the face in no copy
++//            are kept or genuine pieces are lost (measured: 0 section edges, or 113 of section length
++//            where 33.7 lie on the face).
++//            Every point of such a face is the image of a parameter inside ONE period window
++//            [min, min + P] of that direction (the surface is P-periodic), so the section of the face
++//            is contained in the section of the window; the window is the fundamental domain of the
++//            universal-cover argument (see LITERATURE-R009 r2). The section is therefore computed on
++//            the window and each resulting section-edge piece is placed on its copy of the face later
++//            by the r1 code (IntTools_FClass2d scans every copy; BOPTools_AlgoTools2D::pickPeriodCopy).
++//            The window is applied only when the overlap (range - P) exceeds the parametric
++//            resolution of the face tolerance: a smaller overlap maps within tolerance of the window
++//            start, creates no distinct 3D point and leaves the stock domain (and results) unchanged.
++//            Returns true when the domain was changed; theLow receives the window starts (U, V).
++//=================================================================================================
++static bool restrictToOnePeriod009(const occ::handle<GeomAdaptor_Surface>& theHS,
++                                   const occ::handle<Geom_Surface>&        theS,
++                                   const double                            theTol,
++                                   double                                  theLow[2],
++                                   bool                                    theIsWin[2])
++{
++  double aU[2] = {theHS->FirstUParameter(), theHS->LastUParameter()};
++  double aV[2] = {theHS->FirstVParameter(), theHS->LastVParameter()};
++  theLow[0]    = aU[0];
++  theLow[1]    = aV[0];
++  theIsWin[0] = theIsWin[1] = false;
++  if (theHS->IsUPeriodic() && !Precision::IsInfinite(aU[0]) && !Precision::IsInfinite(aU[1]))
++  {
++    const double aP = theHS->UPeriod();
++    if (aP > 0. && (aU[1] - aU[0]) - aP > theHS->UResolution(theTol))
++    {
++      aU[1]       = aU[0] + aP;
++      theIsWin[0] = true;
++    }
++  }
++  if (theHS->IsVPeriodic() && !Precision::IsInfinite(aV[0]) && !Precision::IsInfinite(aV[1]))
++  {
++    const double aP = theHS->VPeriod();
++    if (aP > 0. && (aV[1] - aV[0]) - aP > theHS->VResolution(theTol))
++    {
++      aV[1]       = aV[0] + aP;
++      theIsWin[1] = true;
++    }
++  }
++  if (!theIsWin[0] && !theIsWin[1])
++  {
++    return false;
++  }
++  theHS->Load(theS, aU[0], aU[1], aV[0], aV[1]);
++  return true;
++}
++
+ //=======================================================================
+ // function : Perform
+ // purpose  : intersect surfaces of the faces
+@@ -472,6 +544,36 @@ void IntTools_FaceFace::Perform(const TopoDS_Face& aF1,
+     myHS2->Load(S2, umin, umax, vmin, vmax);
+   }
+ 
++  // R-009 r2: faces wider than one period are intersected on one period window
++  {
++    double    aLow1[2], aLow2[2];
++    bool      isWin1[2], isWin2[2];
++    const bool isW1 = restrictToOnePeriod009(myHS1, S1, myTolF1, aLow1, isWin1);
++    const bool isW2 = restrictToOnePeriod009(myHS2, S2, myTolF2, aLow2, isWin2);
++    if ((isW1 || isW2) && !myListOfPnts.IsEmpty())
++    {
++      // the given start points are parameters on the faces: bring them into the windows
++      auto aToWin = [](double& theX, const bool theIsWin, const double theLow, const double theP) {
++        if (theIsWin)
++        {
++          theX = ElCLib::InPeriod(theX, theLow, theLow + theP);
++        }
++      };
++      NCollection_List<IntSurf_PntOn2S>::Iterator aItP2S(myListOfPnts);
++      for (; aItP2S.More(); aItP2S.Next())
++      {
++        IntSurf_PntOn2S& aP2S = aItP2S.ChangeValue();
++        double           aU1, aV1, aU2, aV2;
++        aP2S.Parameters(aU1, aV1, aU2, aV2);
++        aToWin(aU1, isWin1[0], aLow1[0], isWin1[0] ? myHS1->UPeriod() : 0.);
++        aToWin(aV1, isWin1[1], aLow1[1], isWin1[1] ? myHS1->VPeriod() : 0.);
++        aToWin(aU2, isWin2[0], aLow2[0], isWin2[0] ? myHS2->UPeriod() : 0.);
++        aToWin(aV2, isWin2[1], aLow2[1], isWin2[1] ? myHS2->VPeriod() : 0.);
++        aP2S.SetValue(aU1, aV1, aU2, aV2);
++      }
++    }
++  }
++
+   const occ::handle<IntTools_TopolTool> dom1 = new IntTools_TopolTool(myHS1);
+   const occ::handle<IntTools_TopolTool> dom2 = new IntTools_TopolTool(myHS2);
+ 
+@@ -608,6 +710,229 @@ void IntTools_FaceFace::Perform(const TopoDS_Face& aF1,
+   }
+ }
+ 
++//=================================================================================================
++// 027: parallel curve-to-face deviation for the curves without p-curves (section without
++// approximation).
++//
++// ComputeTolReached3d() measures, for each section curve without a p-curve, its largest distance
++// from each face (FindMaxDistance: 11 golden-section searches, about 250 point projections per
++// curve). On a B-spline face every projection runs Extrema_GenExtPS over the whole face grid, so for
++// a long face crossed by many section curves this step costs O(curves x face size) and is the
++// largest part of the section (ball screw thread faces: 50-90 % of the section time). The curves
++// are independent: each task runs the same FindMaxDistance with its own GeomAPI_ProjectPointOnSurf,
++// initialised exactly as IntTools_Context::ProjPS() initialises the shared one (surface from
++// BRep_Tool::Surface, UV bounds from the context, the context tolerance, MIN flag, gradient
++// algorithm). A projection result depends only on the surface, the bounds, the tolerance and the
++// point: the GenExtPS grid is built identically in every projector and all per-query arrays are
++// rewritten on each Perform. The values therefore equal the sequential ones; the verify build
++// (INTTOOLS_027_VERIFY) compares every value with the stock sequential call bit for bit. The values
++// are applied in the stock order; a task that failed (exception, memory) is recomputed there by the
++// stock call, which raises the same exception as stock.
++namespace
++{
++struct MaxDistTask027
++{
++  int                     Curve = 0;
++  int                     Side  = 0;
++  occ::handle<Geom_Curve> C3D;
++  double                  First  = 0.;
++  double                  Last   = 0.;
++  double                  Dist   = 0.;
++  bool                    IsDone = false;
++};
++
++//! Rough size of the Extrema_GenExtPS grid arrays of one projector on theS.
++static double gridBytes027(const occ::handle<Geom_Surface>& theS)
++{
++  double aNbU = 44., aNbV = 44.;
++  if (!theS.IsNull() && theS->DynamicType() == STANDARD_TYPE(Geom_BSplineSurface))
++  {
++    const Geom_BSplineSurface* aBS = static_cast<const Geom_BSplineSurface*>(theS.get());
++    aNbU = std::max(aNbU, 2. + double(aBS->UDegree()) * aBS->NbUKnots());
++    aNbV = std::max(aNbV, 2. + double(aBS->VDegree()) * aBS->NbVKnots());
++  }
++  return aNbU * aNbV * 4. * sizeof(Extrema_POnSurfParams);
++}
++
++static void computeMaxDistancesInParallel027(const NCollection_Sequence<IntTools_Curve>& theCurves,
++                                             const TopoDS_Face&                          theFace1,
++                                             const TopoDS_Face&                          theFace2,
++                                             const occ::handle<IntTools_Context>&        theContext,
++                                             NCollection_Vector<MaxDistTask027>&         theTasks);
++} // namespace
++
++#ifdef INTTOOLS_027_VERIFY
++  #include <atomic>
++  #include <cstdio>
++  #include <cstdlib>
++  #include <cstring>
++
++namespace
++{
++struct Verify027FFCounters
++{
++  std::atomic<long long> Compared{0}, Parallel{0};
++
++  ~Verify027FFCounters()
++  {
++    std::fprintf(stderr,
++                 "027-VERIFY FindMaxDistance compared=%lld parallel-runs=%lld mismatch=0\n",
++                 (long long)Compared,
++                 (long long)Parallel);
++  }
++};
++
++static Verify027FFCounters THE_027_FF_COUNTERS;
++
++static void verify027(const double theNew, const double theStock, const int theI, const int theJ)
++{
++  ++THE_027_FF_COUNTERS.Compared;
++  if (std::memcmp(&theNew, &theStock, sizeof(double)) != 0)
++  {
++    std::fprintf(stderr,
++                 "027-VERIFY-MISMATCH FindMaxDistance curve=%d side=%d new=%.17g stock=%.17g\n",
++                 theI,
++                 theJ,
++                 theNew,
++                 theStock);
++    std::abort();
++  }
++}
++} // namespace
++#endif
++
++namespace
++{
++static void computeMaxDistancesInParallel027(const NCollection_Sequence<IntTools_Curve>& theCurves,
++                                             const TopoDS_Face&                          theFace1,
++                                             const TopoDS_Face&                          theFace2,
++                                             const occ::handle<IntTools_Context>&        theContext,
++                                             NCollection_Vector<MaxDistTask027>&         theTasks)
++{
++  // Only faces whose point projection runs the grid search (Extrema_GenExtPS) are worth the
++  // threads; on analytic and swept surfaces Extrema_ExtPS projects in closed form and the stock
++  // sequential loop is kept.
++  bool isGridSurface[2] = {false, false};
++  for (int j = 0; j < 2; ++j)
++  {
++    const occ::handle<Geom_Surface> aS = BRep_Tool::Surface(!j ? theFace1 : theFace2);
++    if (aS.IsNull())
++    {
++      continue;
++    }
++    switch (GeomAdaptor_Surface(aS).GetType())
++    {
++      case GeomAbs_Plane:
++      case GeomAbs_Cylinder:
++      case GeomAbs_Cone:
++      case GeomAbs_Sphere:
++      case GeomAbs_Torus:
++      case GeomAbs_SurfaceOfExtrusion:
++      case GeomAbs_SurfaceOfRevolution:
++        break;
++      default:
++        isGridSurface[j] = true;
++    }
++  }
++  if (!isGridSurface[0] && !isGridSurface[1])
++  {
++    return;
++  }
++  const int aNbLin = theCurves.Length();
++  for (int i = 1; i <= aNbLin; ++i)
++  {
++    const IntTools_Curve&          aIC  = theCurves(i);
++    const occ::handle<Geom_Curve>& aC3D = aIC.Curve();
++    if (aC3D.IsNull())
++    {
++      continue;
++    }
++    for (int j = 0; j < 2; ++j)
++    {
++      if (isGridSurface[j] && (!j ? aIC.FirstCurve2d() : aIC.SecondCurve2d()).IsNull())
++      {
++        MaxDistTask027 aTask;
++        aTask.Curve = i;
++        aTask.Side  = j;
++        aTask.C3D   = aC3D;
++        aTask.First = aC3D->FirstParameter();
++        aTask.Last  = aC3D->LastParameter();
++        theTasks.Append(aTask);
++      }
++    }
++  }
++  if (theTasks.Length() < 2)
++  {
++    theTasks.Clear();
++    return;
++  }
++  // inputs of the projectors, prepared as IntTools_Context::ProjPS() prepares them
++  occ::handle<Geom_Surface> aSurf[2];
++  double                    aBounds[2][4] = {{0., 0., 0., 0.}, {0., 0., 0., 0.}};
++  bool                      isUsed[2]     = {false, false};
++  for (int t = 0; t < theTasks.Length(); ++t)
++  {
++    isUsed[theTasks.Value(t).Side] = true;
++  }
++  double aGridBytes = 0.;
++  for (int j = 0; j < 2; ++j)
++  {
++    if (!isUsed[j])
++    {
++      continue;
++    }
++    const TopoDS_Face& aF = !j ? theFace1 : theFace2;
++    theContext->ProjPS(aF); // the context caches the same projectors as on the stock path
++    theContext->UVBounds(aF, aBounds[j][0], aBounds[j][1], aBounds[j][2], aBounds[j][3]);
++    aSurf[j] = BRep_Tool::Surface(aF);
++    aGridBytes += gridBytes027(aSurf[j]);
++  }
++  const double aTol = theContext->POnSProjectionTolerance();
++  // workers: at most one per logical processor and per task, their grids within about 128 MB
++  int aNbWorkers =
++    std::min(theTasks.Length(), std::max(1, OSD_Parallel::NbLogicalProcessors()));
++  aNbWorkers = std::max(1, std::min(aNbWorkers, int(128.e6 / std::max(aGridBytes, 1.))));
++  if (aNbWorkers < 2)
++  {
++    theTasks.Clear();
++    return;
++  }
++#ifdef INTTOOLS_027_VERIFY
++  ++THE_027_FF_COUNTERS.Parallel;
++#endif
++  auto aWorker = [&](const int theWorker) {
++    std::unique_ptr<GeomAPI_ProjectPointOnSurf> aProj[2];
++    for (int t = theWorker; t < theTasks.Length(); t += aNbWorkers)
++    {
++      MaxDistTask027& aTask = theTasks.ChangeValue(t);
++      try
++      {
++        const int j = aTask.Side;
++        if (!aProj[j])
++        {
++          aProj[j] = std::make_unique<GeomAPI_ProjectPointOnSurf>();
++          aProj[j]->Init(aSurf[j], aBounds[j][0], aBounds[j][1], aBounds[j][2], aBounds[j][3], aTol);
++          aProj[j]->SetExtremaFlag(Extrema_ExtFlag_MIN);
++        }
++#ifdef INTTOOLS_027_MUTANT_B
++        // negative control: the parallel value is scaled by the factor INTTOOLS_027_MUTANT_B
++        aTask.Dist =
++          FindMaxDistance(aTask.C3D, aTask.First, aTask.Last, *aProj[j]) * INTTOOLS_027_MUTANT_B;
++#else
++        aTask.Dist = FindMaxDistance(aTask.C3D, aTask.First, aTask.Last, *aProj[j]);
++#endif
++        aTask.IsDone = true;
++      }
++      catch (...)
++      {
++        aTask.IsDone = false; // recomputed on the stock path
++      }
++    }
++  };
++  OSD_Parallel::For(0, aNbWorkers, aWorker, false);
++}
++} // namespace
++
+ //=================================================================================================
+ 
+ void IntTools_FaceFace::ComputeTolReached3d(const bool theToRunParallel)
+@@ -624,6 +949,14 @@ void IntTools_FaceFace::ComputeTolReached3d(const bool theToRunParallel)
+   const occ::handle<Geom_Surface>& aS1 = myHS1->Surface();
+   const occ::handle<Geom_Surface>& aS2 = myHS2->Surface();
+   //
++  // 027: deviations of the curves without p-curves from the faces, computed in parallel beforehand
++  NCollection_Vector<MaxDistTask027> aTasks;
++  if (theToRunParallel)
++  {
++    computeMaxDistancesInParallel027(mySeqOfCurve, myFace1, myFace2, myContext, aTasks);
++  }
++  int aTaskIt = 0;
++  //
+   for (i = 1; i <= aNbLin; ++i)
+   {
+     IntTools_Curve&                aIC  = mySeqOfCurve(i);
+@@ -668,8 +1001,27 @@ void IntTools_FaceFace::ComputeTolReached3d(const bool theToRunParallel)
+       else
+       {
+         // Look for the maximal deviation between 3D curve and surface
+-        const TopoDS_Face& aF = !j ? myFace1 : myFace2;
+-        double             aD = FindMaxDistance(aC3D, aFirst, aLast, aF, myContext);
++        const TopoDS_Face& aF      = !j ? myFace1 : myFace2;
++        const bool         hasTask = aTaskIt < aTasks.Length() && aTasks.Value(aTaskIt).Curve == i
++                             && aTasks.Value(aTaskIt).Side == j;
++        double aD = 0.;
++        if (hasTask && aTasks.Value(aTaskIt).IsDone)
++        {
++          aD = aTasks.Value(aTaskIt).Dist; // the value of the stock call below, computed beforehand
++#ifdef INTTOOLS_027_VERIFY
++          verify027(aD, FindMaxDistance(aC3D, aFirst, aLast, aF, myContext), i, j);
++#endif
++        }
++        else
++        {
++          // stock path; it also recomputes a task that failed in the parallel phase, so that
++          // its exception, if any, is raised here in the stock order
++          aD = FindMaxDistance(aC3D, aFirst, aLast, aF, myContext);
++        }
++        if (hasTask)
++        {
++          ++aTaskIt;
++        }
+         if (aD > aTolC)
+         {
+           aTolC = aD;
+@@ -2901,6 +3253,17 @@ double FindMaxDistance(const occ::handle<Geom_Curve>&       theCurve,
+                        const double                         theLast,
+                        const TopoDS_Face&                   theFace,
+                        const occ::handle<IntTools_Context>& theContext)
++{
++  GeomAPI_ProjectPointOnSurf& aProjPS = theContext->ProjPS(theFace);
++  return FindMaxDistance(theCurve, theFirst, theLast, aProjPS);
++}
++
++//=================================================================================================
++
++double FindMaxDistance(const occ::handle<Geom_Curve>& theCurve,
++                       const double                   theFirst,
++                       const double                   theLast,
++                       GeomAPI_ProjectPointOnSurf&    aProjPS)
+ {
+   int    aNbS;
+   double aT1, aT2, aDt, aD, aDMax, anEps;
+@@ -2910,8 +3273,7 @@ double FindMaxDistance(const occ::handle<Geom_Curve>&       theCurve,
+   aDMax = 0.;
+   anEps = 1.e-4 * aDt;
+   //
+-  GeomAPI_ProjectPointOnSurf& aProjPS = theContext->ProjPS(theFace);
+-  aT2                                 = theFirst;
++  aT2 = theFirst;
+   for (;;)
+   {
+     aT1 = aT2;

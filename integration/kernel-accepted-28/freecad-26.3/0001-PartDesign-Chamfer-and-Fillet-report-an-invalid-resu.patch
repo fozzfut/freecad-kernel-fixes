@@ -1,0 +1,240 @@
+From 83a7a091693a3aae68f637d5f1a8ad8fb10c0752 Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 22:24:50 +0700
+Subject: [PATCH 1/2] PartDesign: Chamfer and Fillet report an invalid result
+ instead of Up-to-date
+
+OCCT can return an invalid solid from a chamfer without an error, for
+example when the Size on a face is larger than the radius of the rim
+there (the contact curve folds). The feature used to accept it and turn
+Up-to-date. Now the result is checked after makeElementShape (BRepCheck
+on the faces that are not faces of the base, plus shell closure and
+orientation):
+- a new (Consistent) chamfer fails with "Chamfer gives an invalid solid
+  with Size on FaceN; try Flip direction" (Equal distance: "try a
+  smaller Size");
+- a Legacy chamfer keeps its result and prints one console warning, so
+  old documents do not break;
+- a fillet prints one console warning.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/PartDesign/App/CMakeLists.txt     |  1 +
+ src/Mod/PartDesign/App/DressUpValidity.h  | 78 +++++++++++++++++++++++
+ src/Mod/PartDesign/App/FeatureChamfer.cpp | 47 ++++++++++++++
+ src/Mod/PartDesign/App/FeatureFillet.cpp  | 12 ++++
+ 4 files changed, 138 insertions(+)
+ create mode 100644 src/Mod/PartDesign/App/DressUpValidity.h
+
+diff --git a/src/Mod/PartDesign/App/CMakeLists.txt b/src/Mod/PartDesign/App/CMakeLists.txt
+index a0f668e..626d2cd 100644
+--- a/src/Mod/PartDesign/App/CMakeLists.txt
++++ b/src/Mod/PartDesign/App/CMakeLists.txt
+@@ -67,6 +67,7 @@ SOURCE_GROUP("FeaturesTransformed" FILES ${FeaturesTransformed_SRCS})
+ SET(FeaturesDressUp_SRCS
+     FeatureDressUp.cpp
+     FeatureDressUp.h
++    DressUpValidity.h
+     FeatureFillet.cpp
+     FeatureFillet.h
+     FeatureChamfer.cpp
+diff --git a/src/Mod/PartDesign/App/DressUpValidity.h b/src/Mod/PartDesign/App/DressUpValidity.h
+new file mode 100644
+index 0000000..9a5aed6
+--- /dev/null
++++ b/src/Mod/PartDesign/App/DressUpValidity.h
+@@ -0,0 +1,78 @@
++// SPDX-License-Identifier: LGPL-2.1-or-later
++
++/***************************************************************************
++ *   This file is part of the FreeCAD CAx development system.              *
++ *                                                                         *
++ *   This library is free software; you can redistribute it and/or         *
++ *   modify it under the terms of the GNU Library General Public           *
++ *   License as published by the Free Software Foundation; either          *
++ *   version 2 of the License, or (at your option) any later version.      *
++ *                                                                         *
++ *   This library  is distributed in the hope that it will be useful,      *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU Library General Public License for more details.                  *
++ *                                                                         *
++ ***************************************************************************/
++
++#ifndef PARTDESIGN_DRESSUPVALIDITY_H
++#define PARTDESIGN_DRESSUPVALIDITY_H
++
++#include <BRepCheck_Analyzer.hxx>
++#include <BRepCheck_Shell.hxx>
++#include <BRepCheck_Status.hxx>
++#include <BRep_Builder.hxx>
++#include <TopExp.hxx>
++#include <TopExp_Explorer.hxx>
++#include <TopTools_IndexedMapOfShape.hxx>
++#include <TopoDS.hxx>
++#include <TopoDS_Compound.hxx>
++#include <TopoDS_Shape.hxx>
++
++namespace PartDesign
++{
++
++// Read-only re-run of the check BRepAlgo::IsValid(base, result, false, false) makes on a dress-up
++// result: the faces of the result that are not faces of the base get the full BRepCheck (with the
++// geometric controls), every shell of the result its status and orientation check. Unlike
++// BRepAlgo::IsValid it never repairs anything (no SameParameter), so calling it cannot change the
++// result. Faces taken over unchanged from the base are not checked: a defect already in the base
++// is not the dress-up's fault. Not exported (header-only, internal).
++inline bool dressUpResultIsValid(const TopoDS_Shape& base, const TopoDS_Shape& result)
++{
++    if (result.IsNull() || result.IsSame(base)) {
++        return true;
++    }
++    TopTools_IndexedMapOfShape baseFaces;
++    TopExp::MapShapes(base, TopAbs_FACE, baseFaces);
++    if (baseFaces.IsEmpty()) {
++        return BRepCheck_Analyzer(result, true).IsValid();
++    }
++    TopoDS_Compound toCheck;
++    BRep_Builder builder;
++    for (TopExp_Explorer ex(result, TopAbs_FACE); ex.More(); ex.Next()) {
++        if (!baseFaces.Contains(ex.Current())) {
++            if (toCheck.IsNull()) {
++                builder.MakeCompound(toCheck);
++            }
++            builder.Add(toCheck, ex.Current());
++        }
++    }
++    if (!toCheck.IsNull() && !BRepCheck_Analyzer(toCheck, true).IsValid()) {
++        return false;
++    }
++    for (TopExp_Explorer ex(result, TopAbs_SHELL); ex.More(); ex.Next()) {
++        BRepCheck_Shell shell(TopoDS::Shell(ex.Current()));
++        if (shell.Status().First() != BRepCheck_NoError) {
++            return false;
++        }
++        if (shell.Orientation(false) != BRepCheck_NoError) {
++            return false;
++        }
++    }
++    return true;
++}
++
++}  // namespace PartDesign
++
++#endif  // PARTDESIGN_DRESSUPVALIDITY_H
+diff --git a/src/Mod/PartDesign/App/FeatureChamfer.cpp b/src/Mod/PartDesign/App/FeatureChamfer.cpp
+index 1245cb7..70d0b42 100644
+--- a/src/Mod/PartDesign/App/FeatureChamfer.cpp
++++ b/src/Mod/PartDesign/App/FeatureChamfer.cpp
+@@ -56,6 +56,7 @@
+ #include <Mod/Part/App/TopoShape.h>
+ #include <Mod/Part/App/TopoShapeOpCode.h>
+ 
++#include "DressUpValidity.h"
+ #include "FeatureChamfer.h"
+ 
+ #include <Base/ProgramVersion.h>
+@@ -351,6 +352,38 @@ std::string diagnoseAngle(
+     return {};
+ }
+ 
++// Text for a chamfer whose result solid is invalid. Two distances / Distance and Angle: names the
++// face(s) Size is measured on and suggests Flip direction (the other face). Equal distance: Flip
++// changes nothing, so it suggests a smaller Size.
++std::string invalidChamferMessage(
++    const Part::TopoShape& shape,
++    const std::vector<TopoDS_Shape>& refFaces,
++    int chamferType
++)
++{
++    if (chamferType == 0 || refFaces.empty()) {
++        return QT_TRANSLATE_NOOP("Exception", "Chamfer gives an invalid solid; try a smaller Size");
++    }
++    std::vector<int> seen;
++    std::string faces;
++    for (const auto& f : refFaces) {
++        const int i = shape.findShape(f);
++        if (i <= 0 || std::find(seen.begin(), seen.end(), i) != seen.end()) {
++            continue;
++        }
++        seen.push_back(i);
++        faces += (faces.empty() ? "Face" : ", Face") + std::to_string(i);
++    }
++    // The template is marked for translation; FreeCAD shows the returned text with the face
++    // names filled in.
++    std::string msg = QT_TRANSLATE_NOOP(
++        "Exception",
++        "Chamfer gives an invalid solid with Size on %1; try Flip direction"
++    );
++    msg.replace(msg.find("%1"), 2, faces);
++    return msg;
++}
++
+ }  // namespace
+ 
+ App::DocumentObjectExecReturn* Chamfer::execute()
+@@ -482,6 +515,7 @@ App::DocumentObjectExecReturn* Chamfer::execute()
+ 
+         TopTools_ListOfShape aLarg;
+         aLarg.Append(TopShape.getShape());
++        bool resultValid = true;
+         if (!BRepAlgo::IsValid(aLarg, shape.getShape(), Standard_False, Standard_False)) {
+             ShapeFix_ShapeTolerance aSFT;
+             aSFT.LimitTolerance(
+@@ -490,6 +524,19 @@ App::DocumentObjectExecReturn* Chamfer::execute()
+                 Precision::Confusion(),
+                 TopAbs_SHAPE
+             );
++            // The check above already failed; only here can the result be invalid, so a valid
++            // chamfer pays nothing extra. Did limiting the tolerances repair it?
++            resultValid = dressUpResultIsValid(TopShape.getShape(), shape.getShape());
++        }
++        if (!resultValid) {
++            // OCCT can return an invalid solid without an error (e.g. a Size running into a
++            // fillet at the edge end). New chamfers fail; old documents (Legacy) keep the stock
++            // result and get one warning per recompute, so they still open and recompute.
++            std::string why = invalidChamferMessage(TopShape, refFaces, chamferType);
++            if (consistent) {
++                return new App::DocumentObjectExecReturn(why);
++            }
++            Base::Console().warning("{}: {}\n", Label.getValue(), why);
+         }
+ 
+         // store shape before refinement
+diff --git a/src/Mod/PartDesign/App/FeatureFillet.cpp b/src/Mod/PartDesign/App/FeatureFillet.cpp
+index a0e3c29..76099e9 100644
+--- a/src/Mod/PartDesign/App/FeatureFillet.cpp
++++ b/src/Mod/PartDesign/App/FeatureFillet.cpp
+@@ -35,10 +35,12 @@
+ #include <ShapeFix_Shape.hxx>
+ #include <ShapeFix_ShapeTolerance.hxx>
+ 
++#include <Base/Console.h>
+ #include <Base/Exception.h>
+ #include <Base/Reader.h>
+ #include <Mod/Part/App/TopoShape.h>
+ 
++#include "DressUpValidity.h"
+ #include "FeatureFillet.h"
+ 
+ 
+@@ -133,6 +135,16 @@ App::DocumentObjectExecReturn* Fillet::execute()
+                 Precision::Confusion(),
+                 TopAbs_SHAPE
+             );
++            // The check above already failed (a valid fillet pays nothing extra). If limiting the
++            // tolerances did not repair the result, say so: the fillet keeps its result as
++            // before, but it is no longer silent.
++            if (!dressUpResultIsValid(baseShape.getShape(), shape.getShape())) {
++                Base::Console().warning(
++                    "{}: {}\n",
++                    Label.getValue(),
++                    QT_TRANSLATE_NOOP("Exception", "Fillet gives an invalid solid; try a smaller Radius")
++                );
++            }
+         }
+ 
+         // store shape before refinement
+-- 
+2.52.0.windows.1
+

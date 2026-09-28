@@ -1,0 +1,139 @@
+From 37710059cd1fbbe37a91a39dfeac19373a09278e Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Sun, 27 Sep 2026 22:24:51 +0700
+Subject: [PATCH 2/2] PartDesign: Chamfer breaks full ties between faces
+ geometrically
+
+When both faces of an edge give the same rank (a cube, a hex prism: all
+planes), the reference face was the first one in topology order, so the
+same geometry could get the chamfer on different faces depending on how
+the solid was built. The tie is now broken by the turn of the edge: the
+edge tangent is made canonical in the global frame and the face F with
+(n_F x n_other) . t > 0 wins. The choice is consistent around a chain
+or loop and independent of topology order and placement.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/Mod/PartDesign/App/FeatureChamfer.cpp | 79 +++++++++++++++++++++--
+ 1 file changed, 74 insertions(+), 5 deletions(-)
+
+diff --git a/src/Mod/PartDesign/App/FeatureChamfer.cpp b/src/Mod/PartDesign/App/FeatureChamfer.cpp
+index 70d0b42..5607373 100644
+--- a/src/Mod/PartDesign/App/FeatureChamfer.cpp
++++ b/src/Mod/PartDesign/App/FeatureChamfer.cpp
+@@ -174,12 +174,78 @@ double faceArea(const TopoDS_Face& face)
+     return props.Mass();
+ }
+ 
++// Outward normal of a face of the solid at the point of the edge with parameter t.
++bool outwardNormal(const TopoDS_Edge& edge, const TopoDS_Face& face, double t, gp_Vec& n)
++{
++    double f = 0.0;
++    double l = 0.0;
++    Handle(Geom2d_Curve) pc = BRep_Tool::CurveOnSurface(edge, face, f, l);
++    if (pc.IsNull()) {
++        return false;
++    }
++    const gp_Pnt2d uv = pc->Value(t);
++    BRepAdaptor_Surface surf(face, Standard_False);
++    gp_Pnt p;
++    gp_Vec du;
++    gp_Vec dv;
++    surf.D1(uv.X(), uv.Y(), p, du, dv);
++    n = du.Crossed(dv);
++    if (n.Magnitude() < 1e-15) {
++        return false;
++    }
++    n.Normalize();
++    if (face.Orientation() == TopAbs_REVERSED) {
++        n.Reverse();
++    }
++    return true;
++}
++
++// Full tie of the reference face (both faces equal by every rank): decided by the turning sense
++// around the edge, so that the same geometry gives the same choice whatever order the faces have
++// in the shape. The edge direction is made canonical in the global frame (its first non-zero
++// component positive); the face F with (n_F x n_other) . t > 0 wins. All edges of a ring of
++// parallel edges (the vertical edges of a prism) then get Size on the faces of one turning sense.
++// Returns 1 when a wins, -1 when b wins, 0 when the rule cannot decide (tangent faces).
++int tieByTurn(const TopoDS_Edge& edge, const TopoDS_Face& a, const TopoDS_Face& b)
++{
++    BRepAdaptor_Curve curve(edge);
++    const double t = 0.5 * (curve.FirstParameter() + curve.LastParameter());
++    gp_Pnt p;
++    gp_Vec tangent;
++    curve.D1(t, p, tangent);
++    if (tangent.Magnitude() < 1e-15) {
++        return 0;
++    }
++    tangent.Normalize();
++    const double c[3] = {tangent.X(), tangent.Y(), tangent.Z()};
++    for (double x : c) {
++        if (std::abs(x) > 1e-9) {
++            if (x < 0.0) {
++                tangent.Reverse();
++            }
++            break;
++        }
++    }
++    gp_Vec na;
++    gp_Vec nb;
++    if (!outwardNormal(edge, a, t, na) || !outwardNormal(edge, b, t, nb)) {
++        return 0;
++    }
++    const double turn = na.Crossed(nb).Dot(tangent);
++    if (std::abs(turn) < 1e-9) {
++        return 0;
++    }
++    return turn > 0.0 ? 1 : -1;
++}
++
+ // The adjacent face of every edge that Size (and the Angle) is measured on. OCCT's
+ // BRepFilletAPI_MakeChamfer::Add(Dis1, Dis2, E, F) / AddDA(Dis, Angle, E, F) measure Dis1 / Dis on F
+ // and the angle from F (BlendFunc_ChAsym), so this choice alone decides which face gets which value.
+ // Legacy: the first ancestor (FlipDirection: the last), as TopoShape::makeElementChamfer does.
+ // Consistent: the better of the two faces by (picked in Base, number of chamfered edges it bounds,
+-// planar, larger area); a full tie keeps the first ancestor. FlipDirection takes the other face.
++// planar, larger area); a full tie is decided by the turning sense around the edge (tieByTurn),
++// only faces that the rule cannot tell apart keep the first ancestor. FlipDirection takes the other
++// face.
+ std::vector<TopoDS_Shape> chooseReferenceFaces(
+     const Part::TopoShape& shape,
+     const std::vector<Part::TopoShape>& edges,
+@@ -226,7 +292,7 @@ std::vector<TopoDS_Shape> chooseReferenceFaces(
+         return planar[i - 1];
+     };
+     // true: the first face wins
+-    auto firstWins = [&](const TopoDS_Shape& a, const TopoDS_Shape& b) {
++    auto firstWins = [&](const TopoDS_Shape& e, const TopoDS_Shape& a, const TopoDS_Shape& b) {
+         const int ia = faceIndex.FindIndex(a);
+         const int ib = faceIndex.FindIndex(b);
+         const bool pa = picked.Contains(a);
+@@ -245,17 +311,20 @@ std::vector<TopoDS_Shape> chooseReferenceFaces(
+         if (std::abs(aa - ab) > 1e-9 * std::max(aa, ab)) {
+             return aa > ab;
+         }
+-        return true;
++        // full tie: decided by geometry, not by the order of the faces in the shape
++        const int g = tieByTurn(TopoDS::Edge(e), TopoDS::Face(a), TopoDS::Face(b));
++        return g >= 0;
+     };
+ 
+     std::vector<TopoDS_Shape> ref;
+     ref.reserve(edges.size());
+-    for (const auto& [first, last] : adjacent) {
++    for (size_t i = 0; i < adjacent.size(); ++i) {
++        const auto& [first, last] = adjacent[i];
+         if (!consistent || first.IsSame(last)) {
+             ref.push_back(flip ? last : first);
+             continue;
+         }
+-        const bool takeFirst = firstWins(first, last);
++        const bool takeFirst = firstWins(edges[i].getShape(), first, last);
+         ref.push_back((takeFirst != flip) ? first : last);
+     }
+     return ref;
+-- 
+2.52.0.windows.1
+

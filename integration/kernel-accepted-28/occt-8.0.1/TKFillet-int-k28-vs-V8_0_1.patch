@@ -1,0 +1,4324 @@
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder.cxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder.cxx
+index 192f69f63c..19f86a3bfc 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder.cxx
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder.cxx
+@@ -21,6 +21,7 @@
+ #include <BRepTopAdaptor_TopolTool.hxx>
+ #include <ChFi3d_Builder.hxx>
+ #include <ChFi3d_Builder_0.hxx>
++#include <ChFi3d_Unfold.hxx>
+ #include <ChFiDS_CommonPoint.hxx>
+ #include <ChFiDS_SurfData.hxx>
+ #include <NCollection_Sequence.hxx>
+@@ -659,6 +660,12 @@ void ChFi3d_Builder::Compute()
+     NCollection_List<TopoDS_Shape>::Iterator aIt;
+     //
+     aNbSurfaces = myDS->NbSurfaces();
++    // edges -> faces of the result, for the tolerance certification below
++    ChFiDS_Map anEFResult;
++    if (!myShapeResult.IsNull())
++    {
++      anEFResult.Fill(myShapeResult, TopAbs_EDGE, TopAbs_FACE);
++    }
+ 
+     for (iF = 1; iF <= aNbSurfaces; ++iF)
+     {
+@@ -669,9 +676,20 @@ void ChFi3d_Builder::Compute()
+         const TopoDS_Shape& aF = aIt.Value();
+         BRepLib::SameParameter(aF, SameParTol, true);
+         ShapeFix::SameParameter(aF, false, SameParTol);
++        // the sampled same-parameter pass may leave a tolerance below the
++        // true curve-on-surface deviation (ChFi3d_CertifyEdgeTolerances)
++        ChFi3d_CertifyEdgeTolerances(aF, anEFResult);
+       }
+     }
+   }
++  // Chamfer stripes whose contact curve folds (distance on a face larger than the radius of
++  // geodesic curvature of the spine there) are trimmed at their self-intersection. Last step:
++  // the new faces carry tolerances measured against their pcurves, which the same-parameter
++  // pass above (sampled) would lower again.
++  if (IsDone() && !hasresult)
++  {
++    ChFi3d_UnfoldChamferStripes(myListStripe, myDS, myCoup, myShapeResult);
++  }
+ }
+ 
+ //=======================================================================
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_0.cxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_0.cxx
+index 2fe42a0028..b68adbde81 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_0.cxx
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_0.cxx
+@@ -23,6 +23,9 @@
+ #include <AppParCurves_MultiBSpCurve.hxx>
+ #include <Approx_SameParameter.hxx>
+ #include <BRepLib.hxx>
++#include <BRepLib_CheckCurveOnSurface.hxx>
++#include <NCollection_Map.hxx>
++#include <TopTools_ShapeMapHasher.hxx>
+ #include <BRepTools.hxx>
+ #include <BRepTopAdaptor_HVertex.hxx>
+ #include <BRepTopAdaptor_TopolTool.hxx>
+@@ -5631,6 +5634,98 @@ int ChFi3d_NbNotDegeneratedEdges(const TopoDS_Vertex& Vtx, const ChFiDS_Map& VEM
+   return nba;
+ }
+ 
++//=======================================================================
++// function : ChFi3d_CertifyEdgeTolerances
++// purpose  : The tolerance of an edge must bound the distance between its 3d
++//            curve and each of its pcurves on its faces (the B-rep tolerance
++//            invariant). The same-parameter pass over the new fillet faces
++//            (BRepLib::SameParameter, ShapeFix::SameParameter) sets the edge
++//            tolerance from a fixed sample of points, and can lower it to
++//            that sampled deviation; between the samples the pcurve of a
++//            corner edge on the face at the end of the fillet can deviate
++//            more (measured: 1.08e-7 set, 1.08e-7 * 1.002 true on a sphere;
++//            1e-7 set, 4.17e-7 true on a cone), and the result fails the
++//            curve-on-surface check (BOPAlgo_InvalidCurveOnSurface).
++//            For each edge of theNewFace, the true maximum distance on every
++//            face of the result that holds the edge is computed with
++//            BRepLib_CheckCurveOnSurface (global optimisation along the edge,
++//            the same measure the validity checks use); when it exceeds the
++//            edge tolerance, the tolerance is raised to it, and the tolerances
++//            of the end vertices to at least it. Tolerances are never lowered,
++//            so an edge whose tolerance already bounds its deviation is left
++//            exactly as it was.
++//=======================================================================
++void ChFi3d_CertifyEdgeTolerances(const TopoDS_Shape& theNewFace, const ChFiDS_Map& theEFMap)
++{
++  BRep_Builder                                           aBB;
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aSeen;
++  for (TopExp_Explorer anExpE(theNewFace, TopAbs_EDGE); anExpE.More(); anExpE.Next())
++  {
++    const TopoDS_Edge& anE = TopoDS::Edge(anExpE.Current());
++    if (BRep_Tool::Degenerated(anE) || !aSeen.Add(anE) || !theEFMap.Contains(anE))
++    {
++      continue;
++    }
++    double                                                 aMaxDist = 0.;
++    NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> aFaces;
++    for (NCollection_List<TopoDS_Shape>::Iterator anItF(theEFMap(anE)); anItF.More(); anItF.Next())
++    {
++      if (!aFaces.Add(anItF.Value()))
++      {
++        continue;
++      }
++      BRepLib_CheckCurveOnSurface aCheck(anE, TopoDS::Face(anItF.Value()));
++      aCheck.Perform();
++      if (aCheck.IsDone())
++      {
++        aMaxDist = std::max(aMaxDist, aCheck.MaxDistance());
++      }
++    }
++    if (aMaxDist > BRep_Tool::Tolerance(anE))
++    {
++      aBB.UpdateEdge(anE, aMaxDist);
++      for (TopExp_Explorer anExpV(anE, TopAbs_VERTEX); anExpV.More(); anExpV.Next())
++      {
++        const TopoDS_Vertex& aV = TopoDS::Vertex(anExpV.Current());
++        if (BRep_Tool::Tolerance(aV) < aMaxDist)
++        {
++          aBB.UpdateVertex(aV, aMaxDist);
++        }
++      }
++    }
++  }
++}
++
++//=======================================================================
++// function : ChFi3d_IsSmoothAtVertex
++// purpose  : Whether the edge E between the faces F1 and F2, met at a vertex
++//            where a fillet ends or passes, is smooth for the topology of that
++//            vertex (not counted there as a sharp edge).
++//            Two different faces: G2, as before.
++//            A seam (F1 = F2, E closed on the face): a fillet that reaches a
++//            seam crosses it inside ONE face, on one surface that is
++//            continuous across its seam; the corner curve is computed on that
++//            surface and split at the seam (PerformOneCorner, intcouture). The
++//            seam is then no crease as soon as the surface is tangent-
++//            continuous across it (G1). A seam that is G1 but not G2 (e.g. a
++//            closed BSpline surface with a knot of multiplicity degree-1 at the
++//            seam: a curvature jump) was counted as one more sharp edge, and
++//            the corner went to PerformIntersectionAtEnd, which intersects Fv
++//            with its neighbour across the seam - Fv itself.
++//=======================================================================
++bool ChFi3d_IsSmoothAtVertex(const TopoDS_Edge& E, const TopoDS_Face& F1, const TopoDS_Face& F2)
++{
++  if (F2.IsNull())
++  {
++    return false;
++  }
++  if (F1.IsSame(F2) && BRep_Tool::IsClosed(E, F1))
++  {
++    return ChFi3d::IsTangentFaces(E, F1, F2, GeomAbs_G1);
++  }
++  return ChFi3d::IsTangentFaces(E, F1, F2, GeomAbs_G2);
++}
++
+ //=======================================================================
+ // function : NbSharpEdges
+ // purpose  : calculate the number of sharp edges of Map VEMap(Vtx)
+@@ -5651,7 +5746,7 @@ int ChFi3d_NbSharpEdges(const TopoDS_Vertex& Vtx, const ChFiDS_Map& VEMap, const
+     {
+       TopoDS_Face F1, F2;
+       ChFi3d_conexfaces(cur, F1, F2, EFMap);
+-      if (!F2.IsNull() && ChFi3d::IsTangentFaces(cur, F1, F2, GeomAbs_G2))
++      if (ChFi3d_IsSmoothAtVertex(cur, F1, F2))
+       {
+         nba--;
+       }
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_0.hxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_0.hxx
+index 466bf52249..c30ced8a6a 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_0.hxx
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_0.hxx
+@@ -104,6 +104,10 @@ void ChFi3d_EnlargeBox(TopOpeBRepDS_DataStructure&         DStr,
+ 
+ GeomAbs_Shape ChFi3d_evalconti(const TopoDS_Edge& E, const TopoDS_Face& F1, const TopoDS_Face& F2);
+ 
++void ChFi3d_CertifyEdgeTolerances(const TopoDS_Shape& theNewFace, const ChFiDS_Map& theEFMap);
++
++bool ChFi3d_IsSmoothAtVertex(const TopoDS_Edge& E, const TopoDS_Face& F1, const TopoDS_Face& F2);
++
+ void ChFi3d_conexfaces(const TopoDS_Edge& E,
+                        TopoDS_Face&       F1,
+                        TopoDS_Face&       F2,
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_1.cxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_1.cxx
+index ee5a5f36e4..91fcd77bd1 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_1.cxx
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_1.cxx
+@@ -761,7 +761,7 @@ void ChFi3d_Builder::PerformExtremity(const occ::handle<ChFiDS_Spine>& Spine)
+         }
+         TopoDS_Face F1, F2;
+         ChFi3d_conexfaces(anEdge, F1, F2, myEFMap);
+-        if (!F2.IsNull() && ChFi3d::IsTangentFaces(anEdge, F1, F2, GeomAbs_G2)) // smooth edge
++        if (ChFi3d_IsSmoothAtVertex(anEdge, F1, F2)) // smooth edge
+         {
+           if (!F1.IsSame(F2))
+           {
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_C1.cxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_C1.cxx
+index d7195c799f..0072cc55a5 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_C1.cxx
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Builder_C1.cxx
+@@ -58,6 +58,8 @@
+ #include <Geom_Surface.hxx>
+ #include <Geom_TrimmedCurve.hxx>
+ #include <GeomAbs_Shape.hxx>
++#include <GeomConvert.hxx>
++#include <Standard_ErrorHandler.hxx>
+ #include <GeomAdaptor_Curve.hxx>
+ #include <GeomAdaptor_Surface.hxx>
+ #include <GeomInt_IntSS.hxx>
+@@ -455,7 +457,8 @@ static void ChFi3d_ExtendSurface(occ::handle<Geom_Surface>& S, int& prol)
+ 
+ static void ComputeCurve2d(const occ::handle<Geom_Curve>& Ct,
+                            TopoDS_Face&                   Face,
+-                           occ::handle<Geom2d_Curve>&     C2d)
++                           occ::handle<Geom2d_Curve>&     C2d,
++                           const double                   theTolApprox = 1.e-6)
+ {
+   TopoDS_Edge                                                   E1;
+   NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> MapE1;
+@@ -464,7 +467,7 @@ static void ComputeCurve2d(const occ::handle<Geom_Curve>& Ct,
+   BRepAlgo_NormalProjection                                     OrtProj;
+   OrtProj.Init(Face);
+   OrtProj.Add(edg);
+-  OrtProj.SetParams(1.e-6, 1.e-6, GeomAbs_C1, 14, 16);
++  OrtProj.SetParams(theTolApprox, theTolApprox, GeomAbs_C1, 14, 16);
+   OrtProj.SetLimit(false);
+   OrtProj.Compute3d(false);
+   OrtProj.Build();
+@@ -550,6 +553,408 @@ static void ChFi3d_Recale(const BRepAdaptor_Surface& Bs,
+   }
+ }
+ 
++//=======================================================================
++// function : ChFi3d_BasisOf
++// purpose  : the surface of the face, without the rectangular trim
++//=======================================================================
++
++static occ::handle<Geom_Surface> ChFi3d_BasisOf(const BRepAdaptor_Surface& Bs)
++{
++  occ::handle<Geom_Surface>                   aS = Bs.Surface().Surface();
++  occ::handle<Geom_RectangularTrimmedSurface> aT =
++    occ::down_cast<Geom_RectangularTrimmedSurface>(aS);
++  if (!aT.IsNull())
++  {
++    aS = aT->BasisSurface();
++  }
++  return aS;
++}
++
++//=======================================================================
++// function : ChFi3d_ClosedLength
++// purpose  : A face whose trim spans the whole closed range of its surface in
++//            a direction carries a seam there: the parameters U and U + L are
++//            the same points. L is the period of a periodic surface and the
++//            natural range of a surface that is closed but not periodic.
++//            0 when the face is not closed in that direction.
++//=======================================================================
++
++static void ChFi3d_ClosedLength(const BRepAdaptor_Surface& Bs, double& theLU, double& theLV)
++{
++  theLU = theLV = 0.;
++  const occ::handle<Geom_Surface> aS = ChFi3d_BasisOf(Bs);
++  if (aS.IsNull())
++  {
++    return;
++  }
++  double aU1, aU2, aV1, aV2;
++  aS->Bounds(aU1, aU2, aV1, aV2);
++  if (Bs.IsUClosed())
++  {
++    theLU = aS->IsUPeriodic() ? aS->UPeriod() : aU2 - aU1;
++  }
++  if (Bs.IsVClosed())
++  {
++    theLV = aS->IsVPeriodic() ? aS->VPeriod() : aV2 - aV1;
++  }
++  if (Precision::IsInfinite(theLU))
++  {
++    theLU = 0.;
++  }
++  if (Precision::IsInfinite(theLV))
++  {
++    theLV = 0.;
++  }
++}
++
++//=======================================================================
++// function : ChFi3d_BoundaryUse
++// purpose  : One use of an edge in the boundary of a face (a seam edge has
++//            two, one per pcurve): its pcurve, the indices of its end
++//            vertices, and its 3d curve for lengths.
++//=======================================================================
++
++namespace
++{
++struct ChFi3d_BoundaryUse
++{
++  TopoDS_Edge               Edge;
++  occ::handle<Geom2d_Curve> PC;
++  occ::handle<Geom_Curve>   C3d;
++  double                    First = 0., Last = 0.;
++  int                       IV1 = 0, IV2 = 0; // vertex at First / at Last
++};
++
++// 3d length of the use between the parameters theA and theB (polyline of
++// 16 chords; used only to order boundary paths)
++double ChFi3d_UseLength(const ChFi3d_BoundaryUse& theU, const double theA, const double theB)
++{
++  if (theU.C3d.IsNull())
++  {
++    return std::abs(theB - theA);
++  }
++  const int aN   = 16;
++  double    aLen = 0.;
++  gp_Pnt    aP   = theU.C3d->Value(theA);
++  for (int i = 1; i <= aN; i++)
++  {
++    const gp_Pnt aQ = theU.C3d->Value(theA + (theB - theA) * i / aN);
++    aLen += aP.Distance(aQ);
++    aP = aQ;
++  }
++  return aLen;
++}
++
++// whole closed lengths k*L (per direction) that move theRaw next to theRef
++gp_Vec2d ChFi3d_ClosedShift(const gp_Pnt2d& theRef,
++                            const gp_Pnt2d& theRaw,
++                            const double    theLU,
++                            const double    theLV)
++{
++  double aDU = 0., aDV = 0.;
++  if (theLU > 0.)
++  {
++    aDU = std::round((theRef.X() - theRaw.X()) / theLU) * theLU;
++  }
++  if (theLV > 0.)
++  {
++    aDV = std::round((theRef.Y() - theRaw.Y()) / theLV) * theLV;
++  }
++  return gp_Vec2d(aDU, aDV);
++}
++} // namespace
++
++//=======================================================================
++// function : ChFi3d_LiftCornerPoints
++// purpose  : Puts the two corner points p1 (on arc CV1.Arc()) and p2 (on arc
++//            CV2.Arc()) of a fillet on the closed face Fv on one branch of
++//            its parameter plane, by path lifting.
++//            The corner curve runs from p1 to p2 around the corner vertex V;
++//            with the boundary path p1 -> V -> p2 it bounds the corner piece
++//            of Fv that the fillet removes, so the two are homotopic and the
++//            lift of the corner curve ends where the lift of the boundary path
++//            ends. The boundary path is lifted by following the pcurves of the
++//            boundary edges from V; at each vertex the next pcurve is moved by
++//            the whole closed lengths k*L (ChFi3d_ClosedLength) that make it
++//            continuous. Shortest 3d paths from V are taken (Dijkstra), so the
++//            path is the local one around V and never one that goes around
++//            the face. The arcs need not contain V: when the seam crosses the
++//            boundary between V and a corner point, the boundary is split
++//            where it meets the seam and the path passes through that vertex,
++//            where it picks up the jump of one closed length.
++//            Degenerated edges are not followed (zero 3d length, any u).
++//            Only the relative position matters: the reference point (p1 if
++//            theRefOn1, else p2) keeps its value and the other one is moved by
++//            whole closed lengths. Returns false, changing nothing, when a
++//            point cannot be reached from V.
++//=======================================================================
++
++static bool ChFi3d_LiftCornerPoints(const TopoDS_Vertex&      theV,
++                                    const TopoDS_Face&        theFv,
++                                    const ChFiDS_CommonPoint& theCV1,
++                                    const ChFiDS_CommonPoint& theCV2,
++                                    const double              theLU,
++                                    const double              theLV,
++                                    const bool                theRefOn1,
++                                    gp_Pnt2d&                 theP1,
++                                    gp_Pnt2d&                 theP2)
++{
++  if (!theCV1.IsOnArc() || !theCV2.IsOnArc())
++  {
++    return false;
++  }
++  const TopoDS_Face aF = TopoDS::Face(theFv.Oriented(TopAbs_FORWARD));
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> aVerts;
++  NCollection_Sequence<ChFi3d_BoundaryUse>                      aUses;
++  for (TopExp_Explorer anExp(aF, TopAbs_EDGE); anExp.More(); anExp.Next())
++  {
++    const TopoDS_Edge& anE = TopoDS::Edge(anExp.Current());
++    if (BRep_Tool::Degenerated(anE))
++    {
++      continue;
++    }
++    ChFi3d_BoundaryUse aU;
++    aU.Edge = anE;
++    aU.PC   = BRep_Tool::CurveOnSurface(anE, aF, aU.First, aU.Last);
++    if (aU.PC.IsNull())
++    {
++      continue;
++    }
++    double a3F = 0., a3L = 0.;
++    aU.C3d = BRep_Tool::Curve(anE, a3F, a3L);
++    TopoDS_Vertex aV1, aV2;
++    TopExp::Vertices(anE, aV1, aV2);
++    if (aV1.IsNull() || aV2.IsNull())
++    {
++      continue;
++    }
++    aU.IV1 = aVerts.Add(aV1);
++    aU.IV2 = aVerts.Add(aV2);
++    aUses.Append(aU);
++  }
++  const int aStart = aVerts.FindIndex(theV);
++  if (aStart == 0)
++  {
++    return false;
++  }
++
++  // Dijkstra from V over the boundary vertices; each reached vertex keeps its
++  // lifted 2d point
++  const int                    aNbV = aVerts.Extent();
++  NCollection_Array1<double>   aDist(1, aNbV);
++  NCollection_Array1<gp_Pnt2d> aLift(1, aNbV);
++  NCollection_Array1<bool>     aDone(1, aNbV);
++  aDist.Init(Precision::Infinite());
++  aDone.Init(false);
++  aDist(aStart)   = 0.;
++  bool isStartSet = false;
++  for (int i = 1; i <= aUses.Length() && !isStartSet; i++)
++  {
++    const ChFi3d_BoundaryUse& aU = aUses(i);
++    if (aU.IV1 == aStart)
++    {
++      aLift(aStart) = aU.PC->Value(aU.First);
++      isStartSet    = true;
++    }
++    else if (aU.IV2 == aStart)
++    {
++      aLift(aStart) = aU.PC->Value(aU.Last);
++      isStartSet    = true;
++    }
++  }
++  if (!isStartSet)
++  {
++    return false;
++  }
++  for (;;)
++  {
++    int aCur = 0;
++    for (int i = 1; i <= aNbV; i++)
++    {
++      if (!aDone(i) && !Precision::IsInfinite(aDist(i)) && (aCur == 0 || aDist(i) < aDist(aCur)))
++      {
++        aCur = i;
++      }
++    }
++    if (aCur == 0)
++    {
++      break;
++    }
++    aDone(aCur) = true;
++    for (int i = 1; i <= aUses.Length(); i++)
++    {
++      const ChFi3d_BoundaryUse& aU = aUses(i);
++      for (int aSide = 0; aSide < 2; aSide++)
++      {
++        const int    aFrom = aSide == 0 ? aU.IV1 : aU.IV2;
++        const int    aTo   = aSide == 0 ? aU.IV2 : aU.IV1;
++        const double aTF   = aSide == 0 ? aU.First : aU.Last;
++        const double aTT   = aSide == 0 ? aU.Last : aU.First;
++        if (aFrom != aCur || aDone(aTo))
++        {
++          continue;
++        }
++        const double aD = aDist(aCur) + ChFi3d_UseLength(aU, aTF, aTT);
++        if (aD < aDist(aTo))
++        {
++          const gp_Vec2d aShift =
++            ChFi3d_ClosedShift(aLift(aCur), aU.PC->Value(aTF), theLU, theLV);
++          aDist(aTo) = aD;
++          aLift(aTo) = aU.PC->Value(aTT).Translated(aShift);
++        }
++      }
++    }
++  }
++
++  // lifted corner point: reached through the nearer end of a use of its arc;
++  // returned as the whole closed lengths theK between it and the given point
++  auto aLiftPoint = [&](const ChFiDS_CommonPoint& theCV, const gp_Pnt2d& theP, gp_Vec2d& theK) {
++    const double aT    = theCV.ParameterOnArc();
++    double       aBest = Precision::Infinite();
++    for (int i = 1; i <= aUses.Length(); i++)
++    {
++      const ChFi3d_BoundaryUse& aU = aUses(i);
++      if (!aU.Edge.IsSame(theCV.Arc()))
++      {
++        continue;
++      }
++      for (int aSide = 0; aSide < 2; aSide++)
++      {
++        const int    aEnd = aSide == 0 ? aU.IV1 : aU.IV2;
++        const double aTE  = aSide == 0 ? aU.First : aU.Last;
++        if (Precision::IsInfinite(aDist(aEnd)))
++        {
++          continue;
++        }
++        const double aD = aDist(aEnd) + ChFi3d_UseLength(aU, aTE, aT);
++        if (aD < aBest)
++        {
++          const gp_Vec2d aShift =
++            ChFi3d_ClosedShift(aLift(aEnd), aU.PC->Value(aTE), theLU, theLV);
++          const gp_Pnt2d aL = aU.PC->Value(aT).Translated(aShift);
++          // the given point is the same boundary point on the pcurve of the
++          // arc: it differs from the lifted one by whole closed lengths only
++          theK  = ChFi3d_ClosedShift(aL, theP, theLU, theLV);
++          aBest = aD;
++        }
++      }
++    }
++    return !Precision::IsInfinite(aBest);
++  };
++  gp_Vec2d aK1, aK2;
++  if (!aLiftPoint(theCV1, theP1, aK1) || !aLiftPoint(theCV2, theP2, aK2))
++  {
++    return false;
++  }
++  if (theRefOn1)
++  {
++    theP2.Translate(aK2 - aK1);
++  }
++  else
++  {
++    theP1.Translate(aK1 - aK2);
++  }
++  return true;
++}
++
++//=======================================================================
++// function : ChFi3d_PeriodicCopy
++// purpose  : The same surface as theS, made periodic in the directions where
++//            theS is closed but not periodic, so that a corner curve can be
++//            computed across the seam (ChFi3d_BoundFac clamps a non-periodic
++//            surface to its natural bounds). Returned only when it is exactly
++//            theS on the domain of theS with the same parameters (checked on a
++//            grid); null otherwise.
++//=======================================================================
++
++static occ::handle<Geom_Surface> ChFi3d_PeriodicCopy(const occ::handle<Geom_Surface>& theS,
++                                                     const bool                       theInU,
++                                                     const bool                       theInV)
++{
++  occ::handle<Geom_BSplineSurface> aBS;
++  try
++  {
++    OCC_CATCH_SIGNALS
++    occ::handle<Geom_BSplineSurface> aSrc = occ::down_cast<Geom_BSplineSurface>(theS);
++    if (!aSrc.IsNull())
++    {
++      aBS = occ::down_cast<Geom_BSplineSurface>(aSrc->Copy());
++    }
++    else
++    {
++      aBS = GeomConvert::SurfaceToBSplineSurface(theS);
++    }
++    if (aBS.IsNull())
++    {
++      return nullptr;
++    }
++    if (theInU && !aBS->IsUPeriodic())
++    {
++      aBS->SetUPeriodic();
++    }
++    if (theInV && !aBS->IsVPeriodic())
++    {
++      aBS->SetVPeriodic();
++    }
++    double aU1, aU2, aV1, aV2;
++    theS->Bounds(aU1, aU2, aV1, aV2);
++    const int aN = 8;
++    for (int i = 0; i <= aN; i++)
++    {
++      const double aU = aU1 + (aU2 - aU1) * i / aN;
++      for (int j = 0; j <= aN; j++)
++      {
++        const double aV = aV1 + (aV2 - aV1) * j / aN;
++        if (theS->Value(aU, aV).Distance(aBS->Value(aU, aV)) > Precision::Confusion())
++        {
++          return nullptr;
++        }
++      }
++    }
++  }
++  catch (Standard_Failure const&)
++  {
++    return nullptr;
++  }
++  return aBS;
++}
++
++//=======================================================================
++// function : ChFi3d_PieceOnFace
++// purpose  : Piece [theA, theB] of the pcurve thePc of a corner curve that
++//            crosses the seam of its face, moved by whole closed lengths
++//            (ChFi3d_ClosedLength) into the parameter domain of the face. The
++//            piece keeps the parameters of thePc, which were computed together
++//            with the 3d corner curve, so it matches the 3d piece within the
++//            tolerance reached for the corner curve.
++//=======================================================================
++
++static occ::handle<Geom2d_Curve> ChFi3d_PieceOnFace(const occ::handle<Geom2d_Curve>& thePc,
++                                                    const double                     theA,
++                                                    const double                     theB,
++                                                    const double                     theLU,
++                                                    const double                     theLV,
++                                                    const double                     theU1,
++                                                    const double                     theV1)
++{
++  occ::handle<Geom2d_Curve> aPiece = new Geom2d_TrimmedCurve(thePc, theA, theB);
++  const gp_Pnt2d            aMid   = thePc->Value(0.5 * (theA + theB));
++  double                    aDU = 0., aDV = 0.;
++  if (theLU > 0.)
++  {
++    aDU = -std::floor((aMid.X() - theU1) / theLU) * theLU;
++  }
++  if (theLV > 0.)
++  {
++    aDV = -std::floor((aMid.Y() - theV1) / theLV) * theLV;
++  }
++  if (aDU != 0. || aDV != 0.)
++  {
++    aPiece->Translate(gp_Vec2d(aDU, aDV));
++  }
++  return aPiece;
++}
++
+ //=======================================================================
+ // function : ChFi3d_SelectStripe
+ // purpose  : find stripe with ChFiDS_OnSame state if <thePrepareOnSame> is True
+@@ -935,6 +1340,13 @@ void ChFi3d_Builder::PerformOneCorner(const int Index, const bool thePrepareOnSa
+ 
+   int Isurf = Fd->Surf();
+ 
++  // R-001, closed face Fv: closed lengths (ChFi3d_ClosedLength), low bounds of
++  // the face domain, and the surface on which the corner curve is computed -
++  // Fv itself, or, when Fv is closed but not periodic and the corner crosses
++  // its seam, the exact periodic copy of its surface.
++  double                           aLU = 0., aLV = 0., aFvU1 = 0., aFvV1 = 0.;
++  occ::handle<BRepAdaptor_Surface> HBsC = HBs;
++
+   if (inters)
+   {
+     HGs                                = ChFi3d_BoundSurf(DStr, Fd, 1, 2);
+@@ -985,10 +1397,88 @@ void ChFi3d_Builder::PerformOneCorner(const int Index, const bool thePrepareOnSa
+     {
+       pfil2 = Fi2.PCurveOnSurf()->Value(Fi2.Parameter(!isfirst));
+     }
++    // pfac1 and pfac2 are two 2d points on the same face Bs at the end of the
++    // fillet. When that face carries a seam they can be returned on the two
++    // different branches of the seam pcurve - u and u + period are the same 3d
++    // point, so no check downstream notices - and the trim window built from
++    // them below (ChFi3d_Boite/ChFi3d_BoundFac) then does not contain the corner
++    // vertex. ChFi3d_Recale is the helper that brings them back to one branch.
++    //
++    // onsame: the state in which ChFi3d_Recale was called until now. Kept first
++    // so that the OnSame path, where Bs is loaded without restriction
++    // (Bs.Initialize(Fv,false) above) and its IsUClosed would not be
++    // the face's own answer, keeps its old behaviour exactly.
++    //
++    // IsUClosed/IsVClosed: the adaptor's test for "the face trim spans the whole
++    // period", which is what having a seam edge means. It is needed because
++    // ChFi3d_Recale looks at the periodicity of the BASIS surface, after the
++    // trim is discarded, and its "more than half a period apart" test is then
++    // met by two perfectly legal points on a face that is periodic but not
++    // closed. Measured at this line, stock 7.8.1, three corners:
++    //   cylindrical face with a seam on the corner vertex (the reported defect):
++    //     face U range [0, 6.283185307] = UPeriod, IsUClosed True, 2 seam edges,
++    //     pfac1.X 6.176614355, pfac2.X 0.106570952, |du| 6.070043402;
++    //     ChFi3d_Recale moves pfac2.X to 6.389756260, i.e. onto the branch of
++    //     pfac1, and the corner is then found.
++    //   270 degree surface of revolution (tests blend/simple/H4 and
++    //   blend/buildevol/D6): face U range [0, 4.712388980] = 3/4 of UPeriod,
++    //     IsUClosed False, no seam edge, pfac1.X 0, pfac2.X 4.712388980,
++    //     |du| 4.712388980 > 0.5*UPeriod; calling ChFi3d_Recale here moves
++    //     pfac2.X to -1.570796327, a whole period outside the face, and the
++    //     resulting shell is unorientable and not closed.
++    //
++    // Closed face (R-001): the branch is chosen exactly by lifting the corner
++    // path along the boundary through the corner vertex (ChFi3d_LiftCornerPoints), which also
++    // covers a face closed but not periodic (L = natural range), where
++    // ChFi3d_Recale, testing the periodicity only, does nothing. ChFi3d_Recale
++    // stays for OnSame and as the fallback when the vertex is not on both arcs.
++    if (!onsame)
++    {
++      ChFi3d_ClosedLength(Bs, aLU, aLV);
++    }
++    aFvU1                    = Bs.FirstUParameter();
++    aFvV1                    = Bs.FirstVParameter();
++    const double aFvU2 = Bs.LastUParameter();
++    const double aFvV2 = Bs.LastVParameter();
+     if (onsame)
+     {
+       ChFi3d_Recale(Bs, pfac1, pfac2, (IFadArc == 1));
+     }
++    else if (aLU > 0. || aLV > 0.)
++    {
++      if (!ChFi3d_LiftCornerPoints(Vtx, Fv, CV1, CV2, aLU, aLV, (IFadArc == 1), pfac1, pfac2))
++      {
++        ChFi3d_Recale(Bs, pfac1, pfac2, (IFadArc == 1));
++      }
++      const occ::handle<Geom_Surface> aBasis = ChFi3d_BasisOf(Bs);
++      const bool aNPU = aLU > 0. && !aBasis->IsUPeriodic();
++      const bool aNPV = aLV > 0. && !aBasis->IsVPeriodic();
++      if (aNPU || aNPV)
++      {
++        const double aTolP  = Precision::PConfusion();
++        const bool   aCross = (aNPU
++                             && (std::min(pfac1.X(), pfac2.X()) < aFvU1 - aTolP
++                                 || std::max(pfac1.X(), pfac2.X()) > aFvU2 + aTolP))
++                            || (aNPV
++                                && (std::min(pfac1.Y(), pfac2.Y()) < aFvV1 - aTolP
++                                    || std::max(pfac1.Y(), pfac2.Y()) > aFvV2 + aTolP));
++        if (aCross)
++        {
++          const occ::handle<Geom_Surface> aPer = ChFi3d_PeriodicCopy(aBasis, aNPU, aNPV);
++          if (aPer.IsNull())
++          {
++            // no exact periodic form: stop rather than build a corner curve on
++            // a surface clamped at its seam (a silently wrong solid)
++            throw Standard_Failure("OneCorner : corner across the seam of a closed non-periodic face");
++          }
++          TopoDS_Face  aFp;
++          BRep_Builder aBB;
++          aBB.MakeFace(aFp, aPer, Fv.Location(), BRep_Tool::Tolerance(Fv));
++          aFp.Orientation(Fv.Orientation());
++          HBsC = new BRepAdaptor_Surface(aFp, false);
++        }
++      }
++    }
+ 
+     Pardeb(1) = pfil1.X();
+     Pardeb(2) = pfil1.Y();
+@@ -1001,9 +1491,9 @@ void ChFi3d_Builder::PerformOneCorner(const int Index, const bool thePrepareOnSa
+ 
+     double uu1, uu2, vv1, vv2;
+     ChFi3d_Boite(pfac1, pfac2, uu1, uu2, vv1, vv2);
+-    ChFi3d_BoundFac(Bs, uu1, uu2, vv1, vv2);
++    ChFi3d_BoundFac(*HBsC, uu1, uu2, vv1, vv2);
+ 
+-    if (!ChFi3d_ComputeCurves(HGs, HBs, Pardeb, Parfin, Cc, Ps, Pc, tolapp3d, tol2d, tolreached))
++    if (!ChFi3d_ComputeCurves(HGs, HBsC, Pardeb, Parfin, Cc, Ps, Pc, tolapp3d, tol2d, tolreached))
+     {
+       throw Standard_Failure("OneCorner : echec calcul intersection");
+     }
+@@ -1058,6 +1548,87 @@ void ChFi3d_Builder::PerformOneCorner(const int Index, const bool thePrepareOnSa
+           }
+         }
+       }
++      // R-001: the crossing found in the parameter plane. The 3d test above
++      // asks the corner curve Cc to pass within Precision::Confusion() of the
++      // seam curve, but Cc is an approximation good to tolreached only (1e-7
++      // .. 1e-4 on BSpline faces): a corner curve that crosses the seam can
++      // pass at 1e-7 .. 1e-5 from it, the crossing was missed, and the whole
++      // corner pcurve, running from one branch of the face domain into the
++      // next, was stored on Fv (unorientable result). Whether the curve crosses
++      // the seam is a topological fact of its lift: the two ends of the lifted
++      // pcurve Pc (ChFi3d_LiftCornerPoints) lie on different branches of the
++      // closed direction. The crossing parameter is then the root of
++      // Pc(t) = seam line on [Udeb, Ufin] (bisection on the sign change), and
++      // the point on the seam edge its projection on the seam curve.
++      if (!intcouture && !onsame && (aLU > 0. || aLV > 0.))
++      {
++        const bool     isU  = aLU > 0.;
++        const double   aL   = isU ? aLU : aLV;
++        const double   aLow = isU ? aFvU1 : aFvV1;
++        const gp_Pnt2d aPD  = Pc->Value(Udeb);
++        const gp_Pnt2d aPF  = Pc->Value(Ufin);
++        const double   aCD  = isU ? aPD.X() : aPD.Y();
++        const double   aCF  = isU ? aPF.X() : aPF.Y();
++        const double   aKD  = std::floor((aCD - aLow) / aL);
++        const double   aKF  = std::floor((aCF - aLow) / aL);
++        if (std::abs(aKD - aKF) == 1.)
++        {
++          const double aSeamLine = aLow + std::max(aKD, aKF) * aL;
++          double       aT0 = Udeb, aT1 = Ufin;
++          double       aF0 = aCD - aSeamLine;
++          for (int anIter = 0; anIter < 100 && (aT1 - aT0) > Precision::PConfusion(); anIter++)
++          {
++            const double   aTm = 0.5 * (aT0 + aT1);
++            const gp_Pnt2d aPm = Pc->Value(aTm);
++            const double   aFm = (isU ? aPm.X() : aPm.Y()) - aSeamLine;
++            if ((aFm < 0.) == (aF0 < 0.))
++            {
++              aT0 = aTm;
++              aF0 = aFm;
++            }
++            else
++            {
++              aT1 = aTm;
++            }
++          }
++          const double aTc  = 0.5 * (aT0 + aT1);
++          const double aTol = 1.e-4;
++          if (std::abs(aTc - Udeb) > aTol && std::abs(Ufin - aTc) > aTol)
++          {
++            const gp_Pnt  aPc = Cc->Value(aTc);
++            Extrema_ExtPC anExtPC(aPc, cur1, Ubid, Vbid);
++            int           aIMin = 0;
++            double        aDMin = RealLast();
++            if (anExtPC.IsDone())
++            {
++              for (int i = 1; i <= anExtPC.NbExt(); i++)
++              {
++                if (anExtPC.SquareDistance(i) < aDMin)
++                {
++                  aDMin = anExtPC.SquareDistance(i);
++                  aIMin = i;
++                }
++              }
++            }
++            if (aIMin > 0)
++            {
++              par1                     = anExtPC.Point(aIMin).Parameter();
++              par2                     = aTc;
++              const gp_Pnt       aPs   = anExtPC.Point(aIMin).Value();
++              const double       aTolP = std::max(aTol, 2. * aPs.Distance(aPc));
++              TopOpeBRepDS_Point tpoint(aPs, aTolP);
++              indpt      = DStr.AddPoint(tpoint);
++              intcouture = true;
++              curv1      = new Geom_TrimmedCurve(Cc, Udeb, par2);
++              curv2      = new Geom_TrimmedCurve(Cc, par2, Ufin);
++              TopOpeBRepDS_Curve tcurv1(curv1, tolreached);
++              TopOpeBRepDS_Curve tcurv2(curv2, tolreached);
++              Icurv1 = DStr.AddCurve(tcurv1);
++              Icurv2 = DStr.AddCurve(tcurv2);
++            }
++          }
++        }
++      }
+     }
+   }
+   else
+@@ -1335,11 +1906,71 @@ void ChFi3d_Builder::PerformOneCorner(const int Index, const bool thePrepareOnSa
+     // one places stripe->InDS(isfirst);
+ 
+     // interferences of curv1 and curv2 on Fv
+-    ComputeCurve2d(curv1, Fv, c2d1);
++    // R-001: pcurves of the two pieces on each side of the seam. The
++    // projection is approximated to 0.1 * Precision::Confusion() instead of
++    // 1e-6: a piece ends on the seam, and on a closed non-periodic face an
++    // approximation error of 1e-6 lets the pcurve leave the parameter domain
++    // near that end (measured: V-closed non-periodic BSpline, seam 5 degrees
++    // from the corner vertex - unorientable result with 1e-6, valid and clean
++    // with 1e-8); it also keeps the pieces within Precision::Confusion(), to
++    // which the final same-parameter pass lowers edge tolerances.
++    // A piece ends ON the seam, where the surface has two parameter branches;
++    // its 3d end lies within tolreached of the seam and can be on either side
++    // of it, and the projection may then start on the wrong branch or return
++    // a sliver first (measured: a piece of a BSpline corner projected onto the
++    // points u = 1.8e-5 .. 0 instead of u = L .. L - 0.17). The pcurve of the
++    // piece is known up to tolreached: it is the piece of the lifted corner
++    // pcurve Pc moved into the face domain (ChFi3d_PieceOnFace). The projected
++    // pcurve is kept only when its ends are those ends (within the parametric
++    // resolution of 10 * tolreached); otherwise the piece of Pc is used. The
++    // edge tolerances are certified at the end (ChFi3d_CertifyEdgeTolerances).
++    const double aTolPiece  = 0.1 * Precision::Confusion();
++    const bool   isClosedFv = aLU > 0. || aLV > 0.;
++    const double aTol3dEnd  = 10. * std::max(tolreached, Precision::Confusion());
++    const double aTolUEnd   = Bs.UResolution(aTol3dEnd);
++    const double aTolVEnd   = Bs.VResolution(aTol3dEnd);
++    auto aProjMatches = [&](const occ::handle<Geom2d_Curve>& theProj,
++                            const occ::handle<Geom2d_Curve>& thePiece) {
++      if (theProj.IsNull())
++      {
++        return false;
++      }
++      const gp_Pnt2d aP[2] = {theProj->Value(theProj->FirstParameter()),
++                              theProj->Value(theProj->LastParameter())};
++      const gp_Pnt2d aQ[2] = {thePiece->Value(thePiece->FirstParameter()),
++                              thePiece->Value(thePiece->LastParameter())};
++      for (int i = 0; i < 2; i++)
++      {
++        if (std::abs(aP[i].X() - aQ[i].X()) > aTolUEnd || std::abs(aP[i].Y() - aQ[i].Y()) > aTolVEnd)
++        {
++          return false;
++        }
++      }
++      return true;
++    };
++    ComputeCurve2d(curv1, Fv, c2d1, aTolPiece);
++    if (isClosedFv)
++    {
++      const occ::handle<Geom2d_Curve> aPiece =
++        ChFi3d_PieceOnFace(Pc, Udeb, par2, aLU, aLV, aFvU1, aFvV1);
++      if (!aProjMatches(c2d1, aPiece))
++      {
++        c2d1 = aPiece;
++      }
++    }
+     occ::handle<TopOpeBRepDS_SurfaceCurveInterference> InterFv;
+     InterFv = ChFi3d_FilCurveInDS(Icurv1, IShape, c2d1, Et);
+     DStr.ChangeShapeInterferences(IShape).Append(InterFv);
+-    ComputeCurve2d(curv2, Fv, c2d2);
++    ComputeCurve2d(curv2, Fv, c2d2, aTolPiece);
++    if (isClosedFv)
++    {
++      const occ::handle<Geom2d_Curve> aPiece =
++        ChFi3d_PieceOnFace(Pc, par2, Ufin, aLU, aLV, aFvU1, aFvV1);
++      if (!aProjMatches(c2d2, aPiece))
++      {
++        c2d2 = aPiece;
++      }
++    }
+     InterFv = ChFi3d_FilCurveInDS(Icurv2, IShape, c2d2, Et);
+     DStr.ChangeShapeInterferences(IShape).Append(InterFv);
+     // interferences of curv1 and curv2 on Isurf
+@@ -1390,7 +2021,7 @@ void ChFi3d_Builder::PerformOneCorner(const int Index, const bool thePrepareOnSa
+     DStr.ChangeCurveInterferences(Icurv2).Append(interfprol);
+   }
+ 
+-  ChFi3d_EnlargeBox(HBs, Pc, Udeb, Ufin, box1, box2);
++  ChFi3d_EnlargeBox(HBsC, Pc, Udeb, Ufin, box1, box2);
+ 
+   if (onsame && inters)
+   {
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Unfold.cxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Unfold.cxx
+new file mode 100644
+index 0000000000..234fad7b21
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Unfold.cxx
+@@ -0,0 +1,3331 @@
++// Copyright (c) 2026 OPEN CASCADE SAS
++//
++// This file is part of Open CASCADE Technology software library.
++//
++// This library is free software; you can redistribute it and/or modify it under
++// the terms of the GNU Lesser General Public License version 2.1 as published
++// by the Free Software Foundation, with special exception defined in the file
++// OCCT_LGPL_EXCEPTION.txt. Consult the file LICENSE_LGPL_21.txt included in OCCT
++// distribution for complete text of the license and disclaimer of any warranty.
++
++// Trimming of folded chamfer stripes (issue 032, lane R-032). See ChFi3d_Unfold.hxx for the class.
++//
++// Notation. A chamfer stripe is a chain of SurfData "pieces" along the spine abscissa W. The section
++// at W is the straight segment (ruling) L(W) = A(W) + s D(W), s in [0,1], from the contact point A(W)
++// on the other face (s = 0) to the contact point B(W) = A(W) + D(W) on the fold face F (s = 1).
++// Fold: B(W) moves against the spine direction on part of the spine. Then the contact curve on F
++// crosses itself at X_a = B(W_a) = B(W_b), W_a < W_b. The ridge is the set of points where two
++// rulings L(W) and L(W') (W < W') intersect; it is traced from (W_a, W_b, 1, 1) with W increasing
++// and W' decreasing, by Newton on A(W) + s D(W) - A(W') - s' D(W') = 0 (unknowns W', s, s'; three
++// equations). It ends
++//   E1: at W = W' (the two rulings coincide: pinch / swallowtail point of the ruled surface), reached
++//       by extrapolation of the traced branch in eps = W' - W (the ridge is smooth in eps);
++//   E3: at an apex X_m through which every ruling between W and W' passes (a circular arc of the
++//       spine with d_F > radius: the stripe there is a double cone).
++// Kept region of the stripe: s <= h(W) with h = 1 outside (W_a, W_b), the ridge on the two branches
++// and the apex in between. The piece containing W* (E1) is split along the ruling W* into two faces,
++// the second one on a copy of the surface (one pcurve per edge and surface). Everything else of the
++// result is kept; the contact curve on F is cut at X_a and its loop part is removed.
++// Any failure leaves the result untouched.
++
++#include <ChFi3d_Unfold.hxx>
++
++#include <Adaptor3d_Curve.hxx>
++#include <BRepAdaptor_Curve.hxx>
++#include <BRepAdaptor_Surface.hxx>
++#include <BRepCheck_Analyzer.hxx>
++#include <BRepLib.hxx>
++#include <BRepLib_CheckCurveOnSurface.hxx>
++#include <BRepTools.hxx>
++#include <BRepTools_WireExplorer.hxx>
++#include <BRep_Builder.hxx>
++#include <BRep_CurveRepresentation.hxx>
++#include <BRep_PointRepresentation.hxx>
++#include <BRep_TEdge.hxx>
++#include <BRep_TFace.hxx>
++#include <BRep_TVertex.hxx>
++#include <BRep_Tool.hxx>
++#include <ChFiDS_ChamfSpine.hxx>
++#include <ChFiDS_FaceInterference.hxx>
++#include <ChFiDS_Spine.hxx>
++#include <ChFiDS_SurfData.hxx>
++#include <ElSLib.hxx>
++#include <ChFiDS_ElSpine.hxx>
++#include <Geom2dAPI_Interpolate.hxx>
++#include <Geom2dAPI_InterCurveCurve.hxx>
++#include <Geom2d_BSplineCurve.hxx>
++#include <Geom2d_Curve.hxx>
++#include <Geom2d_Line.hxx>
++#include <Geom2d_TrimmedCurve.hxx>
++#include <GeomAPI_Interpolate.hxx>
++#include <GeomAPI_ProjectPointOnCurve.hxx>
++#include <GeomAPI_ProjectPointOnSurf.hxx>
++#include <GeomAdaptor_Surface.hxx>
++#include <Geom_BSplineCurve.hxx>
++#include <Geom_BSplineSurface.hxx>
++#include <NCollection_Array2.hxx>
++#include <NCollection_Map.hxx>
++#include <Geom_Curve.hxx>
++#include <Geom_Surface.hxx>
++#include <IntRes2d_IntersectionPoint.hxx>
++#include <NCollection_DataMap.hxx>
++#include <NCollection_IndexedMap.hxx>
++#include <NCollection_Sequence.hxx>
++#include <Precision.hxx>
++#include <Standard_ErrorHandler.hxx>
++#include <Standard_Failure.hxx>
++#include <NCollection_HArray1.hxx>
++#include <NCollection_IndexedDataMap.hxx>
++#include <TopExp.hxx>
++#include <TopTools_ShapeMapHasher.hxx>
++#include <TopExp_Explorer.hxx>
++#include <TopOpeBRepBuild_Builder.hxx>
++#include <TopOpeBRepDS_DataStructure.hxx>
++#include <TopOpeBRepDS_HDataStructure.hxx>
++#include <TopoDS.hxx>
++#include <TopoDS_Compound.hxx>
++#include <TopoDS_Edge.hxx>
++#include <TopoDS_Face.hxx>
++#include <TopoDS_Iterator.hxx>
++#include <TopoDS_Shell.hxx>
++#include <TopoDS_Solid.hxx>
++#include <TopoDS_Vertex.hxx>
++#include <TopoDS_Wire.hxx>
++#include <gp_Mat.hxx>
++#include <gp_XYZ.hxx>
++
++#include <algorithm>
++#include <cmath>
++#include <vector>
++
++#ifdef CHFI3D_UNFOLD_TRACE
++  #include <cstdio>
++  #define UNF_FAIL                                                                                 \
++    do                                                                                             \
++    {                                                                                              \
++      fprintf(stderr, "UNFOLD fail at line %d\n", __LINE__);                                       \
++      return false;                                                                                \
++    } while (0)
++  #define UNF_TRACE(...) (fprintf(stderr, __VA_ARGS__), fflush(stderr))
++#else
++  #define UNF_TRACE(...) ((void)0)
++  #define UNF_FAIL return false
++#endif
++
++#ifdef CHFI3D_UNFOLD_TRACE
++  #include <BRepCheck_ListOfStatus.hxx>
++  #include <BRepCheck_Result.hxx>
++static void unfDump(const TopoDS_Shape& S, const char* tag)
++{
++  BRepCheck_Analyzer         an(S);
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> all;
++  TopExp::MapShapes(S, all);
++  for (int i = 1; i <= all.Extent(); i++)
++  {
++    occ::handle<BRepCheck_Result> r = an.Result(all(i));
++    if (r.IsNull())
++      continue;
++    for (BRepCheck_ListOfStatus::Iterator it(r->Status()); it.More(); it.Next())
++      if (it.Value() != BRepCheck_NoError)
++        fprintf(stderr, "UNFOLD %s check: sub %d type %d status %d\n", tag, i, (int)all(i).ShapeType(), (int)it.Value());
++    for (r->InitContextIterator(); r->MoreShapeInContext(); r->NextShapeInContext())
++      for (BRepCheck_ListOfStatus::Iterator it(r->StatusOnShape()); it.More(); it.Next())
++        if (it.Value() != BRepCheck_NoError)
++          fprintf(stderr, "UNFOLD %s check: sub %d type %d in ctx type %d status %d\n", tag, i, (int)all(i).ShapeType(),
++                  (int)r->ContextualShape().ShapeType(), (int)it.Value());
++  }
++  if (const char* d = getenv("CHFI3D_UNFOLD_DUMPDIR"))
++  {
++    char fn[512];
++    snprintf(fn, sizeof fn, "%s/%s.brep", d, tag);
++    BRepTools::Write(S, fn);
++  }
++}
++#else
++static void unfDump(const TopoDS_Shape&, const char*) {}
++#endif
++
++namespace
++{
++
++//! One SurfData of the stripe as it is in the result.
++struct Piece
++{
++  occ::handle<ChFiDS_SurfData> sd;
++  TopoDS_Face                  face;  // stripe face in the result (as found in the result shape)
++  occ::handle<Geom_Surface>    surf;  // its surface (identity location required)
++  double                       w0 = 0, w1 = 0; // spine abscissa range
++  TopoDS_Edge                  gF, gO; // contact edges on the fold face / on the other face
++  int                          icF = 0, icO = 0; // DS curve indices of the contact curves
++  // ruled BSpline surface: ruling = iso line of the linear direction, the other direction = W
++  bool   ruled = false;
++  bool   linU  = true; // true: u is the linear (ruling) direction, v = W
++  double pO = 0, pF = 0; // parameter of the other / fold contact in the linear direction
++  double sw0 = 0, sw1 = 0; // W range of the surface (wider than [w0, w1] at a free end)
++  // generic (analytic) surface: contact 3D curves and parameters at w0 / w1
++  BRepAdaptor_Curve cF, cO;
++  double            cF0 = 0, cF1 = 0, cO0 = 0, cO1 = 0;
++};
++
++//! Ridge sample: rulings W (branch A) and W2 (branch B) meet at X = A(W)+s D(W) = A(W2)+s2 D(W2).
++struct RPt
++{
++  double W, W2, s, s2;
++  gp_Pnt X;
++};
++
++class Chain
++{
++public:
++  occ::handle<ChFiDS_Spine> spine;
++  std::vector<Piece>        pc;
++  bool                      periodic = false;
++  double                    period   = 0.;
++  double                    scale    = 1.; // typical length (chamfer width)
++
++  //! index of the piece holding the (unwrapped) abscissa W; -1 if none
++  int pieceAt(double W, double* wrapped = nullptr) const
++  {
++    double w = W;
++    if (periodic)
++    {
++      const double f = pc.front().w0;
++      while (w < f - 1e-12 * period)
++        w += period;
++      while (w > f + period + 1e-12 * period)
++        w -= period;
++    }
++    if (wrapped)
++      *wrapped = w;
++    const double eps = 1e-9 * (pc.back().w1 - pc.front().w0);
++    for (size_t k = 0; k < pc.size(); k++)
++      if (w >= pc[k].w0 - eps && w <= pc[k].w1 + eps)
++        return (int)k;
++    return -1;
++  }
++
++  // section plane: spine point and unit tangent at W
++  bool section(double W, gp_Pnt& O, gp_Vec& T) const
++  {
++    spine->D1(W, O, T);
++    const double n = T.Magnitude();
++    if (n < 1e-14)
++      return false;
++    T /= n;
++    return true;
++  }
++
++  // point of a contact curve in the section plane at W (generic pieces), Newton from the linear guess
++  static bool curveInPlane(const BRepAdaptor_Curve& c,
++                           double                   p0,
++                           double                   p1,
++                           double                   w0,
++                           double                   w1,
++                           double                   W,
++                           const gp_Pnt&            O,
++                           const gp_Vec&            T,
++                           gp_Pnt&                  P)
++  {
++    double       p  = p0 + (W - w0) / (w1 - w0) * (p1 - p0);
++    const double lo = std::min(p0, p1), hi = std::max(p0, p1), span = hi - lo;
++    for (int it = 0; it < 40; it++)
++    {
++      gp_Vec d;
++      c.D1(p, P, d);
++      const double f  = gp_Vec(O, P).Dot(T);
++      const double fp = d.Dot(T);
++      if (std::abs(fp) < 1e-14)
++        return false;
++      const double dp = f / fp;
++      p -= dp;
++      p = std::max(lo - 0.1 * span, std::min(hi + 0.1 * span, p));
++      if (std::abs(dp) < 1e-14 * (1. + std::abs(p)))
++      {
++        c.D0(p, P);
++        return true;
++      }
++    }
++    c.D0(p, P);
++    return std::abs(gp_Vec(O, P).Dot(T)) < 1e-9 * (1. + span);
++  }
++
++  //! ruling at W: A (other side, s = 0) and B (fold side, s = 1)
++  bool ruling(double W, gp_Pnt& A, gp_Pnt& B) const
++  {
++    double    w;
++    const int k = pieceAt(W, &w);
++    if (k < 0)
++      return false;
++    const Piece& p = pc[k];
++    if (p.ruled)
++    {
++      if (p.linU)
++      {
++        A = p.surf->Value(p.pO, w);
++        B = p.surf->Value(p.pF, w);
++      }
++      else
++      {
++        A = p.surf->Value(w, p.pO);
++        B = p.surf->Value(w, p.pF);
++      }
++      return true;
++    }
++    gp_Pnt O;
++    gp_Vec T;
++    if (!section(w, O, T))
++      return false;
++    return curveInPlane(p.cO, p.cO0, p.cO1, p.w0, p.w1, w, O, T, A)
++           && curveInPlane(p.cF, p.cF0, p.cF1, p.w0, p.w1, w, O, T, B);
++  }
++
++  bool rulingAD(double W, gp_XYZ& A, gp_XYZ& D) const
++  {
++    gp_Pnt a, b;
++    if (!ruling(W, a, b))
++      return false;
++    A = a.XYZ();
++    D = b.XYZ() - a.XYZ();
++    return true;
++  }
++
++  // derivatives of A and D (central differences inside the chain)
++  bool rulingDer(double W, gp_XYZ& A, gp_XYZ& D, gp_XYZ& dA, gp_XYZ& dD) const
++  {
++    const double h = 1e-6 * (pc.back().w1 - pc.front().w0);
++    gp_XYZ       a1, d1, a2, d2;
++    if (!rulingAD(W, A, D) || !rulingAD(W - h, a1, d1) || !rulingAD(W + h, a2, d2))
++      return false;
++    dA = (a2 - a1) / (2. * h);
++    dD = (d2 - d1) / (2. * h);
++    return true;
++  }
++
++  //! UV on the surface of piece k of the point (W, s)
++  bool uv(int k, double W, double s, gp_Pnt2d& P) const
++  {
++    const Piece& p = pc[k];
++    double       w = W;
++    if (periodic)
++    {
++      while (w < p.w0 - 0.5 * period)
++        w += period;
++      while (w > p.w1 + 0.5 * period)
++        w -= period;
++    }
++    if (p.ruled)
++    {
++      const double l = p.pO + s * (p.pF - p.pO);
++      P              = p.linU ? gp_Pnt2d(l, w) : gp_Pnt2d(w, l);
++      return true;
++    }
++    gp_XYZ A, D;
++    if (!rulingAD(w, A, D))
++      return false;
++    const gp_Pnt        X(A + D * s);
++    GeomAdaptor_Surface gs(p.surf);
++    double              u = 0, v = 0;
++    switch (gs.GetType())
++    {
++      case GeomAbs_Plane:
++        ElSLib::Parameters(gs.Plane(), X, u, v);
++        break;
++      case GeomAbs_Cylinder:
++        ElSLib::Parameters(gs.Cylinder(), X, u, v);
++        break;
++      case GeomAbs_Cone:
++        ElSLib::Parameters(gs.Cone(), X, u, v);
++        break;
++      default: {
++        GeomAPI_ProjectPointOnSurf pj(X, p.surf);
++        if (!pj.IsDone() || pj.NbPoints() == 0)
++          return false;
++        pj.LowerDistanceParameters(u, v);
++      }
++    }
++    if (gs.IsUPeriodic())
++    {
++      // keep u on the side of the face: compare with the pcurve of the other contact at mid
++      double f, l;
++      occ::handle<Geom2d_Curve> c2 = BRep_Tool::CurveOnSurface(p.gO, p.face, f, l);
++      if (!c2.IsNull())
++      {
++        const double uref = c2->Value(0.5 * (f + l)).X(), per = gs.UPeriod();
++        while (u < uref - 0.5 * per)
++          u += per;
++        while (u > uref + 0.5 * per)
++          u -= per;
++      }
++    }
++    P = gp_Pnt2d(u, v);
++    return true;
++  }
++};
++
++//! solve the 3x3 system M x = r (columns c0 c1 c2)
++bool solve3(const gp_XYZ& c0, const gp_XYZ& c1, const gp_XYZ& c2, const gp_XYZ& r, gp_XYZ& x)
++{
++  const double det = c0.Dot(c1.Crossed(c2));
++  const double nrm = c0.Modulus() * c1.Modulus() * c2.Modulus();
++  if (nrm <= 0. || std::abs(det) < 1e-13 * nrm)
++    return false;
++  x.SetX(r.Dot(c1.Crossed(c2)) / det);
++  x.SetY(c0.Dot(r.Crossed(c2)) / det);
++  x.SetZ(c0.Dot(c1.Crossed(r)) / det);
++  return true;
++}
++
++//! Corrector with W fixed: unknowns (W2, s, s2). Returns false when Newton does not converge.
++bool correctW(const Chain& ch, RPt& q, double tolX)
++{
++  gp_XYZ A, D, A2, D2, dA2, dD2;
++  if (!ch.rulingAD(q.W, A, D))
++    return false;
++  for (int it = 0; it < 12; it++)
++  {
++    if (!ch.rulingDer(q.W2, A2, D2, dA2, dD2))
++      return false;
++    const gp_XYZ r = A + D * q.s - A2 - D2 * q.s2;
++    if (r.Modulus() < tolX && it > 0)
++    {
++      q.X = gp_Pnt(A + D * q.s);
++      return true;
++    }
++    gp_XYZ x;
++    // d r / d(W2, s, s2) = (-(dA2 + s2 dD2), D, -D2);  J dx = -r
++    if (!solve3((dA2 + dD2 * q.s2).Reversed(), D, D2.Reversed(), r.Reversed(), x))
++      return false;
++    q.W2 += x.X();
++    q.s += x.Y();
++    q.s2 += x.Z();
++  }
++  gp_XYZ r;
++  if (!ch.rulingAD(q.W2, A2, D2))
++    return false;
++  r = A + D * q.s - A2 - D2 * q.s2;
++  q.X = gp_Pnt(A + D * q.s);
++  return r.Modulus() < tolX;
++}
++
++//! Corrector with W2 fixed: unknowns (W, s, s2).
++bool correctW2(const Chain& ch, RPt& q, double tolX)
++{
++  gp_XYZ A, D, A2, D2, dA, dD;
++  if (!ch.rulingAD(q.W2, A2, D2))
++    return false;
++  for (int it = 0; it < 12; it++)
++  {
++    if (!ch.rulingDer(q.W, A, D, dA, dD))
++      return false;
++    const gp_XYZ r = A + D * q.s - A2 - D2 * q.s2;
++    if (r.Modulus() < tolX && it > 0)
++    {
++      q.X = gp_Pnt(A + D * q.s);
++      return true;
++    }
++    gp_XYZ x;
++    if (!solve3(dA + dD * q.s, D, D2.Reversed(), r.Reversed(), x))
++      return false;
++    q.W += x.X();
++    q.s += x.Y();
++    q.s2 += x.Z();
++  }
++  if (!ch.rulingAD(q.W, A, D))
++    return false;
++  const gp_XYZ r = A + D * q.s - A2 - D2 * q.s2;
++  q.X            = gp_Pnt(A + D * q.s);
++  return r.Modulus() < tolX;
++}
++
++//! distance from X to the ruling line at W and the ruling parameter of the foot point
++bool distToRuling(const Chain& ch, double W, const gp_Pnt& X, double& dist, double& s)
++{
++  gp_XYZ A, D;
++  if (!ch.rulingAD(W, A, D))
++    return false;
++  const double dd = D.SquareModulus();
++  if (dd < 1e-300)
++    return false;
++  s                = (X.XYZ() - A).Dot(D) / dd;
++  const gp_XYZ foot = A + D * s;
++  dist             = (X.XYZ() - foot).Modulus();
++  return true;
++}
++
++//! singular (focal) point of the ruling at W: the s where (A' + s D') x D = 0 (least squares); for
++//! a developable stripe this is the point of the edge of regression. false when D' is parallel to D
++//! (planar piece: no focal point).
++bool focalS(const Chain& ch, double W, double& sf)
++{
++  gp_XYZ A, D, dA, dD;
++  if (!ch.rulingDer(W, A, D, dA, dD))
++    return false;
++  const gp_XYZ p = dA.Crossed(D), q = dD.Crossed(D);
++  const double qq = q.SquareModulus();
++  if (qq <= 1e-24 * (dA.SquareModulus() * D.SquareModulus() + 1e-300))
++    return false;
++  sf = -p.Dot(q) / qq;
++  return true;
++}
++
++//! point of the stripe nearest to P for W in [Wlo, Whi] (Gauss-Newton from (W, s))
++bool preimage(const Chain& ch, const gp_Pnt& P, double Wlo, double Whi, double& W, double& s, double& dist)
++{
++  for (int it = 0; it < 30; it++)
++  {
++    gp_XYZ A, D, dA, dD;
++    if (!ch.rulingDer(W, A, D, dA, dD))
++      return false;
++    const gp_XYZ X  = A + D * s;
++    const gp_XYZ r  = X - P.XYZ();
++    const gp_XYZ XW = dA + dD * s;
++    const double a = XW.Dot(XW), b = XW.Dot(D), c = D.Dot(D);
++    const double g1 = XW.Dot(r), g2 = D.Dot(r);
++    const double det = a * c - b * b;
++    if (det <= 1e-20 * a * c)
++      return false;
++    const double dW = (c * g1 - b * g2) / det, ds = (a * g2 - b * g1) / det;
++    W -= dW;
++    s -= ds;
++    W = std::max(Wlo, std::min(Whi, W));
++    if (std::abs(dW) < 1e-13 * (Whi - Wlo + 1.) && std::abs(ds) < 1e-13)
++      break;
++  }
++  gp_XYZ A, D;
++  if (!ch.rulingAD(W, A, D))
++    return false;
++  dist = (A + D * s - P.XYZ()).Modulus();
++  return true;
++}
++
++// quadratic extrapolation to eps = 0 from three samples (eps_i, v_i)
++double extrap0(const double e[3], const double v[3])
++{
++  // Lagrange at 0
++  const double l0 = (e[1] * e[2]) / ((e[0] - e[1]) * (e[0] - e[2]));
++  const double l1 = (e[0] * e[2]) / ((e[1] - e[0]) * (e[1] - e[2]));
++  const double l2 = (e[0] * e[1]) / ((e[2] - e[0]) * (e[2] - e[1]));
++  return l0 * v[0] + l1 * v[1] + l2 * v[2];
++}
++
++// edge split: copy of E (all curve representations) between the vertices V1 (at p1) and V2 (at p2)
++TopoDS_Edge splitEdge(const TopoDS_Edge&   E,
++                      const TopoDS_Vertex& V1,
++                      double               p1,
++                      const TopoDS_Vertex& V2,
++                      double               p2)
++{
++  BRep_Builder B;
++  TopoDS_Edge  e = TopoDS::Edge(E.Oriented(TopAbs_FORWARD).EmptyCopied());
++  e.Orientation(TopAbs_FORWARD);
++  if (p1 <= p2)
++  {
++    B.Add(e, V1.Oriented(TopAbs_FORWARD));
++    B.Add(e, V2.Oriented(TopAbs_REVERSED));
++    B.Range(e, p1, p2);
++  }
++  else
++  {
++    B.Add(e, V2.Oriented(TopAbs_FORWARD));
++    B.Add(e, V1.Oriented(TopAbs_REVERSED));
++    B.Range(e, p2, p1);
++  }
++  return e;
++}
++
++// parameter of point P on the 3D curve of E (projection, nearest)
++bool paramOn(const TopoDS_Edge& E, const gp_Pnt& P, double& p)
++{
++  double                  f, l;
++  occ::handle<Geom_Curve> c = BRep_Tool::Curve(E, f, l);
++  if (c.IsNull())
++    return false;
++  GeomAPI_ProjectPointOnCurve pj(P, c, f, l);
++  if (pj.NbPoints() == 0)
++    return false;
++  p = pj.LowerDistanceParameter();
++  return true;
++}
++
++// vertex of E at the end nearest to P
++TopoDS_Vertex vertexNear(const TopoDS_Edge& E, const gp_Pnt& P)
++{
++  TopoDS_Vertex a, b;
++  TopExp::Vertices(E, a, b);
++  return BRep_Tool::Pnt(a).SquareDistance(P) <= BRep_Tool::Pnt(b).SquareDistance(P) ? a : b;
++}
++
++bool startsNear(const TopoDS_Edge& E, const gp_Pnt& P, const gp_Pnt& Q)
++{
++  // true if the parameter-first vertex of E is nearer to P than to Q
++  TopoDS_Vertex a, b;
++  TopExp::Vertices(TopoDS::Edge(E.Oriented(TopAbs_FORWARD)), a, b);
++  return BRep_Tool::Pnt(a).SquareDistance(P) <= BRep_Tool::Pnt(a).SquareDistance(Q);
++}
++
++// parameter of the end of E at P (first == true) or at Q (first == false): the edge's own end, the
++// one whose point is nearer. A closed edge (P == Q) is decided by its direction at the first
++// parameter against dirW, the direction of increasing chain abscissa at P.
++double endParam(const TopoDS_Edge& E, const gp_Pnt& P, const gp_Pnt& Q, bool first, const gp_Vec& dirW)
++{
++  double                  f, l;
++  occ::handle<Geom_Curve> c = BRep_Tool::Curve(E, f, l);
++  gp_Pnt                  a, b;
++  gp_Vec                  ta;
++  c->D1(f, a, ta);
++  b = c->Value(l);
++  bool fAtP;
++  if (a.SquareDistance(b) > 1e-20)
++    fAtP = a.SquareDistance(P) + b.SquareDistance(Q) <= a.SquareDistance(Q) + b.SquareDistance(P);
++  else
++    fAtP = ta.Dot(dirW) > 0.;
++  return first == fAtP ? f : l;
++}
++
++//! interpolated 3D / 2D curves through samples with parameters t (strictly increasing)
++occ::handle<Geom_Curve> interp3d(const std::vector<gp_Pnt>& P, const std::vector<double>& t)
++{
++  const int n = (int)P.size();
++  if (n == 2)
++  {
++    // straight segment parametrised by t (degree 1 BSpline)
++    NCollection_Array1<gp_Pnt> poles(1, 2);
++    poles(1) = P[0];
++    poles(2) = P[1];
++    NCollection_Array1<double> knots(1, 2);
++    knots(1) = t[0];
++    knots(2) = t[1];
++    NCollection_Array1<int> mults(1, 2);
++    mults(1) = 2;
++    mults(2) = 2;
++    return new Geom_BSplineCurve(poles, knots, mults, 1);
++  }
++  occ::handle<NCollection_HArray1<gp_Pnt>> hp = new NCollection_HArray1<gp_Pnt>(1, n);
++  occ::handle<NCollection_HArray1<double>> hr = new NCollection_HArray1<double>(1, n);
++  for (int i = 0; i < n; i++)
++  {
++    hp->SetValue(i + 1, P[i]);
++    hr->SetValue(i + 1, t[i]);
++  }
++  GeomAPI_Interpolate ip(hp, hr, false, 1e-12);
++  ip.Perform();
++  if (!ip.IsDone())
++    return nullptr;
++  return ip.Curve();
++}
++
++occ::handle<Geom2d_Curve> interp2d(const std::vector<gp_Pnt2d>& P, const std::vector<double>& t)
++{
++  const int n = (int)P.size();
++  if (n == 2)
++  {
++    NCollection_Array1<gp_Pnt2d> poles(1, 2);
++    poles(1) = P[0];
++    poles(2) = P[1];
++    NCollection_Array1<double> knots(1, 2);
++    knots(1) = t[0];
++    knots(2) = t[1];
++    NCollection_Array1<int> mults(1, 2);
++    mults(1) = 2;
++    mults(2) = 2;
++    return new Geom2d_BSplineCurve(poles, knots, mults, 1);
++  }
++  occ::handle<NCollection_HArray1<gp_Pnt2d>> hp = new NCollection_HArray1<gp_Pnt2d>(1, n);
++  occ::handle<NCollection_HArray1<double>> hr = new NCollection_HArray1<double>(1, n);
++  bool                               allSame = true;
++  for (int i = 0; i < n; i++)
++  {
++    hp->SetValue(i + 1, P[i]);
++    hr->SetValue(i + 1, t[i]);
++    if (P[i].SquareDistance(P[0]) > 1e-28)
++      allSame = false;
++  }
++  if (allSame)
++    return nullptr;
++  Geom2dAPI_Interpolate ip(hp, hr, false, 1e-14);
++  ip.Perform();
++  if (!ip.IsDone())
++    return nullptr;
++  return ip.Curve();
++}
++
++//! An edge of the new top boundary (trim curve), on the chain abscissa axis [a, b] (a < b)
++struct TopSeg
++{
++  double      a, b;
++  TopoDS_Edge e;
++  bool        fwd; // edge parameter increases with the chain abscissa
++};
++
++//! One fold of a stripe side: the loop of the contact curve between W_a and W_b.
++struct Fold
++{
++  int              ka = -1, kb = -1; // pieces holding the crossing
++  double           pa = 0, pb = 0;   // parameters of the crossing on their fold contact edges
++  double           Wa = 0, Wb = 0;   // chain abscissae (unwrapped from the chain origin), Wa < Wb
++  gp_Pnt           Xa;               // crossing point
++  std::vector<RPt> R;                // ridge samples from X_a to X_m
++  double           Ws1 = 0, Ws2 = 0; // end of the ridge: W*1 <= W*2 (equal at a pinch)
++  double           tolM = 0;         // distance of the end rulings to X_m
++  double           Wfit = RealLast(); // A abscissa where the fitted end part starts
++  gp_Pnt           Xm;
++  TopoDS_Vertex    Va, Vm;
++  bool band() const { return Ws2 > Ws1 + 1e-9 * (Wb - Wa); }
++};
++
++//! State of the sub-shapes of the result that the construction of a trimmed stripe shares with it
++//! (edges, vertices, faces: tolerance, curve and point representations, flags). The construction
++//! adds pcurves to old edges and runs same-parameter and tolerance updates on faces holding old
++//! edges; when it fails afterwards (or throws), Restore() puts every saved sub-shape back exactly as
++//! it was, so a failure leaves the built result untouched.
++class SharedState
++{
++public:
++  void Save(const TopoDS_Shape& S)
++  {
++    for (TopExp_Explorer ex(S, TopAbs_EDGE); ex.More(); ex.Next())
++      saveEdge(ex.Current());
++    for (TopExp_Explorer ex(S, TopAbs_VERTEX); ex.More(); ex.Next())
++      saveVertex(ex.Current());
++    for (TopExp_Explorer ex(S, TopAbs_FACE); ex.More(); ex.Next())
++      saveFace(ex.Current());
++  }
++
++  void Restore()
++  {
++    for (EdgeState& e : myE)
++    {
++      NCollection_List<occ::handle<BRep_CurveRepresentation>>& L = e.te->ChangeCurves();
++      L.Clear();
++      for (const occ::handle<BRep_CurveRepresentation>& r : e.reps)
++        L.Append(r->Copy());
++      e.te->Tolerance(e.tol);
++      e.te->SameParameter(e.sp);
++      e.te->SameRange(e.sr);
++      e.te->Degenerated(e.dg);
++      setFlags(e.te, e.flags);
++    }
++    for (VertexState& v : myV)
++    {
++      v.tv->Pnt(v.p);
++      v.tv->Tolerance(v.tol);
++      NCollection_List<occ::handle<BRep_PointRepresentation>>& L = v.tv->ChangePoints();
++      L.Clear();
++      for (const PointState& p : v.pts)
++      {
++        p.rep->Parameter(p.p1);
++        if (p.rep->IsPointOnSurface())
++          p.rep->Parameter2(p.p2);
++        L.Append(p.rep);
++      }
++      setFlags(v.tv, v.flags);
++    }
++    for (FaceState& f : myFc)
++    {
++      f.tf->Tolerance(f.tol);
++      setFlags(f.tf, f.flags);
++    }
++  }
++
++private:
++  struct EdgeState
++  {
++    occ::handle<BRep_TEdge>                                 te;
++    NCollection_List<occ::handle<BRep_CurveRepresentation>> reps; // copies taken before any change
++    double                                                  tol;
++    bool                                                    sp, sr, dg;
++    int                                                     flags;
++  };
++  struct PointState
++  {
++    occ::handle<BRep_PointRepresentation> rep;
++    double                                p1, p2;
++  };
++  struct VertexState
++  {
++    occ::handle<BRep_TVertex> tv;
++    gp_Pnt                    p;
++    double                    tol;
++    std::vector<PointState>   pts;
++    int                       flags;
++  };
++  struct FaceState
++  {
++    occ::handle<BRep_TFace> tf;
++    double                  tol;
++    int                     flags;
++  };
++
++  static int flagsOf(const occ::handle<TopoDS_TShape>& t)
++  {
++    return (t->Free() ? 1 : 0) | (t->Locked() ? 2 : 0) | (t->Modified() ? 4 : 0) | (t->Checked() ? 8 : 0)
++           | (t->Orientable() ? 16 : 0) | (t->Closed() ? 32 : 0) | (t->Infinite() ? 64 : 0) | (t->Convex() ? 128 : 0);
++  }
++  static void setFlags(const occ::handle<TopoDS_TShape>& t, int f)
++  {
++    t->Free((f & 1) != 0);
++    t->Locked((f & 2) != 0);
++    t->Modified((f & 4) != 0); // clears Checked when set: Checked is restored after it
++    t->Checked((f & 8) != 0);
++    t->Orientable((f & 16) != 0);
++    t->Closed((f & 32) != 0);
++    t->Infinite((f & 64) != 0);
++    t->Convex((f & 128) != 0);
++  }
++  bool first(const TopoDS_Shape& s) { return mySeen.Add(s.TShape().get()); }
++
++  void saveEdge(const TopoDS_Shape& s)
++  {
++    occ::handle<BRep_TEdge> te = occ::down_cast<BRep_TEdge>(s.TShape());
++    if (te.IsNull() || !first(s))
++      return;
++    EdgeState e;
++    e.te = te;
++    for (const occ::handle<BRep_CurveRepresentation>& r : te->Curves())
++      e.reps.Append(r->Copy());
++    e.tol   = te->Tolerance();
++    e.sp    = te->SameParameter();
++    e.sr    = te->SameRange();
++    e.dg    = te->Degenerated();
++    e.flags = flagsOf(te);
++    myE.push_back(e);
++  }
++  void saveVertex(const TopoDS_Shape& s)
++  {
++    occ::handle<BRep_TVertex> tv = occ::down_cast<BRep_TVertex>(s.TShape());
++    if (tv.IsNull() || !first(s))
++      return;
++    VertexState v;
++    v.tv  = tv;
++    v.p   = tv->Pnt();
++    v.tol = tv->Tolerance();
++    for (const occ::handle<BRep_PointRepresentation>& r : tv->Points())
++      v.pts.push_back({r, r->Parameter(), r->IsPointOnSurface() ? r->Parameter2() : 0.});
++    v.flags = flagsOf(tv);
++    myV.push_back(v);
++  }
++  void saveFace(const TopoDS_Shape& s)
++  {
++    occ::handle<BRep_TFace> tf = occ::down_cast<BRep_TFace>(s.TShape());
++    if (tf.IsNull() || !first(s))
++      return;
++    myFc.push_back({tf, tf->Tolerance(), flagsOf(tf)});
++  }
++
++  NCollection_Map<const void*> mySeen;
++  std::vector<EdgeState>       myE;
++  std::vector<VertexState>     myV;
++  std::vector<FaceState>       myFc;
++};
++
++class Unfolder
++{
++public:
++  Unfolder(const Chain& ch, const occ::handle<TopOpeBRepBuild_HBuilder>& coup)
++      : myCh(ch),
++        myCoup(coup)
++  {
++  }
++
++  bool Perform(const TopoDS_Shape& theResult, TopoDS_Shape& theNewResult);
++
++  //! puts the shared sub-shapes of the result back as they were before the construction (after a
++  //! failure or an exception); a no-op when nothing was saved or it was already restored
++  void Revert()
++  {
++#ifdef CHFI3D_UNFOLD_TRACE
++    if (getenv("UNF_NORESTORE"))
++      mySaved = false; // negative control: the failure path of round 1 (no restore)
++#endif
++    if (mySaved)
++      myShared.Restore();
++    mySaved = false;
++  }
++
++  // replacements for the history
++  NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> myRepl;
++
++private:
++  bool   findFolds(const TopoDS_Shape& res);
++  bool   trace(Fold& f);
++  bool   build(const TopoDS_Shape& res, TopoDS_Shape& newRes);
++  double unw(double w) const // abscissa in [S0, S0 + period) for a closed chain
++  {
++    if (!myCh.periodic)
++      return w;
++    while (w < myS0 - 1e-12 * myCh.period)
++      w += myCh.period;
++    while (w >= myS0 + myCh.period - 1e-12 * myCh.period)
++      w -= myCh.period;
++    return w;
++  }
++
++  const Chain&                          myCh;
++  occ::handle<TopOpeBRepBuild_HBuilder> myCoup;
++  TopoDS_Face                           myFF; // fold face in the result
++  double                                myS0 = 0.; // chain origin (a piece start outside every fold)
++  int                                   myK0 = 0;  // piece starting at the origin
++  std::vector<Fold>                     myF;
++  double                                myTolX = 1e-7;
++  SharedState                           myShared; // sub-shapes shared with the built result
++  bool                                  mySaved = false;
++};
++
++//=================================================================================================
++
++bool Unfolder::findFolds(const TopoDS_Shape& res)
++{
++  // fold face: the result face (not a stripe face) holding the fold contact edges
++  const TopoDS_Edge& g0 = myCh.pc.front().gF;
++  for (TopExp_Explorer ef(res, TopAbs_FACE); ef.More() && myFF.IsNull(); ef.Next())
++  {
++    const TopoDS_Face& f      = TopoDS::Face(ef.Current());
++    bool               stripe = false;
++    for (const Piece& p : myCh.pc)
++      stripe |= f.IsSame(p.face);
++    if (stripe)
++      continue;
++    for (TopExp_Explorer ee(f, TopAbs_EDGE); ee.More(); ee.Next())
++      if (ee.Current().IsSame(g0))
++      {
++        myFF = f;
++        break;
++      }
++  }
++  if (myFF.IsNull())
++    UNF_FAIL;
++  for (const Piece& p : myCh.pc)
++  {
++    bool on = false;
++    for (TopExp_Explorer ee(myFF, TopAbs_EDGE); ee.More() && !on; ee.Next())
++      on = ee.Current().IsSame(p.gF);
++    if (!on)
++      UNF_FAIL;
++  }
++  const int    n     = (int)myCh.pc.size();
++  const double total = myCh.pc.back().w1 - myCh.pc.front().w0;
++  // reversal runs of the fold contact curve (sampled)
++  std::vector<std::pair<double, double>> runs;
++  for (const Piece& p : myCh.pc)
++  {
++    int                              m  = 24;
++    occ::handle<Geom_BSplineSurface> bs = occ::down_cast<Geom_BSplineSurface>(p.surf);
++    if (!bs.IsNull())
++      m = std::max(m, 2 * std::max(bs->NbUKnots(), bs->NbVKnots()));
++    // spacing at most 1/20 of the chamfer width: a fold just past the focal distance reverses
++    // the contact curve over a short part of the spine only
++    m = std::min(4000, std::max(m, (int)std::ceil((p.w1 - p.w0) / (0.05 * myCh.scale))));
++    gp_Pnt Ap, Bp;
++    if (!myCh.ruling(p.w0, Ap, Bp))
++      UNF_FAIL;
++    for (int j = 1; j <= m; j++)
++    {
++      const double W0 = p.w0 + (p.w1 - p.w0) * (j - 1) / m, W = p.w0 + (p.w1 - p.w0) * j / m;
++      gp_Pnt       A, Bq, O;
++      gp_Vec       T;
++      if (!myCh.ruling(W, A, Bq) || !myCh.section(0.5 * (W0 + W), O, T))
++        UNF_FAIL;
++      if (gp_Vec(Bp, Bq).Dot(T) < 0.)
++      {
++        if (!runs.empty() && std::abs(runs.back().second - W0) < 1e-12 * total)
++          runs.back().second = W;
++        else
++          runs.push_back({W0, W});
++      }
++      Bp = Bq;
++    }
++  }
++  if (runs.empty())
++    UNF_FAIL;
++  // periodic: a run crossing the chain start is one run
++  if (myCh.periodic && runs.size() > 1 && std::abs(runs.front().first - myCh.pc.front().w0) < 1e-12 * total
++      && std::abs(runs.back().second - myCh.pc.back().w1) < 1e-12 * total)
++  {
++    runs.front().first = runs.back().first - myCh.period;
++    runs.pop_back();
++  }
++  // candidate loops: 2D crossings of the fold contact curves on the fold face
++  std::vector<occ::handle<Geom2d_TrimmedCurve>> c2(n);
++  std::vector<double>                           f(n), l(n);
++  for (int k = 0; k < n; k++)
++  {
++    occ::handle<Geom2d_Curve> c = BRep_Tool::CurveOnSurface(myCh.pc[k].gF, myFF, f[k], l[k]);
++    if (c.IsNull())
++      UNF_FAIL;
++    c2[k] = new Geom2d_TrimmedCurve(c, f[k], l[k]);
++  }
++  auto wOf = [&](int k, double p, double& W) -> bool {
++    const Piece& pk = myCh.pc[k];
++    double       ff, ll;
++    if (pk.ruled)
++    {
++      occ::handle<Geom2d_Curve> cs = BRep_Tool::CurveOnSurface(pk.gF, pk.face, ff, ll);
++      if (cs.IsNull())
++        return false;
++      const gp_Pnt2d q = cs->Value(p);
++      W                = pk.linU ? q.Y() : q.X();
++      return true;
++    }
++    gp_Pnt X;
++    BRepAdaptor_Curve(pk.gF).D0(p, X);
++    W = pk.w0 + (p - pk.cF0) / (pk.cF1 - pk.cF0) * (pk.w1 - pk.w0);
++    for (int it = 0; it < 40; it++)
++    {
++      gp_Pnt O, O2;
++      gp_Vec T, T2;
++      const double h = 1e-6 * (pk.w1 - pk.w0);
++      if (!myCh.section(W, O, T) || !myCh.section(W + h, O2, T2))
++        return false;
++      const double g = gp_Vec(O, X).Dot(T), gp = (gp_Vec(O2, X).Dot(T2) - g) / h;
++      if (std::abs(gp) < 1e-14)
++        return false;
++      const double dW = g / gp;
++      W -= dW;
++      if (std::abs(dW) < 1e-13 * (1. + std::abs(W)))
++        return true;
++    }
++    return false;
++  };
++  // does [a, b] (a < b, possibly beyond one period) contain the run r?
++  auto holds = [&](double a, double b, const std::pair<double, double>& r) {
++    for (int sh = -1; sh <= 1; sh++)
++    {
++      const double o = myCh.periodic ? sh * myCh.period : 0.;
++      if (r.first + o >= a - 1e-12 * total && r.second + o <= b + 1e-12 * total)
++        return true;
++    }
++    return false;
++  };
++  std::vector<Fold> cand;
++  for (int a = 0; a < n; a++)
++    for (int b = a; b < n; b++)
++    {
++      Geom2dAPI_InterCurveCurve ic;
++      if (a == b)
++        ic.Init(c2[a], 1e-9);
++      else
++        ic.Init(c2[a], c2[b], 1e-9);
++      for (int i = 1; i <= ic.NbPoints(); i++)
++      {
++        const IntRes2d_IntersectionPoint& ip = ic.Intersector().Point(i);
++        const double pa = ip.ParamOnFirst(), pb = ip.ParamOnSecond();
++        const double ea = 1e-7 * (l[a] - f[a]), eb = 1e-7 * (l[b] - f[b]);
++        const bool   endA = std::abs(pa - f[a]) < ea || std::abs(pa - l[a]) < ea;
++        const bool   endB = std::abs(pb - f[b]) < eb || std::abs(pb - l[b]) < eb;
++        if (endA && endB)
++          continue; // shared vertex of adjacent pieces
++        double Wa, Wb;
++        if (!wOf(a, pa, Wa) || !wOf(b, pb, Wb))
++          continue;
++        Fold fd;
++        fd.ka = a;
++        fd.kb = b;
++        fd.pa = pa;
++        fd.pb = pb;
++        if (Wa > Wb)
++        {
++          std::swap(Wa, Wb);
++          std::swap(fd.ka, fd.kb);
++          std::swap(fd.pa, fd.pb);
++        }
++        if (Wb - Wa < 1e-6 * total)
++          continue; // a touching point, not a loop
++        fd.Xa = BRepAdaptor_Curve(myCh.pc[fd.ka].gF).Value(fd.pa);
++        // the loop is [Wa, Wb], or for a closed chain possibly [Wb, Wa + period]
++        bool okIn = false, okOut = false;
++        for (const auto& r : runs)
++        {
++          okIn |= holds(Wa, Wb, r);
++          if (myCh.periodic)
++            okOut |= holds(Wb, Wa + myCh.period, r);
++        }
++        if (okIn && (!okOut || Wb - Wa <= myCh.period - (Wb - Wa)))
++        {
++          fd.Wa = Wa;
++          fd.Wb = Wb;
++        }
++        else if (okOut)
++        {
++          fd.Wa = Wb;
++          fd.Wb = Wa + myCh.period;
++          std::swap(fd.ka, fd.kb);
++          std::swap(fd.pa, fd.pb);
++        }
++        else
++          continue;
++        cand.push_back(fd);
++      }
++    }
++  // the smallest loop around each reversal run; loops must be disjoint and cover every run
++  std::sort(cand.begin(), cand.end(), [](const Fold& x, const Fold& y) { return x.Wb - x.Wa < y.Wb - y.Wa; });
++  myF.clear();
++  for (const auto& r : runs)
++  {
++    const Fold* best = nullptr;
++    for (const Fold& c : cand)
++      if (holds(c.Wa, c.Wb, r))
++      {
++        best = &c;
++        break;
++      }
++    if (!best)
++    {
++      UNF_TRACE("UNFOLD reversal at %.9g..%.9g has no loop\n", r.first, r.second);
++      UNF_FAIL;
++    }
++    bool dup = false;
++    for (const Fold& g : myF)
++      dup |= std::abs(g.Wa - best->Wa) < 1e-9 * total && std::abs(g.Wb - best->Wb) < 1e-9 * total;
++    if (!dup)
++      myF.push_back(*best);
++  }
++  // chain origin: the start of piece 0; a loop of a closed chain may run past the end of the chain
++  myK0 = 0;
++  myS0 = myCh.pc[0].w0;
++  for (Fold& g : myF)
++  {
++    const double len = g.Wb - g.Wa;
++    g.Wa             = unw(g.Wa);
++    g.Wb             = g.Wa + len;
++    if (!myCh.periodic && (g.Wa < myS0 - 1e-9 * total || g.Wb > myS0 + total + 1e-9 * total))
++      UNF_FAIL;
++  }
++  std::sort(myF.begin(), myF.end(), [](const Fold& x, const Fold& y) { return x.Wa < y.Wa; });
++#ifdef CHFI3D_UNFOLD_TRACE
++  for (const auto& r : runs)
++    UNF_TRACE("UNFOLD   run %.9g..%.9g\n", r.first, r.second);
++  for (const Fold& c : cand)
++    UNF_TRACE("UNFOLD   cand Wa %.9g Wb %.9g ka %d kb %d\n", c.Wa, c.Wb, c.ka, c.kb);
++  for (const Fold& g : myF)
++    UNF_TRACE("UNFOLD   chosen Wa %.9g Wb %.9g\n", g.Wa, g.Wb);
++#endif
++  for (size_t i = 1; i < myF.size(); i++)
++    if (myF[i].Wa < myF[i - 1].Wb + 1e-9 * total)
++      UNF_FAIL; // overlapping loops
++  if (myCh.periodic && myF.size() > 1 && myF.back().Wb > myF.front().Wa + myCh.period - 1e-9 * total)
++    UNF_FAIL;
++  UNF_TRACE("UNFOLD %d fold(s)\n", (int)myF.size());
++#ifdef CHFI3D_UNFOLD_TRACE
++  for (const Fold& g : myF)
++    UNF_TRACE("UNFOLD   loop Wa %.9g Wb %.9g ka %d kb %d\n", g.Wa, g.Wb, g.ka, g.kb);
++#endif
++  return true;
++}
++
++//=================================================================================================
++
++bool Unfolder::trace(Fold& fd)
++{
++  const double range = fd.Wb - fd.Wa;
++  double       tolF  = 0.;
++  for (const Piece& p : myCh.pc)
++    tolF = std::max(tolF, BRep_Tool::Tolerance(p.face));
++  myTolX            = std::max(1e-9 * myCh.scale, 1e-3 * tolF);
++  const double tolE = std::max(1e-7 * myCh.scale, 10. * tolF); // apex test at piece boundaries
++  const double tolA = std::max(1e-9 * myCh.scale, 1e-2 * tolF); // apex test inside a piece
++  std::vector<double> bnd; // piece boundaries inside (Wa, Wb)
++  for (size_t k = 0; k < myCh.pc.size(); k++)
++  {
++    double b = myCh.pc[k].w1;
++    if (myCh.periodic)
++    {
++      while (b < fd.Wa)
++        b += myCh.period;
++      while (b > fd.Wa + myCh.period)
++        b -= myCh.period;
++    }
++    if (b > fd.Wa && b < fd.Wb)
++      bnd.push_back(b);
++  }
++  std::sort(bnd.begin(), bnd.end());
++  std::vector<RPt>& R = fd.R;
++  RPt               q0{fd.Wa, fd.Wb, 1., 1., fd.Xa};
++  {
++    RPt q = q0;
++    if (!correctW(myCh, q, myTolX) || std::abs(q.W2 - fd.Wb) > 1e-6 * range)
++    {
++      UNF_TRACE("UNFOLD start does not converge\n");
++      UNF_FAIL;
++    }
++    q0 = q;
++    fd.Wb = q.W2; // the loop ends where the corrected first ridge sample is
++  }
++  R.clear();
++  R.push_back(q0);
++  double h = range / 128.;
++  for (int iter = 0; iter < 4000; iter++)
++  {
++    const RPt c = R.back();
++    // apex: every ruling between W and W2 passes through X
++    if (c.W2 - c.W > 1e-9 * range)
++    {
++      bool apex = true;
++      for (int j = 1; j <= 7 && apex; j++)
++      {
++        double       d, s;
++        const double W = c.W + (c.W2 - c.W) * j / 8.;
++        apex           = distToRuling(myCh, W, c.X, d, s) && d < tolA && s > -1e-9 && s < 1 + 1e-9;
++      }
++      if (apex)
++      {
++        fd.Ws1  = c.W;
++        fd.Ws2  = c.W2;
++        fd.Xm   = c.X;
++        fd.tolM = tolA;
++        UNF_TRACE("UNFOLD apex end W*1 %.9g W*2 %.9g\n", fd.Ws1, fd.Ws2);
++        return true;
++      }
++    }
++    if (c.W2 - c.W < 2e-3 * range && R.size() >= 3)
++      break;
++    double nextA = RealLast();
++    for (double b : bnd)
++      if (b > c.W + 1e-12 * range)
++      {
++        nextA = b;
++        break;
++      }
++    double hh   = std::min(h, 0.45 * (c.W2 - c.W));
++    bool   land = false;
++    if (c.W + hh >= nextA - 1e-9 * range)
++    {
++      hh   = nextA - c.W;
++      land = true;
++      // apex at piece boundaries: the rulings at nextA and at the last boundary below W2 meet in a
++      // point through which every ruling between them passes (an arc of the spine with d > radius)
++      double bLow = -RealLast();
++      for (double b : bnd)
++        if (b < c.W2 - 1e-12 * range && b >= nextA - 1e-12 * range)
++          bLow = std::max(bLow, b);
++      if (bLow > -RealLast() && bLow > nextA + 1e-9 * range)
++      {
++        gp_XYZ A1, D1, A2, D2;
++        if (myCh.rulingAD(nextA, A1, D1) && myCh.rulingAD(bLow, A2, D2))
++        {
++          const gp_XYZ w0 = A1 - A2;
++          const double a = D1.Dot(D1), bb = D1.Dot(D2), cc = D2.Dot(D2), d = D1.Dot(w0), e = D2.Dot(w0);
++          const double den = a * cc - bb * bb;
++          if (den > 1e-14 * a * cc)
++          {
++            const double s1 = (bb * e - cc * d) / den, s2 = (a * e - bb * d) / den;
++            const gp_XYZ P1 = A1 + D1 * s1, P2 = A2 + D2 * s2;
++            const gp_Pnt Xh((P1 + P2) * 0.5);
++            bool         apex = (P1 - P2).Modulus() < tolE && s1 > 0. && s1 < 1. && s2 > 0. && s2 < 1.;
++            for (int j = 1; j <= 15 && apex; j++)
++            {
++              double dd, ss;
++              apex = distToRuling(myCh, nextA + (bLow - nextA) * j / 16., Xh, dd, ss) && dd < tolE && ss > 0.
++                     && ss < 1.;
++            }
++            if (apex)
++            {
++              R.push_back(RPt{nextA, bLow, s1, s2, Xh});
++              fd.Ws1  = nextA;
++              fd.Ws2  = bLow;
++              fd.Xm   = Xh;
++              fd.tolM = tolE;
++              UNF_TRACE("UNFOLD apex at boundaries W*1 %.9g W*2 %.9g\n", fd.Ws1, fd.Ws2);
++              return true;
++            }
++          }
++        }
++      }
++    }
++    RPt q = c;
++    q.W   = land ? nextA : c.W + hh;
++    if (R.size() >= 2)
++    {
++      const RPt&   p = R[R.size() - 2];
++      const double t = (q.W - c.W) / (c.W - p.W);
++      q.W2           = c.W2 + t * (c.W2 - p.W2);
++      q.s            = c.s + t * (c.s - p.s);
++      q.s2           = c.s2 + t * (c.s2 - p.s2);
++    }
++    else
++      q.W2 = c.W2 - hh;
++    if (!correctW(myCh, q, myTolX) || q.W2 <= q.W || q.W2 > c.W2 + 1e-9 * range || q.s < -1e-9 || q.s2 < -1e-9
++        || q.s > 1. + 1e-9 || q.s2 > 1. + 1e-9)
++    {
++      h *= 0.5;
++      if (h < 1e-7 * range)
++      {
++        UNF_TRACE("UNFOLD trace stop: step at W %.9g W2 %.9g s %.6f s2 %.6f\n", c.W, c.W2, c.s, c.s2);
++        break; // the pinch end below decides
++      }
++      continue;
++    }
++    // did W2 pass a boundary?  land on it exactly (W2 fixed)
++    double bB = -RealLast();
++    for (double b : bnd)
++      if (b < c.W2 - 1e-12 * range && b >= q.W2 - 1e-12 * range && b > q.W)
++        bB = std::max(bB, b);
++    if (bB > -RealLast())
++    {
++      RPt          r = c;
++      const double t = (c.W2 - bB) / (c.W2 - q.W2);
++      r.W            = c.W + t * (q.W - c.W);
++      r.W2           = bB;
++      r.s            = c.s + t * (q.s - c.s);
++      r.s2           = c.s2 + t * (q.s2 - c.s2);
++      if (!correctW2(myCh, r, myTolX))
++      {
++        h *= 0.5;
++        continue;
++      }
++      r.W2 = bB;
++      R.push_back(r);
++      continue;
++    }
++    // stay below the focal curve (edge of regression) with a margin: near the pinch the two sheets
++    // meet at a vanishing angle and the intersection is not reliable any more
++    {
++      double       sfA, sfB;
++      const double mu = std::max(2e-3, 50. * tolF / std::max(1e-300, myCh.scale));
++      if (focalS(myCh, q.W, sfA) && focalS(myCh, q.W2, sfB) && sfA > 0. && sfB > 0.
++          && (sfA - q.s < mu || sfB - q.s2 < mu))
++      {
++        UNF_TRACE("UNFOLD trace stop: focal margin at W %.9g W2 %.9g s %.6f sfA %.6f s2 %.6f sfB %.6f\n", q.W, q.W2, q.s, sfA, q.s2, sfB);
++        break;
++      }
++    }
++    R.push_back(q);
++    if (!land)
++      h = std::min(h * 1.5, range / 64.);
++  }
++  // Pinch end (swallowtail point). The edge of regression of the stripe has a cusp at the ruling
++  // W* where the focal parameter s_f(W) is minimal; the ridge ends there, at X_m = focal point of
++  // W*. The last part of the ridge (from the last reliable sample, below the focal curve, to X_m)
++  // is a short curve fitted through the last samples and X_m; its preimages on both sheets are
++  // computed and their distance is the tolerance of that part.
++  if (R.size() < 3)
++    UNF_FAIL;
++  const RPt c    = R.back();
++  double    Wmin = 0., smin = RealLast();
++  {
++    const int m  = 64;
++    int       jb = -1;
++    for (int j = 0; j <= m; j++)
++    {
++      const double W = c.W + (c.W2 - c.W) * j / m;
++      double       sf;
++      if (!focalS(myCh, W, sf))
++        UNF_FAIL;
++      if (sf < smin)
++      {
++        smin = sf;
++        jb   = j;
++      }
++    }
++    if (jb <= 0 || jb >= m)
++    {
++      UNF_TRACE("UNFOLD no focal minimum inside the band\n");
++      UNF_FAIL;
++    }
++    double       lo = c.W + (c.W2 - c.W) * (jb - 1) / m, hi = c.W + (c.W2 - c.W) * (jb + 1) / m;
++    const double gr = 0.5 * (std::sqrt(5.) - 1.);
++    for (int it = 0; it < 60; it++)
++    {
++      const double x1 = hi - gr * (hi - lo), x2 = lo + gr * (hi - lo);
++      double       f1, f2;
++      if (!focalS(myCh, x1, f1) || !focalS(myCh, x2, f2))
++        UNF_FAIL;
++      if (f1 < f2)
++        hi = x2;
++      else
++        lo = x1;
++    }
++    Wmin = 0.5 * (lo + hi);
++  }
++  // candidates for the pinch ruling: the focal minimum, then the piece boundaries inside the band
++  // (a vertex of the spine curvature on a piece boundary, e.g. the seam of a closed rim: the focal
++  // function has a kink there)
++  std::vector<double> cands;
++  // a piece boundary next to the focal minimum is the pinch (the focal function has a kink there);
++  // a separate cell of that width would only hold a sliver
++  for (double b : bnd)
++    if (b > c.W && b < c.W2 && std::abs(b - Wmin) < 0.05 * (c.W2 - c.W))
++      cands.push_back(b);
++  cands.push_back(Wmin);
++  for (double b : bnd)
++    if (b > c.W && b < c.W2 && std::abs(b - Wmin) >= 0.05 * (c.W2 - c.W))
++      cands.push_back(b);
++  const double tolEnd = std::max(1e-7 * myCh.scale, 10. * tolF);
++  const size_t nR     = R.size();
++  // End part: on each sheet the trim runs in the (W, s) plane of the stripe from the last traced
++  // sample to the pinch (W*, s*), W linear and s quadratic with a zero slope at the pinch. The two images join c.X and X_m; their distance is the
++  // tolerance of the part (the sheets meet at a vanishing angle there, so it is small). Samples at
++  // the piece boundaries crossed by either branch are added. Both images stay below the focal curve.
++  for (double Wst : cands)
++  {
++    R.resize(nR);
++    double sst;
++    gp_XYZ A, D;
++    if (!focalS(myCh, Wst, sst) || !myCh.rulingAD(Wst, A, D) || sst <= 0. || sst >= 1.)
++      continue;
++    const gp_Pnt        Xm(A + D * sst);
++    std::vector<double> ts;
++    const int           nEnd = 16;
++    for (int j = 1; j < nEnd; j++)
++      ts.push_back(double(j) / nEnd);
++    for (double bd : bnd)
++    {
++      if (bd > c.W && bd < Wst)
++        ts.push_back((bd - c.W) / (Wst - c.W));
++      if (bd > Wst && bd < c.W2)
++        ts.push_back((c.W2 - bd) / (c.W2 - Wst));
++    }
++    std::sort(ts.begin(), ts.end());
++    double dev = 0.;
++    bool   ok  = true;
++    for (double t : ts)
++    {
++      // s approaches s* with a zero slope: the ridge ends tangent to the edge of regression
++      RPt          q;
++      const double u = (1. - t) * (1. - t);
++      q.W            = c.W + t * (Wst - c.W);
++      q.s            = sst + u * (c.s - sst);
++      q.W2           = c.W2 + t * (Wst - c.W2);
++      q.s2           = sst + u * (c.s2 - sst);
++      for (double bd : bnd)
++      {
++        if (std::abs(q.W - bd) < 1e-9 * range)
++          q.W = bd;
++        if (std::abs(q.W2 - bd) < 1e-9 * range)
++          q.W2 = bd;
++      }
++      gp_XYZ A1, D1, A2, D2;
++      double sfA, sfB;
++      if (!myCh.rulingAD(q.W, A1, D1) || !myCh.rulingAD(q.W2, A2, D2) || (focalS(myCh, q.W, sfA) && q.s > sfA + 1e-9)
++          || (focalS(myCh, q.W2, sfB) && q.s2 > sfB + 1e-9))
++      {
++        ok = false;
++        break;
++      }
++      const gp_XYZ XA = A1 + D1 * q.s, XB = A2 + D2 * q.s2;
++      dev             = std::max(dev, 0.5 * (XA - XB).Modulus());
++      q.X             = gp_Pnt((XA + XB) * 0.5);
++      R.push_back(q);
++    }
++    UNF_TRACE("UNFOLD pinch candidate W* %.9g s* %.9g: %s, eps %.3e, deviation %.3e (limit %.3e)\n", Wst, sst,
++              ok ? "ok" : "above the focal curve", c.W2 - c.W, dev, tolEnd);
++    if (!ok || dev > tolEnd)
++      continue;
++    R.push_back(RPt{Wst, Wst, sst, sst, Xm});
++    fd.Wfit = c.W;
++    fd.Ws1  = Wst;
++    fd.Ws2  = Wst;
++    fd.Xm   = Xm;
++    fd.tolM = dev;
++    return true;
++  }
++  R.resize(nR);
++  UNF_FAIL;
++}
++
++//=================================================================================================
++
++bool Unfolder::Perform(const TopoDS_Shape& theResult, TopoDS_Shape& theNewResult)
++{
++  if (!findFolds(theResult))
++    return false;
++  for (Fold& f : myF)
++    if (!trace(f))
++      return false;
++  if (build(theResult, theNewResult))
++  {
++    mySaved = false; // committed: the shared sub-shapes now belong to the new result as well
++    return true;
++  }
++  Revert();
++  return false;
++}
++
++//=================================================================================================
++
++bool Unfolder::build(const TopoDS_Shape& res, TopoDS_Shape& newRes)
++{
++  // Every old sub-shape the new faces can hold lies on the fold face, on a stripe face or on a face
++  // next to a stripe face (the other contact, the ends): their state is saved before any change.
++  {
++    NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> e2fs;
++    TopExp::MapShapesAndUniqueAncestors(res, TopAbs_EDGE, TopAbs_FACE, e2fs);
++    myShared.Save(myFF);
++    for (const Piece& p : myCh.pc)
++    {
++      myShared.Save(p.face);
++      for (TopExp_Explorer ee(p.face, TopAbs_EDGE); ee.More(); ee.Next())
++      {
++        const int ix = e2fs.FindIndex(ee.Current());
++        if (ix > 0)
++          for (const TopoDS_Shape& fa : e2fs(ix))
++            myShared.Save(fa);
++      }
++    }
++    mySaved = true;
++  }
++  BRep_Builder B;
++  const int    n     = (int)myCh.pc.size();
++  const bool   per   = myCh.periodic;
++  const double P     = per ? myCh.period : 0.;
++  const double total = per ? myCh.period : myCh.pc.back().w1 - myCh.pc.front().w0;
++  const double eps   = 1e-9 * total;
++  const int    nf    = (int)myF.size();
++
++  // Coordinates. Cells use the chain abscissa from the origin S0 (piece 0), in [S0, S0 + P). A loop
++  // keeps its own continuous abscissa [Wa, Wb] (it may run past S0 + P on a closed chain).
++  auto toLoop = [&](const Fold& f, double w) { // chain abscissa -> abscissa of the loop
++    if (per)
++    {
++      while (w < f.Wa - eps)
++        w += P;
++      while (w >= f.Wa + P - eps)
++        w -= P;
++    }
++    return w;
++  };
++  auto inLoop = [&](const Fold& f, double w, bool strict) {
++    const double x = toLoop(f, w);
++    return strict ? (x > f.Wa + eps && x < f.Wb - eps) : (x >= f.Wa - eps && x <= f.Wb + eps);
++  };
++  auto foldAt = [&](double w, bool strict) -> int {
++    for (int i = 0; i < nf; i++)
++      if (inLoop(myF[i], w, strict))
++        return i;
++    return -1;
++  };
++
++  // ---- pieces in chain order from the origin; touched = meets a loop
++  struct PR
++  {
++    int    k;
++    double L, R;
++    bool   touched;
++  };
++  std::vector<PR> prs;
++  {
++    double L = myS0;
++    for (int j = 0; j < n; j++)
++    {
++      const int    k  = (myK0 + j) % n;
++      const double Rr = L + (myCh.pc[k].w1 - myCh.pc[k].w0);
++      bool         t  = false;
++      for (const Fold& f : myF)
++      {
++        const double a = toLoop(f, L), b = a + (Rr - L);
++        t |= (a < f.Wb - eps && b > f.Wa + eps) || (per && a - P < f.Wb - eps && b - P > f.Wa + eps);
++      }
++      prs.push_back({k, L, Rr, t});
++      L = Rr;
++    }
++  }
++
++  // direction of increasing abscissa along a contact curve at W (fold side or other side)
++  auto dirAt = [&](double w, bool fold) -> gp_Vec {
++    const double h = 1e-4 * total;
++    gp_Pnt       A0, B0, A1, B1;
++    myCh.ruling(w, A0, B0);
++    myCh.ruling(w + h, A1, B1);
++    return fold ? gp_Vec(B0, B1) : gp_Vec(A0, A1);
++  };
++
++  // ---- old wire of each touched piece in the canonical frame (bottom = other contact, ascending W)
++  typedef std::vector<std::pair<TopoDS_Edge, TopAbs_Orientation>> ELst;
++  struct OldW
++  {
++    ELst right, left; // canonical: right side going up, left side going down
++  };
++  std::vector<OldW> ow(prs.size());
++  for (size_t ip = 0; ip < prs.size(); ip++)
++  {
++    if (!prs[ip].touched)
++      continue;
++    const Piece&      Pc = myCh.pc[prs[ip].k];
++    const TopoDS_Face Ff = TopoDS::Face(Pc.face.Oriented(TopAbs_FORWARD));
++    ELst              L;
++    int               nw = 0;
++    for (TopExp_Explorer iw(Ff, TopAbs_WIRE); iw.More(); iw.Next(), nw++)
++    {
++      L.clear();
++      for (BRepTools_WireExplorer we(TopoDS::Wire(iw.Current()), Ff); we.More(); we.Next())
++        L.push_back({we.Current(), we.Current().Orientation()});
++    }
++    if (nw != 1)
++      UNF_FAIL;
++    int iO = -1, iF = -1;
++    for (int i = 0; i < (int)L.size(); i++)
++    {
++      if (L[i].first.IsSame(Pc.gO))
++        iO = i;
++      if (L[i].first.IsSame(Pc.gF))
++        iF = i;
++    }
++    if (iO < 0 || iF < 0)
++      UNF_FAIL;
++    std::rotate(L.begin(), L.begin() + iO, L.end());
++    iF = (iF - iO + (int)L.size()) % (int)L.size();
++    ELst   X(L.begin() + 1, L.begin() + iF), Y(L.begin() + iF + 1, L.end());
++    gp_Pnt A0, B0, A1, B1;
++    myCh.ruling(Pc.w0, A0, B0);
++    myCh.ruling(Pc.w1, A1, B1);
++    const bool asc  = (L[0].second == TopAbs_FORWARD) == startsNear(Pc.gO, A0, A1);
++    auto       flip = [](ELst v) {
++      std::reverse(v.begin(), v.end());
++      for (auto& x : v)
++        x.second = TopAbs::Reverse(x.second);
++      return v;
++    };
++    ow[ip].right = asc ? X : flip(Y);
++    ow[ip].left  = asc ? Y : flip(X);
++  }
++
++  // ---- cells. A touched piece is cut at the ends W*1 / W*2 of its ridges; a ruled piece also at
++  //      Wa / Wb, so that its parts inside a loop get their own surface fitted to the kept region.
++  struct CellX
++  {
++    int                       k, ip;
++    double                    L, R; // chain abscissae
++    int                       fold; // loop of a refitted cell, -1 otherwise
++    bool                      refit;
++    bool                      newL; // the boundary at L is a new ruling (not a piece boundary)
++    occ::handle<Geom_Surface> surf;
++    TopoDS_Face               face;
++  };
++  std::vector<CellX> cells;
++  for (size_t ip = 0; ip < prs.size(); ip++)
++  {
++    const PR& p = prs[ip];
++    if (!p.touched)
++      continue;
++    const bool          rl = myCh.pc[p.k].ruled;
++    std::vector<double> cut;
++    auto                put = [&](double v) {
++      for (int sh = -1; sh <= 1; sh++)
++      {
++        const double w = v + sh * P;
++        if (w > p.L + eps && w < p.R - eps)
++          cut.push_back(w);
++        if (!per)
++          break;
++      }
++    };
++    for (const Fold& f : myF)
++    {
++      if (rl)
++      {
++        put(f.Wa);
++        put(f.Wb);
++      }
++      if (f.band())
++        put(f.Ws1);
++      put(f.Ws2);
++    }
++    std::sort(cut.begin(), cut.end());
++    cut.erase(std::unique(cut.begin(), cut.end(), [&](double a, double b) { return std::abs(a - b) < eps; }), cut.end());
++    double L = p.L;
++    for (size_t j = 0; j <= cut.size(); j++)
++    {
++      const double Rr = j < cut.size() ? cut[j] : p.R;
++      const int    fi = foldAt(0.5 * (L + Rr), true);
++      bool         in = false;
++      if (rl && fi >= 0)
++      {
++        const double a = toLoop(myF[fi], L);
++        in             = a >= myF[fi].Wa - eps && a + (Rr - L) <= myF[fi].Wb + eps;
++      }
++      // a kept part of a ruled piece gets the segment of the piece surface over its own range: the
++      // piece surface continues into the folded part, and a face on it would carry the fold (and
++      // its intersections with other shapes the fold's approximation tolerance)
++      occ::handle<Geom_Surface> sf;
++      if (!in)
++      {
++        const Piece& Pc = myCh.pc[p.k];
++        sf              = Pc.surf;
++        occ::handle<Geom_BSplineSurface> bs = occ::down_cast<Geom_BSplineSurface>(Pc.surf);
++        if (rl && !bs.IsNull())
++        {
++          // at an end of the piece the cell keeps the whole surface beyond it: a prolonged stripe
++          // ends on the wall curve, not on the section at w0 / w1
++          double l = j == 0 ? Pc.sw0 : L - p.L + Pc.w0, r = j == cut.size() ? Pc.sw1 : Rr - p.L + Pc.w0, u0, u1, v0, v1;
++          bs->Bounds(u0, u1, v0, v1);
++          l = std::max(l, Pc.linU ? v0 : u0);
++          r = std::min(r, Pc.linU ? v1 : u1);
++          if (r - l < (Pc.sw1 - Pc.sw0) * (1. - 1e-12))
++          {
++            bs = occ::down_cast<Geom_BSplineSurface>(bs->Copy());
++            if (Pc.linU)
++              bs->Segment(u0, u1, l, r);
++            else
++              bs->Segment(l, r, v0, v1);
++            sf = bs;
++          }
++        }
++      }
++      cells.push_back({p.k, (int)ip, L, Rr, in ? fi : -1, in, j > 0, sf, TopoDS_Face()});
++      L = Rr;
++    }
++  }
++  const size_t nc = cells.size();
++  if (nc == 0)
++    UNF_FAIL;
++  // boundary i lies between the cells prv(i) and i
++  auto prv      = [&](size_t i) { return (i + nc - 1) % nc; };
++  auto adjacent = [&](size_t i) {
++    if (i > 0)
++      return std::abs(cells[i - 1].R - cells[i].L) < eps;
++    return per && std::abs(cells[nc - 1].R - (cells[0].L + P)) < eps;
++  };
++  // abscissa of loop coordinate w in the frame of cell c
++  auto toCell = [&](const CellX& c, double w) {
++    if (per)
++    {
++      const double mid = 0.5 * (c.L + c.R);
++      while (w < mid - 0.5 * P)
++        w += P;
++      while (w > mid + 0.5 * P)
++        w -= P;
++    }
++    return w;
++  };
++  // range of cell c in the abscissa of loop f (a cell holding the start of the loop keeps it)
++  auto loopRange = [&](const Fold& f, const CellX& c, double& a, double& b) {
++    a = toLoop(f, c.L);
++    if (per && a - P + (c.R - c.L) > f.Wa + eps)
++      a -= P;
++    b = a + (c.R - c.L);
++  };
++  // a non-refitted cell must not carry the two sides of one ridge
++  for (const CellX& c : cells)
++    if (!c.refit)
++      for (const Fold& f : myF)
++      {
++        double a, b;
++        loopRange(f, c, a, b);
++        if (a < f.Ws1 - eps && b > f.Ws2 + eps)
++          UNF_FAIL;
++      }
++
++  // ---- vertices. New geometry is exact to its own deviation: new edges and refitted faces start at
++  // the confusion tolerance and SameParameter raises them to the measured deviation (tight
++  // tolerances matter where the two sheets meet at a small angle along the ridge). Vertices on old
++  // edges take the tolerance of the stripe.
++  const double tolN = Precision::Confusion();
++  double       tolV = tolN;
++  for (const Piece& p : myCh.pc)
++    tolV = std::max(tolV, BRep_Tool::Tolerance(p.face));
++  for (Fold& f : myF)
++  {
++    B.MakeVertex(f.Va, f.Xa, tolV);
++    B.MakeVertex(f.Vm, f.Xm, std::max(tolV, 2. * f.tolM));
++  }
++  auto findA = [&](const Fold& f, double w) -> const RPt* {
++    for (const RPt& r : f.R)
++      if (std::abs(r.W - w) < eps)
++        return &r;
++    return nullptr;
++  };
++  auto findB = [&](const Fold& f, double w2) -> const RPt* {
++    for (const RPt& r : f.R)
++      if (std::abs(r.W2 - w2) < eps)
++        return &r;
++    return nullptr;
++  };
++  // top point at the interior boundaries: trimmed (inside a loop) or the old one (h = 1)
++  std::vector<TopoDS_Vertex> topV(nc);
++  std::vector<gp_Pnt>        topP(nc);
++  std::vector<double>        topS(nc, 1.);
++  std::vector<int>           topF(nc, -1);
++  for (size_t i = 0; i < nc; i++)
++  {
++    if (!adjacent(i))
++      continue;
++    const double b  = cells[i].L;
++    const int    fi = foldAt(b, false);
++    topF[i]         = fi;
++    if (fi < 0)
++      continue;
++    const Fold&  f  = myF[fi];
++    const double bl = toLoop(f, b);
++    double       d;
++    if (std::abs(bl - f.Wa) < eps || std::abs(bl - f.Wb) < eps)
++    {
++      topV[i] = f.Va;
++      topP[i] = f.Xa;
++      topS[i] = 1.;
++    }
++    else if (bl >= f.Ws1 - eps && bl <= f.Ws2 + eps)
++    {
++      topV[i] = f.Vm;
++      topP[i] = f.Xm;
++      if (!distToRuling(myCh, bl, f.Xm, d, topS[i]))
++        UNF_FAIL;
++    }
++    else
++    {
++      const RPt* q = bl < f.Ws1 ? findA(f, bl) : findB(f, bl);
++      if (!q)
++        UNF_FAIL;
++      B.MakeVertex(topV[i], q->X, tolV);
++      topP[i] = q->X;
++      topS[i] = bl < f.Ws1 ? q->s : q->s2;
++    }
++  }
++  // cell holding loop abscissa w
++  auto cellOf = [&](const Fold& f, double w, bool left) -> int {
++    int found = -1;
++    for (size_t i = 0; i < nc; i++)
++    {
++      double a, b;
++      loopRange(f, cells[i], a, b);
++      if (w >= a - eps && w <= b + eps)
++      {
++        found = (int)i;
++        if (left)
++          break;
++      }
++    }
++    return found;
++  };
++
++  // ---- ridge edges of every loop, split where either branch crosses a cell boundary
++  struct REdge
++  {
++    int              fold;
++    TopoDS_Edge      e;
++    std::vector<RPt> S; // samples, ascending W (loop abscissae)
++    int              cA, cB;
++  };
++  std::vector<REdge> redges;
++  for (int fi = 0; fi < nf; fi++)
++  {
++    const Fold&         f = myF[fi];
++    std::vector<double> splitW{f.Wa, f.Ws1};
++    std::vector<std::pair<double, size_t>> vAt; // A abscissa of a boundary vertex -> boundary
++    for (size_t i = 0; i < nc; i++)
++    {
++      if (!adjacent(i) || topF[i] != fi)
++        continue;
++      const double bl = toLoop(f, cells[i].L);
++      if (bl > f.Wa + eps && bl < f.Ws1 - eps)
++      {
++        splitW.push_back(bl);
++        vAt.push_back({bl, i});
++      }
++      if (bl > f.Ws2 + eps && bl < f.Wb - eps)
++      {
++        const RPt* q = findB(f, bl);
++        if (!q)
++          UNF_FAIL;
++        splitW.push_back(q->W);
++        vAt.push_back({q->W, i});
++      }
++    }
++    std::sort(splitW.begin(), splitW.end());
++    splitW.erase(std::unique(splitW.begin(), splitW.end(), [&](double a, double b) { return std::abs(a - b) < eps; }),
++                 splitW.end());
++    auto vertexAtW = [&](double w) -> TopoDS_Vertex {
++      if (std::abs(w - f.Wa) < eps)
++        return f.Va;
++      if (std::abs(w - f.Ws1) < eps)
++        return f.Vm;
++      for (const auto& x : vAt)
++        if (std::abs(x.first - w) < eps)
++          return topV[x.second];
++      return TopoDS_Vertex();
++    };
++    for (size_t j = 0; j + 1 < splitW.size(); j++)
++    {
++      const double     w0 = splitW[j], w1 = splitW[j + 1];
++      std::vector<RPt> S;
++      for (const RPt& r : f.R)
++        if (r.W >= w0 - eps && r.W <= w1 + eps)
++          S.push_back(r);
++      if (S.size() < 2)
++        UNF_FAIL;
++      for (int pass = 0; pass < 8 && S.size() < 24; pass++)
++      {
++        std::vector<RPt> T;
++        for (size_t i = 0; i + 1 < S.size(); i++)
++        {
++          T.push_back(S[i]);
++          if (S[i + 1].W > f.Wfit + eps)
++            continue; // fitted end part: no ridge equation there
++          RPt m;
++          m.W  = 0.5 * (S[i].W + S[i + 1].W);
++          m.W2 = 0.5 * (S[i].W2 + S[i + 1].W2);
++          m.s  = 0.5 * (S[i].s + S[i + 1].s);
++          m.s2 = 0.5 * (S[i].s2 + S[i + 1].s2);
++          if (correctW(myCh, m, myTolX) && m.W2 < S[i].W2 + eps && m.W2 > S[i + 1].W2 - eps)
++            T.push_back(m);
++        }
++        T.push_back(S.back());
++        if (T.size() == S.size())
++          break;
++        S.swap(T);
++      }
++      std::vector<RPt> T;
++      for (const RPt& r : S)
++        if (T.empty() || r.W - T.back().W > 1e-7 * (w1 - w0))
++          T.push_back(r);
++      if (T.back().W < w1 - eps)
++        T.back() = S.back();
++      S.swap(T);
++      TopoDS_Vertex v0 = vertexAtW(w0), v1 = vertexAtW(w1);
++      if (v0.IsNull() || v1.IsNull() || S.size() < 2)
++        UNF_FAIL;
++      S.front().W = w0;
++      S.back().W  = w1;
++      S.front().X = BRep_Tool::Pnt(v0);
++      S.back().X  = BRep_Tool::Pnt(v1);
++      const int cA = cellOf(f, 0.5 * (w0 + w1), true);
++      const int cB = cellOf(f, 0.5 * (S.front().W2 + S.back().W2), false);
++      UNF_TRACE("UNFOLD ridge edge loop %d W %.9g..%.9g W2 %.9g..%.9g cells %d %d\n", fi, w0, w1, S.front().W2,
++                S.back().W2, cA, cB);
++      if (cA < 0 || cB < 0 || cA == cB)
++        UNF_FAIL;
++      std::vector<gp_Pnt> P3;
++      std::vector<double> t;
++      for (const RPt& r : S)
++      {
++        P3.push_back(r.X);
++        t.push_back(r.W);
++      }
++      occ::handle<Geom_Curve> c3 = interp3d(P3, t);
++      if (c3.IsNull())
++        UNF_FAIL;
++      TopoDS_Edge e;
++      B.MakeEdge(e, c3, tolN);
++      B.Add(e, v0.Oriented(TopAbs_FORWARD));
++      B.Add(e, v1.Oriented(TopAbs_REVERSED));
++      B.Range(e, w0, w1);
++      redges.push_back({fi, e, S, cA, cB});
++    }
++  }
++
++  // ---- trim curve nodes of a refitted cell (cell abscissa, s on the ruling, point)
++  struct Node
++  {
++    double W, s;
++    gp_Pnt X;
++  };
++  auto topNodes = [&](const CellX& c, std::vector<Node>& nd) -> bool {
++    nd.clear();
++    const Fold& f = myF[c.fold];
++    double      cl, cr;
++    loopRange(f, c, cl, cr);
++    if (f.band() && cl >= f.Ws1 - eps && cr <= f.Ws2 + eps)
++    {
++      for (int j = 0; j <= 16; j++)
++      {
++        const double w = c.L + (c.R - c.L) * j / 16.;
++        double       d, s;
++        if (!distToRuling(myCh, w, f.Xm, d, s))
++          return false;
++        nd.push_back({w, s, f.Xm});
++      }
++      return true;
++    }
++    for (const REdge& r : redges)
++      if (r.fold == c.fold)
++        for (const RPt& q : r.S)
++        {
++          if (cr <= f.Ws1 + eps && q.W >= cl - eps && q.W <= cr + eps)
++            nd.push_back({q.W - cl + c.L, q.s, q.X});
++          if (cl >= f.Ws2 - eps && q.W2 >= cl - eps && q.W2 <= cr + eps)
++            nd.push_back({q.W2 - cl + c.L, q.s2, q.X});
++        }
++    std::sort(nd.begin(), nd.end(), [](const Node& a, const Node& b) { return a.W < b.W; });
++    std::vector<Node> u;
++    for (const Node& x : nd)
++      if (u.empty() || x.W - u.back().W > 1e-7 * (c.R - c.L))
++        u.push_back(x);
++      else if (std::abs(x.W - c.R) < eps)
++        u.back() = x;
++    nd.swap(u);
++    return nd.size() >= 2 && std::abs(nd.front().W - c.L) < 1e-6 * total && std::abs(nd.back().W - c.R) < 1e-6 * total;
++  };
++
++  // ---- refitted surfaces: ruled BSpline between the other contact (u = 0) and the trim curve
++  //      (u = 1), v = cell abscissa
++  for (CellX& c : cells)
++  {
++    if (!c.refit)
++      continue;
++    std::vector<Node> nd;
++    if (!topNodes(c, nd))
++    {
++      UNF_TRACE("UNFOLD cell %.12g..%.12g fold %d: %d nodes %.12g..%.12g\n", c.L, c.R, c.fold, (int)nd.size(),
++                nd.empty() ? 0. : nd.front().W, nd.empty() ? 0. : nd.back().W);
++      UNF_FAIL;
++    }
++    std::vector<gp_Pnt> P0, P1;
++    std::vector<double> t;
++    for (const Node& x : nd)
++    {
++      gp_Pnt A, Bq;
++      if (!myCh.ruling(x.W, A, Bq))
++        UNF_FAIL;
++      P0.push_back(A);
++      P1.push_back(x.X);
++      t.push_back(x.W);
++    }
++    t.front() = c.L;
++    t.back()  = c.R;
++    occ::handle<Geom_BSplineCurve> b0 = occ::down_cast<Geom_BSplineCurve>(interp3d(P0, t));
++    occ::handle<Geom_BSplineCurve> b1;
++    bool                           point = true;
++    for (const gp_Pnt& x : P1)
++      point &= x.Distance(P1.front()) <= Precision::Confusion();
++    if (point && !b0.IsNull())
++    {
++      // apex: the trim curve is one point; same knots as the other contact
++      b1 = occ::down_cast<Geom_BSplineCurve>(b0->Copy());
++      for (int j = 1; j <= b1->NbPoles(); j++)
++        b1->SetPole(j, P1.front());
++    }
++    else
++      b1 = occ::down_cast<Geom_BSplineCurve>(interp3d(P1, t));
++    if (b0.IsNull() || b1.IsNull() || b0->NbPoles() != b1->NbPoles() || b0->NbKnots() != b1->NbKnots()
++        || b0->Degree() != b1->Degree())
++      UNF_FAIL;
++    NCollection_Array2<gp_Pnt> poles(1, 2, 1, b0->NbPoles());
++    for (int j = 1; j <= b0->NbPoles(); j++)
++    {
++      poles(1, j) = b0->Pole(j);
++      poles(2, j) = b1->Pole(j);
++    }
++    NCollection_Array1<double> uk(1, 2), vk(1, b0->NbKnots());
++    NCollection_Array1<int>    um(1, 2), vm(1, b0->NbKnots());
++    uk(1) = 0.;
++    uk(2) = 1.;
++    um(1) = 2;
++    um(2) = 2;
++    for (int j = 1; j <= b0->NbKnots(); j++)
++    {
++      vk(j) = b0->Knot(j);
++      vm(j) = b0->Multiplicity(j);
++      if (std::abs(b1->Knot(j) - vk(j)) > 1e-12 * (1. + std::abs(vk(j))) || b1->Multiplicity(j) != vm(j))
++        UNF_FAIL;
++    }
++    c.surf = new Geom_BSplineSurface(poles, uk, vk, um, vm, 1, b0->Degree());
++  }
++
++  // ---- 2D curves. On a refitted cell the point (W, s) with trim value h is (s / h, W); on the
++  //      other cells it is the point of the piece surface.
++  auto uvCell = [&](const CellX& c, double w, double s, double h, gp_Pnt2d& q) -> bool {
++    if (c.refit)
++    {
++      if (h <= 0.)
++        return false;
++      q = gp_Pnt2d(s / h, toCell(c, w));
++      return true;
++    }
++    return myCh.uv(c.k, w, s, q);
++  };
++  auto addPC = [&](const TopoDS_Edge& e, const CellX& c, double f, double l, auto sampler) -> bool {
++    const int             m = 16;
++    std::vector<gp_Pnt2d> q;
++    std::vector<double>   t;
++    for (int j = 0; j <= m; j++)
++    {
++      const double p = f + (l - f) * j / m;
++      double       w, s, h;
++      if (!sampler(p, w, s, h))
++        return false;
++      gp_Pnt2d x;
++      if (!uvCell(c, w, s, h, x))
++        return false;
++      q.push_back(x);
++      t.push_back(p);
++    }
++    occ::handle<Geom2d_Curve> c2 = interp2d(q, t);
++    if (c2.IsNull())
++      return false;
++    B.UpdateEdge(e, c2, c.surf, TopLoc_Location(), BRep_Tool::Tolerance(e));
++    B.Range(e, c.surf, TopLoc_Location(), f, l);
++    return true;
++  };
++  auto oldWS = [&](const TopoDS_Edge& e, int k, double p, double& w, double& s) -> bool {
++    const Piece&              Pc = myCh.pc[k];
++    double                    f, l;
++    occ::handle<Geom2d_Curve> pc = BRep_Tool::CurveOnSurface(e, Pc.surf, TopLoc_Location(), f, l);
++    if (pc.IsNull() || !Pc.ruled)
++      return false;
++    const gp_Pnt2d x  = pc->Value(p);
++    const double   ln = Pc.linU ? x.X() : x.Y();
++    w                 = Pc.linU ? x.Y() : x.X();
++    s                 = (ln - Pc.pO) / (Pc.pF - Pc.pO);
++    return true;
++  };
++  for (REdge& r : redges)
++    for (int side = 0; side < 2; side++)
++    {
++      CellX&                c = cells[side == 0 ? r.cA : r.cB];
++      std::vector<gp_Pnt2d> q;
++      std::vector<double>   t;
++      for (const RPt& x : r.S)
++      {
++        gp_Pnt2d     p;
++        const double w = side == 0 ? x.W : x.W2, s = side == 0 ? x.s : x.s2;
++        if (!uvCell(c, w, s, s, p))
++          UNF_FAIL;
++        q.push_back(p);
++        t.push_back(x.W);
++      }
++      occ::handle<Geom2d_Curve> c2 = interp2d(q, t);
++      if (c2.IsNull())
++        UNF_FAIL;
++      B.UpdateEdge(r.e, c2, c.surf, TopLoc_Location(), tolN);
++      B.Range(r.e, c.surf, TopLoc_Location(), r.S.front().W, r.S.back().W);
++    }
++
++  // ---- fold contact edges: the parts outside every loop (per touched piece, ascending W)
++  struct CPart
++  {
++    TopoDS_Edge e;
++    double      a, b; // chain abscissae
++    bool        fwd;  // parameter ascends with W
++  };
++  NCollection_DataMap<int, std::vector<CPart>> keptF; // index in prs -> parts
++  for (size_t ip = 0; ip < prs.size(); ip++)
++  {
++    if (!prs[ip].touched)
++      continue;
++    const PR&    p  = prs[ip];
++    const Piece& Pc = myCh.pc[p.k];
++    gp_Pnt       A0, B0, A1, B1;
++    myCh.ruling(p.L, A0, B0);
++    myCh.ruling(p.R, A1, B1);
++    // the ends of the contact edge itself (a corner at a stripe end may have cut it short of the
++    // section of the piece end)
++    const TopoDS_Vertex vL = vertexNear(Pc.gF, B0), vR = vertexNear(Pc.gF, B1);
++    const double        p0 = endParam(Pc.gF, B0, B1, true, dirAt(p.L, true)),
++                 p1 = endParam(Pc.gF, B0, B1, false, dirAt(p.L, true));
++    struct BP
++    {
++      double        w, prm;
++      TopoDS_Vertex v;
++    };
++    std::vector<BP> bp{{p.L, p0, vL}};
++    auto            into = [&](double v, double& w) {
++      for (int sh = -1; sh <= 1; sh++)
++      {
++        w = v + sh * P;
++        if (w > p.L - eps && w < p.R + eps)
++          return true;
++        if (!per)
++          break;
++      }
++      return false;
++    };
++    for (const Fold& f : myF)
++    {
++      double w;
++      if (f.ka == p.k && into(f.Wa, w))
++        bp.push_back({w, f.pa, f.Va});
++      if (f.kb == p.k && into(f.Wb, w))
++        bp.push_back({w, f.pb, f.Va});
++    }
++    bp.push_back({p.R, p1, vR});
++    std::sort(bp.begin(), bp.end(), [](const BP& x, const BP& y) { return x.w < y.w; });
++    std::vector<CPart> parts;
++    for (size_t j = 0; j + 1 < bp.size(); j++)
++    {
++      if (bp[j + 1].w - bp[j].w < eps || foldAt(0.5 * (bp[j].w + bp[j + 1].w), true) >= 0)
++        continue;
++      const TopoDS_Edge e = splitEdge(Pc.gF, bp[j].v, bp[j].prm, bp[j + 1].v, bp[j + 1].prm);
++      parts.push_back({e, bp[j].w, bp[j + 1].w, bp[j].prm < bp[j + 1].prm});
++    }
++    keptF.Bind((int)ip, parts);
++  }
++
++  // ---- other contact: split at the new boundaries; new ruling edges there; sides
++  std::vector<TopoDS_Edge> botE(nc);
++  std::vector<TopoDS_Edge> sideE(nc);
++  std::vector<bool>        sideUp(nc, true);
++  std::vector<bool>        sideNew(nc, false);
++  NCollection_DataMap<int, NCollection_List<TopoDS_Shape>> keptO; // index in prs -> parts (ascending W)
++  {
++    std::vector<TopoDS_Vertex> botV(nc);
++    for (size_t i = 0; i < nc; i++)
++      if (adjacent(i) && cells[i].newL)
++      {
++        gp_Pnt A, Bq;
++        myCh.ruling(cells[i].L, A, Bq);
++        B.MakeVertex(botV[i], A, tolV);
++      }
++    for (size_t ip = 0; ip < prs.size(); ip++)
++    {
++      if (!prs[ip].touched)
++        continue;
++      const Piece&        Pc = myCh.pc[prs[ip].k];
++      std::vector<size_t> cs;
++      for (size_t i = 0; i < nc; i++)
++        if (cells[i].ip == (int)ip)
++          cs.push_back(i);
++      if (cs.size() == 1)
++      {
++        botE[cs[0]] = Pc.gO;
++        continue;
++      }
++      NCollection_List<TopoDS_Shape> L;
++      for (size_t j = 0; j < cs.size(); j++)
++      {
++        const CellX& c = cells[cs[j]];
++        gp_Pnt       A0, B0, A1, B1;
++        myCh.ruling(c.L, A0, B0);
++        myCh.ruling(c.R, A1, B1);
++        // at the piece ends: the ends of the contact edge itself (a corner may have cut it)
++        double p0, p1;
++        gp_Pnt PA0, PB0, PA1, PB1; // the piece ends
++        myCh.ruling(prs[ip].L, PA0, PB0);
++        myCh.ruling(prs[ip].R, PA1, PB1);
++        if (j == 0)
++          p0 = endParam(Pc.gO, PA0, PA1, true, dirAt(prs[ip].L, false));
++        else if (!paramOn(Pc.gO, A0, p0))
++          UNF_FAIL;
++        if (j + 1 == cs.size())
++          p1 = endParam(Pc.gO, PA0, PA1, false, dirAt(prs[ip].L, false));
++        else if (!paramOn(Pc.gO, A1, p1))
++          UNF_FAIL;
++        const TopoDS_Vertex v0 = j == 0 ? vertexNear(Pc.gO, A0) : botV[cs[j]];
++        const TopoDS_Vertex v1 = j + 1 == cs.size() ? vertexNear(Pc.gO, A1) : botV[cs[j] + 1];
++        botE[cs[j]]            = splitEdge(Pc.gO, v0, p0, v1, p1);
++        L.Append(botE[cs[j]]);
++      }
++      keptO.Bind((int)ip, L);
++    }
++    auto commonEdge = [&](const TopoDS_Face& f1, const TopoDS_Face& f2, const gp_Pnt& Ab) -> TopoDS_Edge {
++      TopoDS_Edge best;
++      double      bd = RealLast();
++      for (TopExp_Explorer a(f1, TopAbs_EDGE); a.More(); a.Next())
++        for (TopExp_Explorer b(f2, TopAbs_EDGE); b.More(); b.Next())
++          if (a.Current().IsSame(b.Current()))
++          {
++            const TopoDS_Edge& e = TopoDS::Edge(a.Current());
++            const double       d = BRep_Tool::Pnt(vertexNear(e, Ab)).Distance(Ab);
++            if (d < bd)
++            {
++              bd   = d;
++              best = e;
++            }
++          }
++      return best;
++    };
++    for (size_t i = 0; i < nc; i++)
++    {
++      if (!adjacent(i))
++        continue;
++      const double b = cells[i].L;
++      gp_Pnt       A, Bq;
++      myCh.ruling(b, A, Bq);
++      if (cells[i].newL)
++      {
++        // new ruling edge from C_o(b) (s = 0) to the top point
++        std::vector<gp_Pnt> pp{A, topP[i]};
++        std::vector<double> tt{0., topS[i]};
++        TopoDS_Edge         e;
++        B.MakeEdge(e, interp3d(pp, tt), tolV);
++        B.Add(e, botV[i].Oriented(TopAbs_FORWARD));
++        B.Add(e, topV[i].Oriented(TopAbs_REVERSED));
++        B.Range(e, 0., topS[i]);
++        sideE[i]   = e;
++        sideUp[i]  = true;
++        sideNew[i] = true;
++        continue;
++      }
++      TopoDS_Edge old = commonEdge(myCh.pc[cells[prv(i)].k].face, myCh.pc[cells[i].k].face, A);
++      if (old.IsNull())
++        UNF_FAIL;
++      if (topF[i] < 0)
++      {
++        sideE[i]  = old; // outside every loop: unchanged
++        sideUp[i] = startsNear(old, A, Bq);
++        continue;
++      }
++      double pb, pt;
++      if (!paramOn(old, A, pb) || !paramOn(old, topP[i], pt))
++        UNF_FAIL;
++      sideE[i]  = splitEdge(old, vertexNear(old, A), pb, topV[i], pt);
++      sideUp[i] = pb < pt;
++    }
++  }
++
++  // ---- degenerate edges over the apex bands
++  std::vector<std::vector<std::pair<std::pair<double, double>, TopoDS_Edge>>> degE(nc);
++  for (size_t ci = 0; ci < nc; ci++)
++    for (int fi = 0; fi < nf; fi++)
++    {
++      const Fold&  f = myF[fi];
++      const CellX& c = cells[ci];
++      if (!f.band())
++        continue;
++      const double a = std::max(c.L, toCell(c, f.Ws1)), b = std::min(c.R, toCell(c, f.Ws1) + (f.Ws2 - f.Ws1));
++      if (b <= a + eps)
++        continue;
++      TopoDS_Edge e;
++      B.MakeEdge(e);
++      B.Degenerated(e, true);
++      B.Add(e, f.Vm.Oriented(TopAbs_FORWARD));
++      B.Add(e, f.Vm.Oriented(TopAbs_REVERSED));
++      degE[ci].push_back({{a, b}, e});
++      if (!addPC(e, c, a, b, [&](double p, double& w, double& s, double& h) {
++            double d;
++            w = p;
++            if (!distToRuling(myCh, w, f.Xm, d, s))
++              return false;
++            h = s;
++            return true;
++          }))
++        UNF_FAIL;
++    }
++
++  // ---- pcurves of the other edges on refitted cells, and of new edges on the other cells
++  for (size_t ci = 0; ci < nc; ci++)
++  {
++    CellX& c = cells[ci];
++    if (c.refit)
++    {
++      const TopoDS_Edge& e = botE[ci];
++      double             f, l;
++      BRep_Tool::Range(e, f, l);
++      if (!addPC(e, c, f, l, [&](double p, double& w, double& s, double& h) {
++            if (!oldWS(e, c.k, p, w, s))
++              return false;
++            s = 0.;
++            h = 1.;
++            return true;
++          }))
++        UNF_FAIL;
++    }
++    for (int sd = 0; sd < 2; sd++)
++    {
++      const size_t i = sd == 0 ? ci : (ci + 1) % nc;
++      if (!adjacent(i))
++        continue; // outer side: old edges on a non-refitted cell
++      const TopoDS_Edge& e  = sideE[i];
++      const double       b  = cells[i].L;
++      const bool         nw = sideNew[i];
++      if (!c.refit && !nw)
++        continue; // old or trimmed old section on the piece surface: its pcurve is there
++      double f, l;
++      BRep_Tool::Range(e, f, l);
++      if (!addPC(e, c, f, l, [&](double p, double& w, double& s, double& h) {
++            w = b;
++            h = topS[i];
++            if (nw)
++            {
++              s = p;
++              return true;
++            }
++            double ww;
++            return oldWS(e, c.k, p, ww, s);
++          }))
++        UNF_FAIL;
++    }
++  }
++  for (size_t ci = 0; ci < nc; ci++)
++    if (cells[ci].refit && (!adjacent(ci) || !adjacent((ci + 1) % nc)))
++      UNF_FAIL; // a refitted cell is always inside a loop, between rebuilt sides
++
++  // ---- faces
++  for (size_t ci = 0; ci < nc; ci++)
++  {
++    CellX&       c  = cells[ci];
++    const Piece& Pc = myCh.pc[c.k];
++    const OldW&  o  = ow[c.ip];
++    const size_t ir = (ci + 1) % nc;
++    ELst         lp; // canonical loop
++    gp_Pnt       A0, B0, A1, B1;
++    myCh.ruling(c.L, A0, B0);
++    myCh.ruling(c.R, A1, B1);
++    lp.push_back({botE[ci], startsNear(botE[ci], A0, A1) ? TopAbs_FORWARD : TopAbs_REVERSED});
++    if (!adjacent(ir))
++      lp.insert(lp.end(), o.right.begin(), o.right.end());
++    else
++      lp.push_back({sideE[ir], sideUp[ir] ? TopAbs_FORWARD : TopAbs_REVERSED});
++    std::vector<TopSeg> top;
++    for (const CPart& cp : keptF.Find(c.ip))
++      if (cp.a >= c.L - eps && cp.b <= c.R + eps)
++        top.push_back({cp.a, cp.b, cp.e, cp.fwd});
++    for (const REdge& r : redges)
++    {
++      if (r.cA == (int)ci)
++        top.push_back({toCell(c, r.S.front().W), toCell(c, r.S.back().W), r.e, true});
++      if (r.cB == (int)ci)
++        top.push_back({toCell(c, r.S.back().W2), toCell(c, r.S.front().W2), r.e, false});
++    }
++    for (const auto& de : degE[ci])
++      top.push_back({de.first.first, de.first.second, de.second, true});
++    std::sort(top.begin(), top.end(), [](const TopSeg& x, const TopSeg& y) { return x.a < y.a; });
++    for (auto it = top.rbegin(); it != top.rend(); ++it)
++      lp.push_back({it->e, it->fwd ? TopAbs_REVERSED : TopAbs_FORWARD});
++    if (!adjacent(ci))
++      lp.insert(lp.end(), o.left.begin(), o.left.end());
++    else
++      lp.push_back({sideE[ci], sideUp[ci] ? TopAbs_REVERSED : TopAbs_FORWARD});
++    // a segment surface: the old edges get their pcurve of the piece surface (same parametrisation)
++    if (!c.refit && c.surf != Pc.surf)
++      for (const auto& x : lp)
++      {
++        const TopoDS_Edge& e = x.first;
++        double             ff, ll;
++        if (BRep_Tool::Degenerated(e) || !BRep_Tool::CurveOnSurface(e, c.surf, TopLoc_Location(), ff, ll).IsNull())
++          continue;
++        occ::handle<Geom2d_Curve> pcO = BRep_Tool::CurveOnSurface(e, Pc.surf, TopLoc_Location(), ff, ll);
++        if (pcO.IsNull())
++          UNF_FAIL;
++        B.UpdateEdge(e, occ::down_cast<Geom2d_Curve>(pcO->Copy()), c.surf, TopLoc_Location(), BRep_Tool::Tolerance(e));
++        B.Range(e, c.surf, TopLoc_Location(), ff, ll);
++      }
++    // counter-clockwise in the parameter plane of the cell surface
++    double area2 = 0.;
++    for (const auto& x : lp)
++    {
++      double                    ff, ll;
++      occ::handle<Geom2d_Curve> pcv = BRep_Tool::CurveOnSurface(x.first, c.surf, TopLoc_Location(), ff, ll);
++      if (pcv.IsNull())
++      {
++        UNF_TRACE("UNFOLD cell %d: an edge has no pcurve\n", (int)ci);
++        UNF_FAIL;
++      }
++      const int m = 16;
++      for (int j = 0; j < m; j++)
++      {
++        double t0 = ff + (ll - ff) * j / m, t1 = ff + (ll - ff) * (j + 1) / m;
++        if (x.second == TopAbs_REVERSED)
++        {
++          t0 = ll - (ll - ff) * j / m;
++          t1 = ll - (ll - ff) * (j + 1) / m;
++        }
++        const gp_Pnt2d a = pcv->Value(t0), b = pcv->Value(t1);
++        area2 += a.X() * b.Y() - b.X() * a.Y();
++      }
++    }
++    TopoDS_Wire w;
++    B.MakeWire(w);
++    if (area2 > 0.)
++      for (auto& x : lp)
++        B.Add(w, x.first.Oriented(x.second));
++    else
++      for (auto it = lp.rbegin(); it != lp.rend(); ++it)
++        B.Add(w, it->first.Oriented(TopAbs::Reverse(it->second)));
++    w.Closed(true);
++    B.MakeFace(c.face, c.surf, TopLoc_Location(), c.refit ? tolN : BRep_Tool::Tolerance(Pc.face));
++    B.Add(c.face, w);
++  }
++
++  // ---- fold face and other faces: contact edges replaced by their kept parts
++  typedef NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> SubMap;
++  typedef NCollection_DataMap<TopoDS_Shape, bool, TopTools_ShapeMapHasher>                           AscMap;
++  // faces of the result per edge (a wire of the fold face none of whose edges has another face is a
++  // leftover of the builder on a folded stripe: the old rim kept as a free wire)
++  NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> e2f;
++  TopExp::MapShapesAndUniqueAncestors(res, TopAbs_EDGE, TopAbs_FACE, e2f);
++  auto rebuildFace = [&](const TopoDS_Face& F, const SubMap& sub, const AscMap& asc) {
++    TopoDS_Face NF = TopoDS::Face(F.Oriented(TopAbs_FORWARD).EmptyCopied());
++    for (TopoDS_Iterator iw(F.Oriented(TopAbs_FORWARD), false); iw.More(); iw.Next())
++    {
++      const TopoDS_Wire& W   = TopoDS::Wire(iw.Value());
++      bool               mod = false, shared = false;
++      for (TopoDS_Iterator ie(W, false); ie.More(); ie.Next())
++      {
++        mod |= sub.IsBound(ie.Value());
++        const int ix = e2f.FindIndex(ie.Value());
++        shared |= BRep_Tool::Degenerated(TopoDS::Edge(ie.Value())) || (ix > 0 && e2f(ix).Extent() > 1);
++      }
++      if (!mod && !shared)
++      {
++        UNF_TRACE("UNFOLD free wire of the support face dropped\n");
++        continue;
++      }
++      if (!mod)
++      {
++        B.Add(NF, W);
++        continue;
++      }
++      TopoDS_Wire nw = TopoDS::Wire(W.Oriented(TopAbs_FORWARD).EmptyCopied());
++      for (TopoDS_Iterator ie(W.Oriented(TopAbs_FORWARD), false); ie.More(); ie.Next())
++      {
++        const TopoDS_Shape& e = ie.Value();
++        if (!sub.IsBound(e))
++        {
++          B.Add(nw, e);
++          continue;
++        }
++        const bool                up = (e.Orientation() == TopAbs_FORWARD) == asc.Find(e);
++        std::vector<TopoDS_Shape> v(sub.Find(e).begin(), sub.Find(e).end());
++        if (!up)
++          std::reverse(v.begin(), v.end());
++        for (const TopoDS_Shape& x : v)
++          B.Add(nw, x.Oriented(e.Orientation()));
++      }
++      nw.Closed(true);
++      nw.Orientation(W.Orientation());
++      B.Add(NF, nw);
++    }
++    NF.Orientation(F.Orientation());
++    return NF;
++  };
++  SubMap subF, subO;
++  AscMap ascF, ascO;
++  for (size_t ip = 0; ip < prs.size(); ip++)
++  {
++    if (!prs[ip].touched)
++      continue;
++    const Piece& Pc = myCh.pc[prs[ip].k];
++    gp_Pnt       A0, B0, A1, B1;
++    myCh.ruling(Pc.w0, A0, B0);
++    myCh.ruling(Pc.w1, A1, B1);
++    NCollection_List<TopoDS_Shape> L;
++    for (const CPart& cp : keptF.Find((int)ip))
++      L.Append(cp.e);
++    subF.Bind(Pc.gF, L);
++    ascF.Bind(Pc.gF, startsNear(Pc.gF, B0, B1));
++    if (keptO.IsBound((int)ip))
++    {
++      subO.Bind(Pc.gO, keptO.Find((int)ip));
++      ascO.Bind(Pc.gO, startsNear(Pc.gO, A0, A1));
++    }
++  }
++  TopoDS_Face newFF = rebuildFace(myFF, subF, ascF);
++  {
++    // A wire holding kept contact parts must leave the stripe on its right side in the parameter
++    // plane of the face (outside the face region), as the rim it replaces did. The face built by
++    // the builder on a folded stripe may hold the complementary region: such a wire is reversed.
++    TopoDS_Face                     NF = TopoDS::Face(newFF.Oriented(TopAbs_FORWARD).EmptyCopied());
++    const TopoDS_Face               Ff = TopoDS::Face(newFF.Oriented(TopAbs_FORWARD));
++    TopLoc_Location                 lf;
++    const occ::handle<Geom_Surface> sf = BRep_Tool::Surface(Ff, lf);
++    for (TopoDS_Iterator iw(Ff, false); iw.More(); iw.Next())
++    {
++      const TopoDS_Wire& W    = TopoDS::Wire(iw.Value());
++      int                vote = 0;
++      for (TopExp_Explorer ee(W.Oriented(TopAbs_FORWARD), TopAbs_EDGE); ee.More(); ee.Next())
++      {
++        const CPart* cp = nullptr;
++        for (NCollection_DataMap<int, std::vector<CPart>>::Iterator it(keptF); it.More() && !cp; it.Next())
++          for (const CPart& x : it.Value())
++            if (x.e.IsSame(ee.Current()))
++              cp = &x;
++        if (!cp)
++          continue;
++        // orientation of the edge in the face frame (wire orientation included)
++        TopAbs_Orientation eo = ee.Current().Orientation();
++        if (W.Orientation() == TopAbs_REVERSED)
++          eo = TopAbs::Reverse(eo);
++        double                    f, l;
++        occ::handle<Geom2d_Curve> pc = BRep_Tool::CurveOnSurface(cp->e, Ff, f, l);
++        if (pc.IsNull())
++          continue;
++        gp_Pnt2d uv;
++        gp_Vec2d t;
++        pc->D1(0.5 * (f + l), uv, t);
++        if (eo == TopAbs_REVERSED)
++          t.Reverse();
++        // direction toward the stripe: the other contact point of the ruling through the midpoint
++        gp_Pnt A, Bq;
++        if (!myCh.ruling(0.5 * (cp->a + cp->b), A, Bq))
++          continue;
++        gp_Pnt X;
++        gp_Vec du, dv;
++        sf->D1(uv.X(), uv.Y(), X, du, dv);
++        const gp_Vec d(Bq, A);
++        const double a11 = du.Dot(du), a12 = du.Dot(dv), a22 = dv.Dot(dv), b1 = d.Dot(du), b2 = d.Dot(dv);
++        const double det = a11 * a22 - a12 * a12;
++        if (std::abs(det) < 1e-300)
++          continue;
++        const gp_Vec2d d2((a22 * b1 - a12 * b2) / det, (a11 * b2 - a12 * b1) / det);
++        vote += t.Crossed(d2) < 0. ? 1 : -1; // stripe on the right: correct
++      }
++      if (vote < 0)
++      {
++        UNF_TRACE("UNFOLD support face wire reversed (it held the complementary region)\n");
++        TopoDS_Wire               rw = TopoDS::Wire(W.Oriented(TopAbs_FORWARD).EmptyCopied());
++        std::vector<TopoDS_Shape> es;
++        for (TopoDS_Iterator ie(W.Oriented(TopAbs_FORWARD), false); ie.More(); ie.Next())
++          es.push_back(ie.Value());
++        for (auto it = es.rbegin(); it != es.rend(); ++it)
++          B.Add(rw, it->Reversed());
++        rw.Closed(true);
++        rw.Orientation(W.Orientation());
++        B.Add(NF, rw);
++      }
++      else
++        B.Add(NF, W);
++    }
++    NF.Orientation(newFF.Orientation());
++    newFF = NF;
++  }
++  SubMap            faceRepl;
++  for (SubMap::Iterator it(subO); it.More(); it.Next())
++  {
++    TopoDS_Face fo;
++    for (TopExp_Explorer ef(res, TopAbs_FACE); ef.More() && fo.IsNull(); ef.Next())
++    {
++      const TopoDS_Face& f      = TopoDS::Face(ef.Current());
++      bool               stripe = false;
++      for (const Piece& p : myCh.pc)
++        stripe |= f.IsSame(p.face);
++      if (stripe || f.IsSame(myFF))
++        continue;
++      for (TopExp_Explorer ee(f, TopAbs_EDGE); ee.More(); ee.Next())
++        if (ee.Current().IsSame(it.Key()))
++        {
++          fo = f;
++          break;
++        }
++    }
++    if (fo.IsNull())
++      UNF_FAIL;
++    if (faceRepl.IsBound(fo))
++      continue;
++    SubMap one;
++    AscMap oneA;
++    for (SubMap::Iterator jt(subO); jt.More(); jt.Next())
++      for (TopExp_Explorer ee(fo, TopAbs_EDGE); ee.More(); ee.Next())
++        if (ee.Current().IsSame(jt.Key()) && !one.IsBound(jt.Key()))
++        {
++          one.Bind(jt.Key(), jt.Value());
++          oneA.Bind(jt.Key(), ascO.Find(jt.Key()));
++        }
++    faceRepl.Bind(fo, NCollection_List<TopoDS_Shape>());
++    faceRepl.ChangeFind(fo).Append(rebuildFace(fo, one, oneA));
++  }
++
++  // ---- same parameter and validity of every new face
++  for (const CellX& c : cells)
++    BRepLib::SameParameter(c.face, tolN, true);
++  BRepLib::SameParameter(newFF, tolN, true);
++  for (SubMap::Iterator it(faceRepl); it.More(); it.Next())
++    BRepLib::SameParameter(TopoDS::Face(it.Value().First()), tolN, true);
++  // every edge at least as tolerant as the largest gap between its 3D curve and its pcurve on
++  // each new face (the refitted cells and the trim curves are interpolations: their gap is the
++  // approximation error, measured the way the Boolean check measures it)
++  auto fitTol = [&](const TopoDS_Face& F) {
++    for (TopExp_Explorer ee(F, TopAbs_EDGE); ee.More(); ee.Next())
++    {
++      const TopoDS_Edge& E = TopoDS::Edge(ee.Current());
++      if (BRep_Tool::Degenerated(E))
++        continue;
++      BRepLib_CheckCurveOnSurface cc(E, F);
++      cc.Perform();
++      if (cc.IsDone() && cc.MaxDistance() > BRep_Tool::Tolerance(E))
++        B.UpdateEdge(E, 1.05 * cc.MaxDistance());
++    }
++  };
++  for (const CellX& c : cells)
++    fitTol(c.face);
++  fitTol(newFF);
++  for (SubMap::Iterator it(faceRepl); it.More(); it.Next())
++    fitTol(TopoDS::Face(it.Value().First()));
++  // vertices at least as tolerant as their edges
++  for (const CellX& c : cells)
++    BRepLib::UpdateTolerances(c.face, false);
++  BRepLib::UpdateTolerances(newFF, false);
++  for (SubMap::Iterator it(faceRepl); it.More(); it.Next())
++    BRepLib::UpdateTolerances(TopoDS::Face(it.Value().First()), false);
++  for (size_t ci = 0; ci < nc; ci++)
++    if (!BRepCheck_Analyzer(cells[ci].face).IsValid())
++    {
++      UNF_TRACE("UNFOLD new stripe face %d invalid\n", (int)ci);
++      unfDump(cells[ci].face, "cellface");
++      UNF_FAIL;
++    }
++  if (!BRepCheck_Analyzer(newFF).IsValid())
++  {
++    unfDump(newFF, "foldface");
++    UNF_FAIL;
++  }
++  for (SubMap::Iterator it(faceRepl); it.More(); it.Next())
++    if (!BRepCheck_Analyzer(it.Value().First()).IsValid())
++      UNF_FAIL;
++
++  // ---- the new result
++  NCollection_Map<TopoDS_Shape, TopTools_ShapeMapHasher> supportOld;
++  for (SubMap::Iterator it(faceRepl); it.More(); it.Next())
++    supportOld.Add(it.Key());
++  supportOld.Add(myFF);
++  for (size_t ip = 0; ip < prs.size(); ip++)
++  {
++    if (!prs[ip].touched)
++      continue;
++    NCollection_List<TopoDS_Shape> L;
++    for (const CellX& c : cells)
++      if (c.ip == (int)ip)
++        L.Append(c.face);
++    faceRepl.Bind(myCh.pc[prs[ip].k].face, L);
++  }
++  faceRepl.Bind(myFF, NCollection_List<TopoDS_Shape>());
++  faceRepl.ChangeFind(myFF).Append(newFF);
++  TopoDS_Compound comp;
++  B.MakeCompound(comp);
++  bool changed = false;
++  for (TopoDS_Iterator is(res, false); is.More(); is.Next())
++  {
++    const TopoDS_Shape& so  = is.Value();
++    bool                has = false;
++    for (TopExp_Explorer ef(so, TopAbs_FACE); ef.More() && !has; ef.Next())
++      has = faceRepl.IsBound(ef.Current());
++    if (!has)
++    {
++      B.Add(comp, so);
++      continue;
++    }
++    TopoDS_Shape nso = so.Oriented(TopAbs_FORWARD).EmptyCopied();
++    for (TopoDS_Iterator ish(so.Oriented(TopAbs_FORWARD), false); ish.More(); ish.Next())
++    {
++      const TopoDS_Shape& sh = ish.Value();
++      if (sh.ShapeType() != TopAbs_SHELL)
++      {
++        B.Add(nso, sh);
++        continue;
++      }
++      TopoDS_Shape              nsh = sh.Oriented(TopAbs_FORWARD).EmptyCopied();
++      std::vector<TopoDS_Shape> fl;
++      std::vector<int>          cellIx;
++      for (TopoDS_Iterator ifc(sh.Oriented(TopAbs_FORWARD), false); ifc.More(); ifc.Next())
++      {
++        const TopoDS_Shape& f = ifc.Value();
++        if (!faceRepl.IsBound(f))
++        {
++          fl.push_back(f);
++          cellIx.push_back(-1);
++          continue;
++        }
++        const bool stripe = !supportOld.Contains(f);
++        for (const TopoDS_Shape& rf : faceRepl.Find(f))
++        {
++          fl.push_back(rf.Oriented(f.Orientation()));
++          int ix = -1;
++          if (stripe)
++            for (size_t ci = 0; ci < nc; ci++)
++              if (cells[ci].face.IsSame(rf))
++                ix = (int)ci;
++          cellIx.push_back(ix);
++        }
++      }
++      // orient every new stripe face against the face across its other contact edge (the
++      // builder's face of a folded piece may be inverted)
++      auto sgn     = [](TopAbs_Orientation o) { return o == TopAbs_REVERSED ? -1 : 1; };
++      auto oriInTF = [](const TopoDS_Shape& face, const TopoDS_Shape& e) {
++        for (TopExp_Explorer ee(face.Oriented(TopAbs_FORWARD), TopAbs_EDGE); ee.More(); ee.Next())
++          if (ee.Current().IsSame(e))
++            return ee.Current().Orientation();
++        return TopAbs_INTERNAL;
++      };
++      for (size_t i = 0; i < fl.size(); i++)
++      {
++        if (cellIx[i] < 0)
++          continue;
++        const TopoDS_Shape&      eb = botE[cellIx[i]];
++        const TopAbs_Orientation o2 = oriInTF(fl[i], eb);
++        bool                     ok = false;
++        for (size_t j = 0; j < fl.size() && !ok; j++)
++        {
++          if (j == i || cellIx[j] >= 0)
++            continue;
++          const TopAbs_Orientation og = oriInTF(fl[j], eb);
++          if (og != TopAbs_FORWARD && og != TopAbs_REVERSED)
++            continue;
++          const int x = -sgn(fl[j].Orientation()) * sgn(og) * sgn(o2);
++          fl[i].Orientation(x > 0 ? TopAbs_FORWARD : TopAbs_REVERSED);
++          ok = true;
++        }
++        if (!ok)
++          UNF_FAIL;
++      }
++      // the support face: against a stripe cell across a kept contact part
++      for (size_t i = 0; i < fl.size(); i++)
++      {
++        if (!fl[i].IsSame(newFF))
++          continue;
++        bool done = false;
++        for (NCollection_DataMap<int, std::vector<CPart>>::Iterator it(keptF); it.More() && !done; it.Next())
++          for (const CPart& cp : it.Value())
++          {
++            if (done)
++              break;
++            const TopAbs_Orientation o2 = oriInTF(fl[i], cp.e);
++            if (o2 != TopAbs_FORWARD && o2 != TopAbs_REVERSED)
++              continue;
++            for (size_t j = 0; j < fl.size() && !done; j++)
++            {
++              if (cellIx[j] < 0)
++                continue;
++              const TopAbs_Orientation og = oriInTF(fl[j], cp.e);
++              if (og != TopAbs_FORWARD && og != TopAbs_REVERSED)
++                continue;
++              const int x = -sgn(fl[j].Orientation()) * sgn(og) * sgn(o2);
++              fl[i].Orientation(x > 0 ? TopAbs_FORWARD : TopAbs_REVERSED);
++              done = true;
++            }
++          }
++      }
++      for (const TopoDS_Shape& f : fl)
++        B.Add(nsh, f);
++      nsh.Closed(BRep_Tool::IsClosed(nsh));
++      nsh.Orientation(sh.Orientation());
++      B.Add(nso, nsh);
++    }
++    nso.Orientation(so.Orientation());
++    B.Add(comp, nso);
++    myRepl.Bind(so, NCollection_List<TopoDS_Shape>());
++    myRepl.ChangeFind(so).Append(nso);
++    changed = true;
++  }
++  if (!changed)
++    UNF_FAIL;
++#ifdef CHFI3D_UNFOLD_TRACE
++  // negative controls of the side-effect-free failure path: fail or throw after every change
++  if (const char* ff = getenv("UNF_FORCEFAIL"))
++  {
++    if (ff[0] == '2')
++      throw Standard_Failure("UNFOLD forced exception");
++    UNF_FAIL;
++  }
++#endif
++  if (!BRepCheck_Analyzer(comp).IsValid())
++  {
++    UNF_TRACE("UNFOLD new result invalid\n");
++    unfDump(comp, "result");
++    UNF_FAIL;
++  }
++  newRes = comp;
++  for (SubMap::Iterator it(faceRepl); it.More(); it.Next())
++    myRepl.Bind(it.Key(), it.Value());
++  for (SubMap::Iterator it(subF); it.More(); it.Next())
++    myRepl.Bind(it.Key(), it.Value());
++  for (SubMap::Iterator it(subO); it.More(); it.Next())
++    myRepl.Bind(it.Key(), it.Value());
++  return true;
++}
++
++//=================================================================================================
++
++// Chain of a chamfer stripe for the fold side 'side' (1 or 2). False when the stripe is not in the
++// simple form this method handles (one result face and one edge per contact per SurfData).
++bool makeChain(const occ::handle<ChFiDS_Stripe>&            st,
++               int                                          side,
++               const occ::handle<TopOpeBRepBuild_HBuilder>& coup,
++               Chain&                                       ch)
++{
++  const occ::handle<ChFiDS_Spine>& sp = st->Spine();
++  if (sp.IsNull() || !sp->IsKind(STANDARD_TYPE(ChFiDS_ChamfSpine)))
++    return false;
++  const occ::handle<NCollection_HSequence<occ::handle<ChFiDS_SurfData>>>& seq = st->SetOfSurfData();
++  if (seq.IsNull() || seq->Length() == 0)
++    return false;
++  ch.spine    = sp;
++  ch.periodic = sp->IsPeriodic();
++  ch.period   = ch.periodic ? sp->Period() : 0.;
++  ch.pc.clear();
++  const int other = 3 - side;
++  double    width = 0.;
++  for (int i = 1; i <= seq->Length(); i++)
++  {
++    Piece p;
++    p.sd = seq->Value(i);
++    const NCollection_List<TopoDS_Shape>& lf = coup->NewFaces(p.sd->Surf());
++    if (lf.Extent() != 1)
++      return false;
++    p.face = TopoDS::Face(lf.First());
++    p.icF  = p.sd->Interference(side).LineIndex();
++    p.icO  = p.sd->Interference(other).LineIndex();
++    if (p.icF <= 0 || p.icO <= 0)
++      return false;
++    const NCollection_List<TopoDS_Shape>& eF = coup->NewEdges(p.icF);
++    const NCollection_List<TopoDS_Shape>& eO = coup->NewEdges(p.icO);
++    if (eF.Extent() != 1 || eO.Extent() != 1)
++      return false;
++    p.gF = TopoDS::Edge(eF.First());
++    p.gO = TopoDS::Edge(eO.First());
++    p.w0 = p.sd->FirstSpineParam();
++    p.w1 = p.sd->LastSpineParam();
++    if (!(p.w1 > p.w0))
++      return false;
++    TopLoc_Location loc;
++    p.surf = BRep_Tool::Surface(p.face, loc);
++    if (p.surf.IsNull() || !loc.IsIdentity())
++      return false;
++    // ruled BSpline with the spine abscissa as the other parameter?
++    occ::handle<Geom_BSplineSurface> bs = occ::down_cast<Geom_BSplineSurface>(p.surf);
++    if (!bs.IsNull())
++    {
++      double u0, u1, v0, v1;
++      bs->Bounds(u0, u1, v0, v1);
++      const double tw = 1e-7 * (1. + std::abs(p.w1 - p.w0));
++      double       ff, ll;
++      occ::handle<Geom2d_Curve> cF = BRep_Tool::CurveOnSurface(p.gF, p.face, ff, ll);
++      occ::handle<Geom2d_Curve> cO = BRep_Tool::CurveOnSurface(p.gO, p.face, ff, ll);
++      if (cF.IsNull() || cO.IsNull())
++        return false;
++      const gp_Pnt2d qF = cF->Value(0.5 * (ff + ll)), qO = cO->Value(0.5 * (ff + ll));
++      // The stripe of a chamfer is ruled: degree 1 across, the spine abscissa W along. At a free end
++      // of an open chain (the stripe ends on an unchamfered wall) the builder prolongs the surface
++      // past the end section to intersect the wall there, so its W range contains [w0, w1] instead
++      // of being equal to it. Such a prolonged surface is accepted when its rulings are the sections
++      // of the guide: at W the ruling lies in the plane normal to the guide at W, within the
++      // tolerance of the stripe face (the approximation error of the walked sections).
++      auto sections = [&](bool linU) -> bool {
++        const double tolS = BRep_Tool::Tolerance(p.face) + Precision::Confusion();
++        for (int j = 0; j <= 8; j++)
++        {
++          const double                W  = p.w0 + (p.w1 - p.w0) * j / 8.;
++          occ::handle<ChFiDS_ElSpine> es = sp->ElSpine(W);
++          if (es.IsNull() || W < es->FirstParameter() - tw || W > es->LastParameter() + tw)
++            return false;
++          gp_Pnt E;
++          gp_Vec T;
++          es->D1(W, E, T);
++          if (T.Magnitude() < 1e-14)
++            return false;
++          T.Normalize();
++          const gp_Pnt P0 = linU ? bs->Value(u0, W) : bs->Value(W, v0);
++          const gp_Pnt P1 = linU ? bs->Value(u1, W) : bs->Value(W, v1);
++          if (std::abs(gp_Vec(E, P0).Dot(T)) > tolS || std::abs(gp_Vec(E, P1).Dot(T)) > tolS)
++            return false;
++        }
++        return true;
++      };
++      const bool eqV = std::abs(v0 - p.w0) < tw && std::abs(v1 - p.w1) < tw;
++      const bool inV = v0 < p.w0 + tw && v1 > p.w1 - tw;
++      const bool eqU = std::abs(u0 - p.w0) < tw && std::abs(u1 - p.w1) < tw;
++      const bool inU = u0 < p.w0 + tw && u1 > p.w1 - tw;
++      if (bs->UDegree() == 1 && bs->NbUPoles() == 2 && (eqV || (inV && sections(true))))
++      {
++        p.ruled = true;
++        p.linU  = true;
++        p.pF    = std::abs(qF.X() - u0) < std::abs(qF.X() - u1) ? u0 : u1;
++        p.pO    = p.pF == u0 ? u1 : u0;
++        p.sw0   = eqV ? p.w0 : v0;
++        p.sw1   = eqV ? p.w1 : v1;
++      }
++      else if (bs->VDegree() == 1 && bs->NbVPoles() == 2 && (eqU || (inU && sections(false))))
++      {
++        p.ruled = true;
++        p.linU  = false;
++        p.pF    = std::abs(qF.Y() - v0) < std::abs(qF.Y() - v1) ? v0 : v1;
++        p.pO    = p.pF == v0 ? v1 : v0;
++        p.sw0   = eqU ? p.w0 : u0;
++        p.sw1   = eqU ? p.w1 : u1;
++      }
++      (void)qO;
++    }
++    if (!p.ruled)
++    {
++      // generic: contact curves cut by section planes
++      p.cF = BRepAdaptor_Curve(p.gF);
++      p.cO = BRepAdaptor_Curve(p.gO);
++      gp_Pnt O;
++      gp_Vec T;
++      sp->D1(p.w0, O, T);
++      if (T.Magnitude() < 1e-14)
++        return false;
++      T.Normalize();
++      auto ends = [&](const BRepAdaptor_Curve& c, double& a, double& b) {
++        const double f = c.FirstParameter(), l = c.LastParameter();
++        const double df = std::abs(gp_Vec(O, c.Value(f)).Dot(T)), dl = std::abs(gp_Vec(O, c.Value(l)).Dot(T));
++        a = df <= dl ? f : l;
++        b = df <= dl ? l : f;
++      };
++      ends(p.cF, p.cF0, p.cF1);
++      ends(p.cO, p.cO0, p.cO1);
++    }
++    ch.pc.push_back(p);
++  }
++  // contiguous abscissae
++  for (size_t k = 1; k < ch.pc.size(); k++)
++    if (std::abs(ch.pc[k].w0 - ch.pc[k - 1].w1) > 1e-7 * (1. + std::abs(ch.pc[k].w0)))
++      return false;
++  // check the ruling evaluation against the contact edges at the middle of every piece
++  for (const Piece& p : ch.pc)
++  {
++    gp_Pnt A, Bp;
++    if (!ch.ruling(0.5 * (p.w0 + p.w1), A, Bp))
++      return false;
++    double pa, pb;
++    if (!paramOn(p.gO, A, pa) || !paramOn(p.gF, Bp, pb))
++      return false;
++    const double da = A.Distance(BRepAdaptor_Curve(p.gO).Value(pa));
++    const double db = Bp.Distance(BRepAdaptor_Curve(p.gF).Value(pb));
++    width           = std::max(width, A.Distance(Bp));
++    if (da > 1e-4 * (1. + width) || db > 1e-4 * (1. + width))
++      return false;
++  }
++  ch.scale = std::max(width, 1e-7);
++  return true;
++}
++
++//! does the fold-side contact curve move against the spine somewhere? (cheap sampling) A piece
++//! on one straight spine edge is skipped: the contact curve reverses only where the geodesic
++//! curvature of the spine is positive (the loop of a fold may run on into a straight piece, but
++//! its reversal lies on the curved one, and finding the loops is left to Unfolder::findFolds).
++bool reverses(const Chain& ch)
++{
++  for (const Piece& p : ch.pc)
++  {
++    {
++      const double eps = 1e-9 * (1. + std::abs(p.w1 - p.w0));
++      const int    i0  = ch.spine->Index(p.w0 + eps, true), i1 = ch.spine->Index(p.w1 - eps, false);
++      if (i0 == i1 && i0 >= 1 && i0 <= ch.spine->NbEdges()
++          && BRepAdaptor_Curve(ch.spine->Edges(i0)).GetType() == GeomAbs_Line)
++        continue;
++    }
++    int m = 24;
++    occ::handle<Geom_BSplineSurface> bs = occ::down_cast<Geom_BSplineSurface>(p.surf);
++    if (!bs.IsNull())
++      m = std::max(m, 2 * std::max(bs->NbUKnots(), bs->NbVKnots()));
++    // spacing at most 1/20 of the chamfer width: a fold just past the focal distance reverses
++    // the contact curve over a short part of the spine only
++    m = std::min(4000, std::max(m, (int)std::ceil((p.w1 - p.w0) / (0.05 * ch.scale))));
++    gp_Pnt Ap, Bp;
++    if (!ch.ruling(p.w0, Ap, Bp))
++      return false;
++    for (int j = 1; j <= m; j++)
++    {
++      const double W  = p.w0 + (p.w1 - p.w0) * j / m;
++      const double Wm = p.w0 + (p.w1 - p.w0) * (j - 0.5) / m;
++      gp_Pnt       A, Bq, O;
++      gp_Vec       T;
++      if (!ch.ruling(W, A, Bq) || !ch.section(Wm, O, T))
++      {
++        UNF_TRACE("UNFOLD reverses: ruling fails at W %.9g (piece %.9g..%.9g ruled %d m %d)\n", W, p.w0, p.w1, (int)p.ruled, m);
++        return false;
++      }
++      if (gp_Vec(Bp, Bq).Dot(T) < 0.)
++        return true;
++      Bp = Bq;
++    }
++  }
++  return false;
++}
++
++//! Necessary condition of a fold, per side, from the data of the stripe only. The contact curve
++//! on the face F of a side runs at geodesic distance d_F from the spine; on a developable F
++//! (plane, cylinder, extrusion) it folds only where d_F * kg_F >= 1, kg_F = geodesic curvature
++//! of the spine on F = |(C' x C'') . n_F| / |C'|^3 (Farouki-Neff 1990 on the plane; a
++//! developable face unrolls isometrically onto it). d_F is the chord from the spine to the
++//! contact point at the ends of every SurfData, snapped to the given distance (Sym, TwoDist, the
++//! Dis of DistAngle); on a curved developable face the geodesic length of that chord is at most
++//! 2 asin(d k_s / 2) / k_s, k_s = the largest curvature of the face. On any other face, and on
++//! a side whose reach matches no given distance (the other side of DistAngle), the older bound
++//! stays: the curvature k >= kg with the larger reach of both sides. Lines give no fold; other
++//! curves are sampled (32 points on a circle, 8 per knot span of a BSpline, 128 otherwise); the
++//! margin 0.9 covers the sampling. Returns a mask: bit 1 = side 1 may fold, bit 2 = side 2.
++//! Most chamfers stop here: straight edges, arcs larger than the chamfer, rims whose Size lies
++//! on a wall.
++int mayFold(const occ::handle<ChFiDS_Stripe>& st, const occ::handle<TopOpeBRepDS_HDataStructure>& theDS)
++{
++  occ::handle<ChFiDS_ChamfSpine> sp = occ::down_cast<ChFiDS_ChamfSpine>(st->Spine());
++  if (sp.IsNull())
++    return 0;
++  double dmax = 0., dg[2] = {0., 0.};
++  int    ng   = 0;
++  switch (sp->IsChamfer())
++  {
++    case ChFiDS_Sym:
++      sp->GetDist(dmax);
++      dg[0] = dmax;
++      ng    = 1;
++      break;
++    case ChFiDS_TwoDist: {
++      sp->Dists(dg[0], dg[1]);
++      dmax = std::max(dg[0], dg[1]);
++      ng   = 2;
++      break;
++    }
++    case ChFiDS_DistAngle: {
++      double d, a;
++      sp->GetDistAngle(d, a);
++      if (std::cos(a) < 1e-3)
++        return 3;
++      dg[0] = d;
++      ng    = 1;
++      dmax  = d * std::max(1., std::abs(std::tan(a)));
++      break;
++    }
++  }
++  if (!(dmax > 0.))
++    return 3;
++  const occ::handle<NCollection_HSequence<occ::handle<ChFiDS_SurfData>>>& seq = st->SetOfSurfData();
++  if (seq.IsNull() || seq->Length() == 0 || theDS.IsNull())
++    return 3;
++  const TopOpeBRepDS_DataStructure& DS = theDS->DS();
++  // per side: the faces it runs on and its reach (the chord at the ends of every piece)
++  double                                                        ds[2] = {0., 0.};
++  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> faces[2];
++  for (int i = 1; i <= seq->Length(); i++)
++  {
++    const occ::handle<ChFiDS_SurfData>& sd = seq->Value(i);
++    const gp_Pnt O0 = sp->Value(sd->FirstSpineParam()), O1 = sp->Value(sd->LastSpineParam());
++    for (int s = 0; s < 2; s++)
++    {
++      const int idx = s == 0 ? sd->IndexOfS1() : sd->IndexOfS2();
++      if (idx > 0 && idx <= DS.NbShapes() && DS.Shape(idx).ShapeType() == TopAbs_FACE)
++        faces[s].Add(DS.Shape(idx));
++      const ChFiDS_CommonPoint& c0 = s == 0 ? sd->VertexFirstOnS1() : sd->VertexFirstOnS2();
++      const ChFiDS_CommonPoint& c1 = s == 0 ? sd->VertexLastOnS1() : sd->VertexLastOnS2();
++      ds[s] = std::max(ds[s], std::max(c0.Point().Distance(O0), c1.Point().Distance(O1)));
++    }
++  }
++  bool exact[2] = {false, false};
++  for (int s = 0; s < 2; s++)
++  {
++    double best = -1.;
++    for (int g = 0; g < ng; g++)
++      if (std::abs(ds[s] - dg[g]) <= 0.05 * dg[g]
++          && (best < 0. || std::abs(ds[s] - dg[g]) < std::abs(ds[s] - best)))
++        best = dg[g];
++    exact[s] = best > 0.;
++    ds[s]    = exact[s] ? best : std::max(dmax, ds[s]);
++  }
++  // largest curvature of a curve: exact for lines and circles, sampled otherwise
++  auto maxCurv = [](const Adaptor3d_Curve& c) -> double {
++    switch (c.GetType())
++    {
++      case GeomAbs_Line:
++        return 0.;
++      case GeomAbs_Circle:
++        return 1. / c.Circle().Radius();
++      default:
++        break;
++    }
++    int m = 128;
++    if (c.GetType() == GeomAbs_BSplineCurve)
++      m = std::max(64, 8 * c.BSpline()->NbKnots());
++    const double f = c.FirstParameter(), l = c.LastParameter();
++    double       k = 0.;
++    for (int j = 0; j <= m; j++)
++    {
++      gp_Pnt P;
++      gp_Vec d1, d2;
++      c.D2(f + (l - f) * j / m, P, d1, d2);
++      const double n = d1.Magnitude();
++      if (n > 1e-300)
++        k = std::max(k, d1.Crossed(d2).Magnitude() / (n * n * n));
++    }
++    return k;
++  };
++  bool   hit[2] = {false, false};
++  double top[2] = {0., 0.};
++  for (int i = 1; i <= sp->NbEdges() && !(hit[0] && hit[1]); i++)
++  {
++    const TopoDS_Edge& E = sp->Edges(i);
++    BRepAdaptor_Curve  c(E);
++    if (c.GetType() == GeomAbs_Line)
++      continue;
++    // per side: 0 = plane (normal n), 1 = curved developable (normal from the pcurve), 2 = other
++    int                       mode[2] = {2, 2};
++    double                    reach[2];
++    gp_Dir                    nrm[2];
++    occ::handle<Geom2d_Curve> pc[2];
++    BRepAdaptor_Surface       sf[2];
++    for (int s = 0; s < 2; s++)
++    {
++      reach[s] = dmax;
++      if (!exact[s])
++        continue;
++      for (int f = 1; f <= faces[s].Extent(); f++)
++      {
++        const TopoDS_Face&        F = TopoDS::Face(faces[s](f));
++        double                    a, b;
++        occ::handle<Geom2d_Curve> pcv = BRep_Tool::CurveOnSurface(E, F, a, b);
++        if (pcv.IsNull())
++          continue;
++        sf[s].Initialize(F, false);
++        double kS = -1.;
++        switch (sf[s].GetType())
++        {
++          case GeomAbs_Plane:
++            mode[s]  = 0;
++            nrm[s]   = sf[s].Plane().Axis().Direction();
++            reach[s] = ds[s];
++            break;
++          case GeomAbs_Cylinder:
++            kS = 1. / sf[s].Cylinder().Radius();
++            break;
++          case GeomAbs_SurfaceOfExtrusion:
++            kS = maxCurv(*sf[s].BasisCurve());
++            break;
++          default:
++            break;
++        }
++        const double x = ds[s] * kS;
++        if (kS >= 0. && x < 2.)
++        {
++          mode[s]  = 1;
++          pc[s]    = pcv;
++          reach[s] = x > 1e-12 ? 2. * std::asin(0.5 * x) / kS : ds[s];
++        }
++        break; // the face of this edge on this side; not developable: the older bound stays
++      }
++    }
++    int m = 128;
++    if (c.GetType() == GeomAbs_Circle)
++      m = 32;
++    else if (c.GetType() == GeomAbs_BSplineCurve)
++      m = std::max(64, 8 * c.BSpline()->NbKnots());
++    const double f = c.FirstParameter(), l = c.LastParameter();
++    for (int j = 0; j <= m; j++)
++    {
++      const double t = f + (l - f) * j / m;
++      gp_Pnt       P;
++      gp_Vec       d1, d2;
++      c.D2(t, P, d1, d2);
++      const double n = d1.Magnitude();
++      if (!(n > 1e-300))
++        continue;
++      const gp_Vec cr = d1.Crossed(d2);
++      const double n3 = n * n * n;
++      for (int s = 0; s < 2; s++)
++      {
++        double kg = cr.Magnitude() / n3;
++        if (mode[s] == 0)
++          kg = std::abs(cr.Dot(gp_Vec(nrm[s]))) / n3;
++        else if (mode[s] == 1)
++        {
++          const gp_Pnt2d uv = pc[s]->Value(t);
++          gp_Pnt         Q;
++          gp_Vec         du, dv;
++          sf[s].D1(uv.X(), uv.Y(), Q, du, dv);
++          const gp_Vec N  = du.Crossed(dv);
++          const double nN = N.Magnitude();
++          if (nN > 1e-300)
++            kg = std::abs(cr.Dot(N)) / (nN * n3);
++        }
++        top[s] = std::max(top[s], kg * reach[s]);
++        if (kg * reach[s] >= 0.9)
++          hit[s] = true;
++      }
++    }
++  }
++  const int mask = (hit[0] ? 1 : 0) | (hit[1] ? 2 : 0);
++  UNF_TRACE("UNFOLD pre-check: method %d reach %.6g %.6g exact %d %d max kg*d %.6g %.6g edges %d -> mask %d\n",
++            (int)sp->IsChamfer(), ds[0], ds[1], (int)exact[0], (int)exact[1], top[0], top[1], sp->NbEdges(), mask);
++  return mask;
++}
++
++void replaceInList(NCollection_List<TopoDS_Shape>& L,
++                   const NCollection_DataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher>& R)
++{
++  NCollection_List<TopoDS_Shape> out;
++  bool                           mod = false;
++  for (const TopoDS_Shape& s : L)
++  {
++    if (R.IsBound(s))
++    {
++      mod = true;
++      for (const TopoDS_Shape& x : R.Find(s))
++        out.Append(x);
++    }
++    else
++      out.Append(s);
++  }
++  if (mod)
++    L = out;
++}
++
++} // namespace
++
++//=================================================================================================
++
++bool ChFi3d_UnfoldChamferStripes(const NCollection_List<occ::handle<ChFiDS_Stripe>>& theStripes,
++                                 const occ::handle<TopOpeBRepDS_HDataStructure>&     theDS,
++                                 const occ::handle<TopOpeBRepBuild_HBuilder>&        theCoup,
++                                 TopoDS_Shape&                                       theResult)
++{
++  bool any = false;
++  for (NCollection_List<occ::handle<ChFiDS_Stripe>>::Iterator it(theStripes); it.More(); it.Next())
++  {
++    const occ::handle<ChFiDS_Stripe>& st = it.Value();
++    if (st->Spine().IsNull() || !st->Spine()->IsKind(STANDARD_TYPE(ChFiDS_ChamfSpine)))
++      continue;
++    int may = 3;
++    try
++    {
++      OCC_CATCH_SIGNALS
++      may = mayFold(st, theDS);
++    }
++    catch (Standard_Failure const&)
++    {
++      may = 3;
++    }
++    if (!may)
++      continue;
++    for (int side = 1; side <= 2; side++)
++    {
++      if (!(may & side))
++        continue;
++      Chain ch;
++      bool  folded = false;
++      try
++      {
++        OCC_CATCH_SIGNALS
++        folded = makeChain(st, side, theCoup, ch);
++        UNF_TRACE("UNFOLD side %d chain %d\n", side, (int)folded);
++        folded = folded && reverses(ch);
++        UNF_TRACE("UNFOLD side %d reverses %d\n", side, (int)folded);
++      }
++      catch (Standard_Failure const&)
++      {
++        folded = false;
++      }
++      if (!folded)
++        continue;
++      UNF_TRACE("UNFOLD stripe side %d folded, %d pieces\n", side, (int)ch.pc.size());
++#ifdef CHFI3D_UNFOLD_TRACE
++      for (const Piece& pp : ch.pc)
++        UNF_TRACE("UNFOLD   piece w %.9g..%.9g ruled %d periodic %d period %.9g\n", pp.w0, pp.w1, (int)pp.ruled, (int)ch.periodic, ch.period);
++#endif
++      Unfolder     uf(ch, theCoup);
++      TopoDS_Shape newRes;
++      bool         ok = false;
++      try
++      {
++        OCC_CATCH_SIGNALS
++        ok = uf.Perform(theResult, newRes);
++      }
++      catch (Standard_Failure const&)
++      {
++        uf.Revert();
++        ok = false;
++      }
++      catch (...)
++      {
++        uf.Revert();
++        throw;
++      }
++      if (!ok)
++      {
++        UNF_TRACE("UNFOLD failed, result kept\n");
++        continue;
++      }
++      theResult = newRes;
++      any       = true;
++      // history of the builder
++      TopOpeBRepBuild_Builder& bld = theCoup->ChangeBuilder();
++      for (const Piece& p : ch.pc)
++      {
++        // the history lists are owned by the builder; NewFaces / Merged give no public mutator
++        replaceInList(const_cast<NCollection_List<TopoDS_Shape>&>(theCoup->NewFaces(p.sd->Surf())), uf.myRepl);
++        replaceInList(theCoup->ChangeNewEdges(p.icF), uf.myRepl);
++        replaceInList(theCoup->ChangeNewEdges(p.icO), uf.myRepl);
++      }
++      const TopOpeBRepDS_DataStructure& DS = theDS->DS();
++      for (int i = 1; i <= DS.NbShapes(); i++)
++      {
++        const TopoDS_Shape& S = DS.Shape(i);
++        const TopAbs_State  sts[3] = {TopAbs_IN, TopAbs_OUT, TopAbs_ON};
++        for (TopAbs_State s : sts)
++        {
++          if (S.ShapeType() == TopAbs_FACE && theCoup->IsSplit(S, s))
++            replaceInList(bld.ChangeSplit(S, s), uf.myRepl);
++          if ((S.ShapeType() == TopAbs_SOLID || S.ShapeType() == TopAbs_SHELL) && theCoup->IsMerged(S, s))
++            replaceInList(const_cast<NCollection_List<TopoDS_Shape>&>(theCoup->Merged(S, s)), uf.myRepl);
++        }
++      }
++      break; // one fold side per stripe
++    }
++  }
++  return any;
++}
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Unfold.hxx b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Unfold.hxx
+new file mode 100644
+index 0000000000..31dfe77e0b
+--- /dev/null
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d_Unfold.hxx
+@@ -0,0 +1,47 @@
++// Copyright (c) 2026 OPEN CASCADE SAS
++//
++// This file is part of Open CASCADE Technology software library.
++//
++// This library is free software; you can redistribute it and/or modify it under
++// the terms of the GNU Lesser General Public License version 2.1 as published
++// by the Free Software Foundation, with special exception defined in the file
++// OCCT_LGPL_EXCEPTION.txt. Consult the file LICENSE_LGPL_21.txt included in OCCT
++// distribution for complete text of the license and disclaimer of any warranty.
++
++#ifndef _ChFi3d_Unfold_HeaderFile
++#define _ChFi3d_Unfold_HeaderFile
++
++#include <ChFiDS_Stripe.hxx>
++#include <NCollection_List.hxx>
++#include <TopOpeBRepBuild_HBuilder.hxx>
++#include <TopOpeBRepDS_HDataStructure.hxx>
++#include <TopoDS_Shape.hxx>
++
++//! Trims folded chamfer stripes (internal to TKFillet, not exported).
++//!
++//! Class of the defect: a chamfer whose distance d_F measured on a support face F is larger than the
++//! radius of geodesic curvature of the spine on F where the spine turns toward the interior of F
++//! (d_F * kg > 1). The section of a chamfer is the segment between the points at distance d_F on F
++//! and d_O on the other face in the plane normal to the spine; along such a part of the spine the
++//! contact curve on F is the parallel curve at distance d_F, which passes the focal (evolute) point,
++//! reverses and crosses itself (a swallowtail). ChFi3d never trims a stripe against itself, so the
++//! face F gets a self-intersecting wire and the stripe folds over itself: an invalid solid.
++//!
++//! The correct chamfer removes the union of the section triangles. Its boundary is the ruled stripe
++//! cut at its self-intersection curve (the ridge, where two sections of the same stripe meet), which
++//! runs from the crossing point of the contact curve on F down to the point where the two sections
++//! coincide (a pinch / swallowtail point, W = W'), or to the apex shared by a whole family of sections
++//! (a circular arc of the spine with d_F > radius gives a cone whose sections all pass the apex).
++//! The contact curve on F is trimmed at the crossing point. The method is the exact trimming of a
++//! ruled surface self-intersection by pairs of intersecting rulings (Pekerman, Elber, Kim 2008;
++//! Farouki, Neff 1990; Pottmann, Wallner 2001), see issue 032 LITERATURE.
++//!
++//! Acts only on chamfer stripes (ChFiDS_ChamfSpine) whose contact curve reverses against the spine.
++//! On any failure the result is left exactly as built (no change). Returns true when theResult was
++//! replaced; the builder history (NewFaces, NewEdges, Splits, Merged) is updated for the new shapes.
++bool ChFi3d_UnfoldChamferStripes(const NCollection_List<occ::handle<ChFiDS_Stripe>>& theStripes,
++                                 const occ::handle<TopOpeBRepDS_HDataStructure>&     theDS,
++                                 const occ::handle<TopOpeBRepBuild_HBuilder>&        theCoup,
++                                 TopoDS_Shape&                                       theResult);
++
++#endif
+diff --git a/src/ModelingAlgorithms/TKFillet/ChFi3d/FILES.cmake b/src/ModelingAlgorithms/TKFillet/ChFi3d/FILES.cmake
+index af0b0e1a5b..b72dda086a 100644
+--- a/src/ModelingAlgorithms/TKFillet/ChFi3d/FILES.cmake
++++ b/src/ModelingAlgorithms/TKFillet/ChFi3d/FILES.cmake
+@@ -28,4 +28,6 @@ set(OCCT_ChFi3d_FILES
+   ChFi3d_FilletShape.hxx
+   ChFi3d_SearchSing.cxx
+   ChFi3d_SearchSing.hxx
++  ChFi3d_Unfold.cxx
++  ChFi3d_Unfold.hxx
+ )
