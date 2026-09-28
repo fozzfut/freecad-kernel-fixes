@@ -1,0 +1,9 @@
+imp/ring_a_off-1.5 bb [0.33, 39.67, 0.33, 39.67, 1.5, 13.2] flagged ['Face1:OffsetSurface(BSplineSurface)', 'Face2:OffsetSurface(BSplineSurface)']
+  corner  cut valid=True bop=SelfIntersect | common valid=True bop=clean | V(cut)+V(common)-V(A) = 0.04 (rel 3.9e-06)
+  ring    cut valid=False bop= | common valid=False bop= | V(cut)+V(common)-V(A) = 106 (rel 1.0e-02)
+  drill   cut valid=True bop=SelfIntersect | common valid=True bop=clean | V(cut)+V(common)-V(A) = -0.168 (rel -1.6e-05)
+rv3m/bmp_a_off-2.8 bb [1.0, 39.0, 1.0, 39.0, 2.8, 15.16] flagged ['Face1:OffsetSurface(BSplineSurface)', 'Face3:OffsetSurface(BSplineSurface)']
+  corner  cut valid=True bop=SelfIntersect | common valid=True bop=clean | V(cut)+V(common)-V(A) = -0.0506 (rel -9.1e-06)
+  lens    cut valid=False bop= | common valid=False bop= | V(cut)+V(common)-V(A) = -1.33e+03 (rel -2.4e-01)
+  drill   cut valid=True bop=SelfIntersect | common valid=True bop= | V(cut)+V(common)-V(A) = 0.0327 (rel 5.9e-06)
+imp/rv2_w_off-2.5 bb [-26.88, 16.37, -14.45, 21.67, -10.23, 25.27] flagged []

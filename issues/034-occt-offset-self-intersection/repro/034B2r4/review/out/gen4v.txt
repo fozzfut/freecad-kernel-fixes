@@ -1,0 +1,23 @@
+case se_a valid True faces 4 surf ['Plane', 'SurfaceOfExtrusion'] vol 1507.964473723 bop clean
+case se_n valid True faces 4 surf ['BSplineSurface'] vol 1511.018539172 bop FAULTS BOP check found the following errors: | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Face: B
+case se_w valid True faces 4 surf ['Plane', 'SurfaceOfExtrusion'] vol 1507.964473723 bop clean
+case sq_a valid True faces 4 surf ['Plane', 'SurfaceOfExtrusion'] vol 1507.964473723 bop clean
+case sq_n valid True faces 4 surf ['BSplineSurface'] vol 1511.024122163 bop FAULTS BOP check found the following errors: | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Face: B
+case sq_w valid True faces 4 surf ['Plane', 'SurfaceOfExtrusion'] vol 1507.964473723 bop clean
+ellipse tip radius 1.600000
+case rs_a valid True faces 5 surf ['Cylinder', 'Plane', 'SurfaceOfRevolution'] vol 15729.302198806 bop clean
+case rs_n valid True faces 5 surf ['BSplineSurface'] vol 15863.659201356 bop FAULTS BOP check found the following errors: | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: B
+case rs_w valid True faces 5 surf ['Cylinder', 'Plane', 'SurfaceOfRevolution'] vol 15729.302198805 bop clean
+rs meridian min radius 0.983258 faces of revolution 2
+case rt_a valid True faces 5 surf ['Cylinder', 'Plane', 'SurfaceOfRevolution'] vol 15729.269371203 bop clean
+case rt_n valid True faces 5 surf ['BSplineSurface'] vol 15863.699412543 bop FAULTS BOP check found the following errors: | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: BOPAlgo GeomAbs_C0 | Error in Edge: B
+case rt_w valid True faces 5 surf ['Cylinder', 'Plane', 'SurfaceOfRevolution'] vol 15729.269371203 bop clean
+rt meridian min radius 0.979244 faces of revolution 2
+case sx_a valid True faces 3 surf ['Plane', 'SurfaceOfExtrusion'] vol 6554.727082022 bop clean
+case sx_n valid True faces 3 surf ['BSplineSurface'] vol 6305.343249089 bop clean
+case sx_w valid True faces 3 surf ['Plane', 'SurfaceOfExtrusion'] vol 6554.727082022 bop clean
+sx min radius 2.401659 seam at Vector (12.902935149618076, 0.9022611197266537, 0.0)
+case oq_a valid True faces 3 surf ['Plane', 'SurfaceOfExtrusion'] vol 3300.284647109 bop clean
+case oq_n valid True faces 3 surf ['BSplineSurface'] vol 3143.196894764 bop clean
+case oq_w valid True faces 3 surf ['Plane', 'SurfaceOfExtrusion'] vol 3300.284647109 bop clean
+oq wall surface ['SurfaceOfExtrusion', 'Plane', 'Plane']

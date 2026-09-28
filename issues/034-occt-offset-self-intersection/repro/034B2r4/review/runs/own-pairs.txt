@@ -1,0 +1,8 @@
+build/d0 r1 freeRAM=2944MB owner031.brep R ERROR done=0 err=1 exc=- ms=11012 grade=ERR bop=- nsol=0 n
+build/d0 r1 freeRAM=2944MB f5829_local.brep R ERROR done=0 err=6 exc=- ms=5790 grade=ERR bop=- nsol=0 nf
+r4/a2 r1 freeRAM=3085MB owner031.brep R ERROR done=0 err=1 exc=- ms=2347 grade=ERR bop=- nsol=0 nf
+r4/a2 r1 freeRAM=3085MB f5829_local.brep R ERROR done=0 err=6 exc=- ms=5410 grade=ERR bop=- nsol=0 nf
+build/d0 r2 freeRAM=2937MB owner031.brep R ERROR done=0 err=1 exc=- ms=12496 grade=ERR bop=- nsol=0 n
+build/d0 r2 freeRAM=2937MB f5829_local.brep R ERROR done=0 err=6 exc=- ms=6363 grade=ERR bop=- nsol=0 nf
+r4/a2 r2 freeRAM=2822MB owner031.brep R ERROR done=0 err=1 exc=- ms=2435 grade=ERR bop=- nsol=0 nf
+r4/a2 r2 freeRAM=2822MB f5829_local.brep R ERROR done=0 err=6 exc=- ms=6106 grade=ERR bop=- nsol=0 nf

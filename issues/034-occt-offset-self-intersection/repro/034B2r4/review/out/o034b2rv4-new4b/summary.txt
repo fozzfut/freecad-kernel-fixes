@@ -1,0 +1,20 @@
+rk_a_off-1                     RES valid=True bop=clean nsol=1 nf=5 vol=10923.398265202 oracle=72/0/2.9e-15 mc=173/0 ms=2743
+rk_a_off-2                     RES valid=True bop=clean nsol=1 nf=5 vol=6910.821520004 oracle=72/0/2.2e-15 mc=174/0 ms=1841
+rk_n_off-1                     ERR ms=162 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rk_n_off-2                     ERR ms=148 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rk_w_off-1                     RES valid=True bop=clean nsol=1 nf=5 vol=10923.398265200 oracle=72/0/6.4e-15 mc=54/0 ms=2343
+rk_w_off-2                     RES valid=True bop=clean nsol=1 nf=5 vol=6910.821520004 oracle=72/0/4.4e-15 mc=54/0 ms=3173
+rk_w_thkbot-2                  RES valid=True bop=clean nsol=1 nf=9 vol=6428.340621398 oracle=112/0/1e-14 mc=0/0 ms=2539
+rk_a_off-0.3_ctl               RES valid=True bop=_InvalidCurveOnSurface nsol=1 nf=4 vol=14224.193034948 oracle=60/0/1.9e-15 mc=174/0 ms=591
+r3r_a_off-1.2                  RES valid=True bop=clean nsol=1 nf=7 vol=14182.118261928 oracle=104/0/4.2e-15 mc=180/0 ms=5816
+r3r_a_off-2                    RES valid=True bop=clean nsol=1 nf=7 vol=10039.287714461 oracle=104/0/3.1e-15 mc=180/0 ms=3822
+r3r_w_off-1.2                  RES valid=True bop=clean nsol=1 nf=7 vol=14182.118261927 oracle=104/0/7.1e-15 mc=53/0 ms=5802
+r3r_w_off-2                    RES valid=True bop=clean nsol=1 nf=7 vol=10039.287714460 oracle=104/0/4.4e-15 mc=53/0 ms=7381
+tq_a_off-2.5                   RES valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=2786.410410274 oracle=40/0/4.4e-16 mc=189/0 ms=985
+tq_a_off-3.5                   RES valid=True bop=clean nsol=1 nf=5 vol=1774.208335961 oracle=70/0/1.3e-15 mc=189/0 ms=6172
+tq_n_off-2.5                   RES valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=2786.410410286 oracle=40/0/4.4e-16 mc=189/0 ms=938
+tq_n_off-3.5                   RES valid=True bop=clean nsol=1 nf=5 vol=1774.208335975 oracle=70/0/4.4e-16 mc=189/0 ms=5334
+tq_w_off-2.5                   RES valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=2786.410410275 oracle=40/0/2.7e-15 mc=82/0 ms=603
+tq_w_off-3.5                   RES valid=True bop=clean nsol=1 nf=5 vol=1774.208335970 oracle=70/0/3.1e-15 mc=82/0 ms=4686
+tq_w_thktop-3                  ERR ms=2001 exc=BRep_API:_command_not_done
+tq_a_off-0.8_ctl               RES valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=5144.655777428 oracle=40/0/6.7e-16 mc=189/0 ms=732

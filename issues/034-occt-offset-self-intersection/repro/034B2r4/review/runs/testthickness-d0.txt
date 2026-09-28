@@ -1,0 +1,20 @@
+TestThickness (unittest.loader._FailedTest.TestThickness) ... ERROR
+
+======================================================================
+ERROR: TestThickness (unittest.loader._FailedTest.TestThickness)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: TestThickness
+Traceback (most recent call last):
+  File "C:\dev\occt8-mig\fcD\rc\o034b2rv4\bin\Lib\unittest\loader.py", line 141, in loadTestsFromName
+    module = __import__(module_name)
+ModuleNotFoundError: No module named 'TestThickness'
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (errors=1)
+FreeCAD 26.3.0, Libs: 26.3.0devR20260922 (Git shallow)
+(C) 2001-2026 FreeCAD contributors
+FreeCAD is free and open-source software licensed under the terms of LGPL2+ license.
+

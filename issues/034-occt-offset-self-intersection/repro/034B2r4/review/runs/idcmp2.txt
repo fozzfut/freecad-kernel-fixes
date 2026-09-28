@@ -1,0 +1,14 @@
+== rv116 A2(rv3) vs D0
+compared 116 same 115 diff 1 missing 0 []
+   dumbbell_rod_thick-1_int | done=1 err=0 exc=- valid=1 vol=4049.4478 shells=1 solids=1 | done=0 err=6 exc=- valid=-1 vol=0.0000 shells=0 solids=0
+== rv116 r4(impl) vs D0
+compared 116 same 116 diff 0 missing 0 []
+
+== rvx A2(rv3) vs D0
+compared 204 same 201 diff 3 missing 0 []
+   hexfil_r2_a_t-2_arc | done=0 err=1 valid=-1 vol=0.0000 shells=0 solids=0 faces=0 | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0 faces=0
+   hexfil_r2_nurbs_t-2_arc | done=0 err=1 valid=-1 vol=0.0000 shells=0 solids=0 faces=0 | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0 faces=0
+   hexfil_r2_rot_t-2_arc | done=0 err=1 valid=-1 vol=0.0000 shells=0 solids=0 faces=0 | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0 faces=0
+== rvx r4(impl) vs D0
+compared 204 same 204 diff 0 missing 0 []
+

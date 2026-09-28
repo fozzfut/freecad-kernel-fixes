@@ -1,0 +1,10 @@
+sx_a_off-1.5_ctl tess 0.020 meshvol 3805.270508 solid True gprop 3708.678184
+sx_a_off-1.5_ctl tess 0.008 meshvol 3806.688232 solid True gprop 3708.678184
+sx_a_off-3 tess 0.020 meshvol 1872.732544 solid True gprop 1745.298766
+sx_a_off-3 tess 0.008 meshvol 1872.732300 solid True gprop 1745.298766
+oq_a_off-3 tess 0.020 meshvol 513.782959 solid True gprop 497.283810
+oq_a_off-3 tess 0.008 meshvol 513.880371 solid True gprop 497.283810
+oq_w_off-3 tess 0.020 meshvol 513.779968 solid True gprop 497.286745
+oq_w_off-3 tess 0.008 meshvol 513.880432 solid True gprop 497.286745
+oq_n_off-3 tess 0.020 meshvol 513.781799 solid True gprop 497.280160
+oq_n_off-3 tess 0.008 meshvol 513.880493 solid True gprop 497.280160

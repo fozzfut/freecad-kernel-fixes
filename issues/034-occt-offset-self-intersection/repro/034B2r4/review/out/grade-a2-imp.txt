@@ -1,0 +1,6 @@
+ring_a_off-1.5                 ERR    ms=29717 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+ring_a_off-2.5                 ERR    ms=35344 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rv2_w_off-1.5                  ERR    ms=3210 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rv3_w_off-2                    ERR    ms=6602 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+tr5_w_off-3                    ERR    ms=7900 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+ob2_w_off-3                    ERR    ms=5915 exc=BRepOffsetAPI_MakeOffsetShape_not_done

@@ -1,0 +1,43 @@
+se_a_off-2                     ERR    ms=103 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+se_a_off-3                     ERR    ms=136 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+se_a_thktop-3                  ERR    ms=123 exc=BRep_API:_command_not_done
+sq_a_off-2                     ERR    ms=119 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+sq_a_off-3                     ERR    ms=129 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+sq_a_thktop-2.5                ERR    ms=100 exc=BRep_API:_command_not_done
+se_a_off-1_ctl                 EXACT* s0:A=82.779073/82.779074 sd=7.1e-09 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=4 vol=827.791169751 oracle=56/0/7.8e-16 mc=234/0 ms=78
+se_w_off-2                     ERR    ms=124 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+se_w_off-3                     ERR    ms=140 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+se_w_thktop-3                  ERR    ms=130 exc=BRep_API:_command_not_done
+sq_w_off-2                     ERR    ms=129 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+sq_w_off-3                     ERR    ms=172 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+sq_w_thktop-2.5                ERR    ms=115 exc=BRep_API:_command_not_done
+se_w_off-1_ctl                 EXACT* s0:A=82.779073/82.779074 sd=7.1e-09 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=4 vol=827.791169751 oracle=56/0/3.4e-15 mc=77/0 ms=78
+se_a_off-2_int                 ERR    ms=368 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rs_a_off-1.5                   ERR    ms=4882 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rs_a_off-2.5                   ERR    ms=1957 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rs_a_thkbot-2                  ERR    ms=113 exc=BRep_API:_command_not_done
+rs_w_off-1.5                   ERR    ms=4896 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rs_w_off-2.5                   ERR    ms=2518 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rs_w_thkbot-2                  ERR    ms=166 exc=BRep_API:_command_not_done
+rs_a_off-0.5_ctl               EXACT* s0:A=132.318425/132.318425 sd=3.3e-09 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=5 vol=13224.733618217 oracle=72/0/1.7e-15 mc=170/0 ms=144
+rt_a_off-1.5                   ERR    ms=4325 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rt_a_off-2.5                   ERR    ms=2784 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+sx_a_off-3                     EXACT* s0:A=133.770239/133.770239 sd=8.7e-07 s1:A=133.770239/133.770239 sd=8.7e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=1745.298765775 oracle=32/0/8.9e-16 mc=174/0 ms=192
+sx_a_off-4                     EXACT* s0:A=81.495672/81.495673 sd=1.2e-06 s1:A=81.495672/81.495673 sd=1.2e-06 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=857.583280543 oracle=28/0/4.4e-16 mc=174/0 ms=311
+sx_a_thktop-3                  EXACT* s0:A=194.522810/194.522810 sd=7.6e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=5 vol=4455.638682404 oracle=52/0/8.9e-16 mc=0/0 ms=132
+sx_n_off-3                     EXACT* s0:A=133.770239/133.770239 sd=8.7e-07 s1:A=133.770239/133.770239 sd=8.7e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=1745.298765771 oracle=32/0/4.4e-16 mc=174/0 ms=146
+sx_n_off-4                     EXACT* s0:A=81.495672/81.495673 sd=1.2e-06 s1:A=81.495672/81.495673 sd=1.2e-06 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=857.583280542 oracle=28/0/4.4e-16 mc=174/0 ms=395
+sx_n_thktop-3                  ERR    ms=152 exc=BRep_API:_command_not_done
+sx_w_off-3                     EXACT* s0:A=133.770239/133.770239 sd=8.7e-07 s1:A=133.770239/133.770239 sd=8.7e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=1745.298765773 oracle=32/0/3.1e-15 mc=68/0 ms=423
+sx_w_off-4                     EXACT* s0:A=81.495672/81.495673 sd=1.2e-06 s1:A=81.495672/81.495673 sd=1.2e-06 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=857.583280546 oracle=28/0/2.7e-15 mc=68/0 ms=422
+sx_w_thktop-3                  EXACT* s0:A=194.522809/194.522810 sd=7.4e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=5 vol=4455.638682406 oracle=52/0/5.3e-15 mc=0/0 ms=173
+sx_a_off-1.5_ctl               EXACT* s0:A=223.963056/223.963061 sd=2.0e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=3708.678184021 oracle=40/0/8.9e-16 mc=174/0 ms=247
+sx_n_off-1.5_ctl               EXACT* s0:A=223.963054/223.963061 sd=2.2e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=3708.678184024 oracle=40/0/4.4e-16 mc=174/0 ms=203
+oq_a_off-3                     EXACT* s0:A=128.478578/128.478578 sd=2.1e-07 s1:A=128.478578/128.478578 sd=2.1e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=497.283810170 oracle=27/0/8.9e-16 mc=145/0 ms=221
+oq_a_off-4                     ERR    ms=846 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+oq_n_off-3                     EXACT* s0:A=128.478578/128.478578 sd=2.4e-07 s1:A=128.478578/128.478578 sd=2.4e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=497.280159921 oracle=27/0/4.4e-16 mc=145/0 ms=218
+oq_n_off-4                     ERR    ms=626 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+oq_w_off-3                     EXACT* s0:A=128.478574/128.478578 sd=3.5e-07 s1:A=128.478574/128.478578 sd=3.5e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=497.286745204 oracle=27/0/2.2e-15 mc=65/0 ms=190
+oq_w_off-4                     ERR    ms=701 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+oq_a_off-1.5_ctl               EXACT* s0:A=220.871802/220.871806 sd=1.6e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=1532.963528837 oracle=40/0/6.7e-16 mc=145/0 ms=294
+oq_n_off-1.5_ctl               EXACT* s0:A=220.871805/220.871806 sd=2.5e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=1532.963510361 oracle=40/0/6.7e-16 mc=145/0 ms=186

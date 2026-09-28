@@ -1,0 +1,41 @@
+rev_a_off-2                    EXACT  s0:A=111.700992/111.700991 sd=1.3e-08 s1:A=111.700991/111.700991 sd=1.3e-09 | valid=True bop=clean nsol=1 nf=5 vol=14039.762500921 oracle=72/0/3.1e-15 mc=166/0 ms=16412
+rev_a_off-2.8                  EXACT  s0:A=77.119204/77.119204 sd=8.9e-09 s1:A=77.119204/77.119204 sd=1.6e-09 | valid=True bop=clean nsol=1 nf=5 vol=9691.403978664 oracle=72/0/2.2e-15 mc=166/0 ms=6083
+rev_a_thkbot-2                 EXACT  s0:A=77.568575/77.568577 sd=2.6e-08 s1:A=77.568576/77.568577 sd=9.1e-09 | valid=True bop=clean nsol=1 nf=9 vol=9744.367760780 oracle=112/0/1.3e-14 mc=0/0 ms=3203
+rev_n_off-2                    ERR    ms=311 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rev_n_off-2.8                  ERR    ms=264 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rev_n_thkbot-2                 ERR    ms=148 exc=BRep_API:_command_not_done
+rev_w_off-2                    EXACT  s0:A=111.700992/111.700991 sd=1.3e-08 s1:A=111.700991/111.700991 sd=1.3e-09 | valid=True bop=clean nsol=1 nf=5 vol=14039.762500919 oracle=72/0/8e-15 mc=62/0 ms=7089
+rev_w_off-2.8                  EXACT  s0:A=77.119204/77.119204 sd=8.9e-09 s1:A=77.119204/77.119204 sd=1.6e-09 | valid=True bop=clean nsol=1 nf=5 vol=9691.403978664 oracle=72/0/8.9e-15 mc=62/0 ms=8030
+rev_w_thkbot-2                 EXACT  s0:A=77.568575/77.568577 sd=2.6e-08 s1:A=77.568576/77.568577 sd=9.1e-09 | valid=True bop=clean nsol=1 nf=9 vol=9744.367760782 oracle=112/0/8.1e-15 mc=0/0 ms=7234
+rev_a_off-0.8_ctl              EXACT* s0:A=173.582027/173.582028 sd=9.6e-09 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=4 vol=21862.451779394 oracle=56/0/4.1e-15 mc=166/0 ms=711
+rev_a_off-2_int                ERR    ms=3965 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+tri_a_off-3                    EXACT* s0:A=133.770189/133.770190 sd=4.8e-07 s1:A=133.770189/133.770190 sd=4.8e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=1825.511265286 oracle=32/0/4.4e-16 mc=174/0 ms=511
+tri_a_off-4                    EXACT  s0:A=81.495605/81.495608 sd=1.6e-06 s1:A=81.495605/81.495608 sd=1.6e-06 | valid=True bop=clean nsol=1 nf=4 vol=972.843462356 oracle=44/0/8.9e-16 mc=174/0 ms=2289
+tri_a_thktop-3                 EXACT* s0:A=194.522860/194.522859 sd=4.9e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=5 vol=4377.739879535 oracle=52/0/4.4e-16 mc=0/0 ms=964
+tri_n_off-3                    EXACT* s0:A=133.770188/133.770190 sd=5.2e-07 s1:A=133.770188/133.770190 sd=5.2e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=1825.511265290 oracle=32/0/4.4e-16 mc=174/0 ms=404
+tri_n_off-4                    EXACT  s0:A=81.495605/81.495608 sd=1.6e-06 s1:A=81.495605/81.495608 sd=1.6e-06 | valid=True bop=clean nsol=1 nf=4 vol=972.843462359 oracle=44/0/1.8e-15 mc=174/0 ms=3929
+tri_n_thktop-3                 ERR    ms=3103 exc=BRep_API:_command_not_done
+tri_w_off-3                    EXACT* s0:A=133.770189/133.770190 sd=4.8e-07 s1:A=133.770189/133.770190 sd=4.8e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=1825.511265294 oracle=32/0/3.6e-15 mc=100/0 ms=595
+tri_w_off-4                    EXACT  s0:A=81.495605/81.495608 sd=1.6e-06 s1:A=81.495605/81.495608 sd=1.6e-06 | valid=True bop=clean nsol=1 nf=4 vol=972.843462358 oracle=44/0/5.3e-15 mc=100/0 ms=6666
+tri_w_thktop-3                 EXACT* s0:A=194.522860/194.522859 sd=5.1e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=5 vol=4377.594332129 oracle=52/0/3.6e-15 mc=0/0 ms=4525
+tri_a_off-3_int                EXACT* s0:A=133.770189/133.770190 sd=4.8e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=1825.511265286 oracle=32/0/4.4e-16 mc=174/0 ms=1794
+tri_a_off-4_int                ERR    ms=695 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+obl_a_off-2                    EXACT  s0:A=43.402571/43.402571 sd=1.1e-08 s1:A=43.402571/43.402571 sd=1.1e-08 | valid=True bop=clean nsol=1 nf=4 vol=260.415524232 oracle=56/0/6.7e-16 mc=151/0 ms=966
+obl_a_off-3                    EXACT  s0:A=13.671073/13.671074 sd=1.8e-08 s1:A=13.671073/13.671074 sd=1.8e-08 | valid=True bop=clean nsol=1 nf=4 vol=54.684294296 oracle=56/0/8.9e-16 mc=151/0 ms=2141
+obl_n_off-2                    ERR    ms=111 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+obl_n_off-3                    ERR    ms=138 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+obl_w_off-2                    EXACT  s0:A=43.402571/43.402571 sd=1.1e-08 s1:A=43.402571/43.402571 sd=1.1e-08 | valid=True bop=clean nsol=1 nf=4 vol=260.415524232 oracle=56/0/2.7e-15 mc=74/0 ms=1275
+obl_w_off-3                    EXACT  s0:A=13.671073/13.671074 sd=1.8e-08 s1:A=13.671073/13.671074 sd=1.8e-08 | valid=True bop=clean nsol=1 nf=4 vol=54.684294296 oracle=56/0/3.1e-15 mc=74/0 ms=1007
+obl_a_off-2_int                ERR    ms=470 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+bmp_a_off-2                    ERR    ms=172215 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+bmp_a_off-2.8                  WRONG   | valid=True bop=SelfIntersect nsol=1 nf=7 vol=5570.821537926 oracle=98/0/2.7e-15 mc=201/0 ms=75051
+bmp_n_off-2                    WRONG   | valid=True bop=SelfIntersect nsol=1 nf=7 vol=8173.500965176 oracle=96/0/1.8e-15 mc=200/0 ms=125715
+bmp_n_off-2.8                  WRONG   | valid=True bop=SelfIntersect nsol=1 nf=7 vol=5570.821537927 oracle=94/0/2.7e-15 mc=201/0 ms=42471
+bmp_w_off-2                    ERR    ms=105406 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+bmp_w_off-2.8                  WRONG   | valid=True bop=SelfIntersect nsol=1 nf=7 vol=5569.227441258 oracle=98/0/7.5e-15 mc=54/1 ms=101696
+sat_a_off-2.8_tbump            ORACLE  | valid=True bop=clean nsol=1 nf=7 vol=3891.461655674 oracle=112/0/2.7e-15 mc=225/0 ms=4526
+sat_a_off-2.8_near             ERR    ms=10693 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+sat_a_off-2.8_near15           ERR    ms=14152 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+sat_a_off-2.8_near30           ERR    ms=9303 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+sat_a_off-2.8_far              ERR    ms=6023 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+sat_a_off-2.8_far30            ERR    ms=14191 exc=BRepOffsetAPI_MakeOffsetShape_not_done

@@ -1,0 +1,12 @@
+case rk_a valid True faces 4 vol 15834.270056665
+case rk_n valid True faces 4 vol 15884.577367050
+case rk_w valid True faces 4 vol 15834.270056665
+rk meridian min radius 0.607458
+case r3r_a valid True faces 4 vol 21031.617116344
+case r3r_n valid True faces 4 vol 21729.198916083
+case r3r_w valid True faces 4 vol 21031.617116344
+r3r meridian min radius 0.476158
+case tq_a valid True faces 3 vol 6597.999038272
+case tq_n valid True faces 3 vol 6351.403239716
+case tq_w valid True faces 3 vol 6597.999038272
+tq min radius 2.559329 radius at the lobe tips ['2.559', '3.312', '2.852', '4.013']

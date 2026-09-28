@@ -1,0 +1,47 @@
+testArcJoinProducesValidCenteredCurvedWall (PartDesignTests.TestThickness.TestThickness.testArcJoinProducesValidCenteredCurvedWall) ... ok
+testCase5829RectoVersoThicknessOnRotatedFillet (PartDesignTests.TestThickness.TestThickness.testCase5829RectoVersoThicknessOnRotatedFillet)
+Verify recto-verso thickness processes the issue 5829 geometry locally. ... <PartDesign> FeatureThickness.cpp(250): Exception on making thick solid: BRep_API: command not done
+RectoVersoThickness: Failed to make thick solid
+FAIL
+testCase5829ThicknessOnRotatedFillet (PartDesignTests.TestThickness.TestThickness.testCase5829ThicknessOnRotatedFillet)
+Verify thickness succeeds on the rotated fillet from issue 5829. ... <PartDesign> FeatureThickness.cpp(250): Exception on making thick solid: BRep_API: command not done
+Thickness: Failed to make thick solid
+FAIL
+testCurvedOpenShellIsCenteredRadiallyAndAxially (PartDesignTests.TestThickness.TestThickness.testCurvedOpenShellIsCenteredRadiallyAndAxially) ... ok
+testMixedPlanarAndCylindricalFacesRemainCentered (PartDesignTests.TestThickness.TestThickness.testMixedPlanarAndCylindricalFacesRemainCentered) ... ok
+testPlanarOpenShellIsCenteredOnRetainedFaces (PartDesignTests.TestThickness.TestThickness.testPlanarOpenShellIsCenteredOnRetainedFaces) ... ok
+testReversedDoesNotChangeRectoVersoResult (PartDesignTests.TestThickness.TestThickness.testReversedDoesNotChangeRectoVersoResult) ... ok
+testReversedThickness (PartDesignTests.TestThickness.TestThickness.testReversedThickness) ... ok
+testSourceSolidOrientationDoesNotChangeResult (PartDesignTests.TestThickness.TestThickness.testSourceSolidOrientationDoesNotChangeResult) ... ok
+testTransformedStandaloneThicknessUsesBasePlacement (PartDesignTests.TestThickness.TestThickness.testTransformedStandaloneThicknessUsesBasePlacement)
+Keep standalone Thickness aligned with its transformed Base fallback. ... ok
+testTwoOpeningsCreateCenteredThroughWall (PartDesignTests.TestThickness.TestThickness.testTwoOpeningsCreateCenteredThroughWall) ... ok
+
+======================================================================
+FAIL: testCase5829RectoVersoThicknessOnRotatedFillet (PartDesignTests.TestThickness.TestThickness.testCase5829RectoVersoThicknessOnRotatedFillet)
+Verify recto-verso thickness processes the issue 5829 geometry locally.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\dev\occt8-mig\fcD\rc\o034b2rv4\Mod\PartDesign\PartDesignTests\TestThickness.py", line 153, in testCase5829RectoVersoThicknessOnRotatedFillet
+    self.assertTrue(thickness.isValid())
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: testCase5829ThicknessOnRotatedFillet (PartDesignTests.TestThickness.TestThickness.testCase5829ThicknessOnRotatedFillet)
+Verify thickness succeeds on the rotated fillet from issue 5829.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\dev\occt8-mig\fcD\rc\o034b2rv4\Mod\PartDesign\PartDesignTests\TestThickness.py", line 133, in testCase5829ThicknessOnRotatedFillet
+    self.assertTrue(thickness.isValid())
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 11 tests in 6.966s
+
+FAILED (failures=2)
+FreeCAD 26.3.0, Libs: 26.3.0devR20260922 (Git shallow)
+(C) 2001-2026 FreeCAD contributors
+FreeCAD is free and open-source software licensed under the terms of LGPL2+ license.
+

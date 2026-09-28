@@ -1,0 +1,5 @@
+ring_a_off-1.5               dense=4026/0/5.6e-15 closer_than_d=0 | fuse_valid=False common_valid=False cut_valid=False id1=1.3e-02 id2=1.1e-02 | bop: Error in Face: BOPAlgo SelfIntersect
+ring_w_off-1.5               dense=4026/0/1.1e-14 closer_than_d=0 | fuse_valid=False common_valid=False cut_valid=False id1=1.0e-04 id2=1.3e-03 | bop: Error in Face: BOPAlgo SelfIntersect
+bmp_a_off-2.8                dense=3816/0/3.1e-15 closer_than_d=0 | fuse_valid=False common_valid=False cut_valid=False id1=2.3e-03 id2=4.5e-04 | bop: Error in Face: BOPAlgo SelfIntersect
+bmp_w_off-2.8                dense=3815/0/8e-15 closer_than_d=0 | fuse_valid=False common_valid=False cut_valid=False id1=7.4e-03 id2=9.2e-03 | bop: Error in Face: BOPAlgo SelfIntersect
+rv2_w_off-2.5                dense=2868/0/8e-15 closer_than_d=0 | fuse_valid=True common_valid=True cut_valid=True id1=1.4e-04 id2=1.4e-04 | bop: clean

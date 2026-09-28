@@ -1,0 +1,9 @@
+Keep standalone Thickness aligned with its transformed Base fallback. :: ok
+testArcJoinProducesValidCenteredCurvedWall (PartDesignTests.TestThickness.TestThickness.testArcJoinProducesValidCenteredCurvedWall) :: ok
+testCurvedOpenShellIsCenteredRadiallyAndAxially (PartDesignTests.TestThickness.TestThickness.testCurvedOpenShellIsCenteredRadiallyAndAxially) :: ok
+testMixedPlanarAndCylindricalFacesRemainCentered (PartDesignTests.TestThickness.TestThickness.testMixedPlanarAndCylindricalFacesRemainCentered) :: ok
+testPlanarOpenShellIsCenteredOnRetainedFaces (PartDesignTests.TestThickness.TestThickness.testPlanarOpenShellIsCenteredOnRetainedFaces) :: ok
+testReversedDoesNotChangeRectoVersoResult (PartDesignTests.TestThickness.TestThickness.testReversedDoesNotChangeRectoVersoResult) :: ok
+testReversedThickness (PartDesignTests.TestThickness.TestThickness.testReversedThickness) :: ok
+testSourceSolidOrientationDoesNotChangeResult (PartDesignTests.TestThickness.TestThickness.testSourceSolidOrientationDoesNotChangeResult) :: ok
+testTwoOpeningsCreateCenteredThroughWall (PartDesignTests.TestThickness.TestThickness.testTwoOpeningsCreateCenteredThroughWall) :: ok

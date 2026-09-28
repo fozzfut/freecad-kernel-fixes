@@ -1,0 +1,16 @@
+rv2_w_off-1.5 C:/dev/occt8-mig/offset-034b2/r4/cases/rv2_w.brep w r4 off -1.5 0 - m:0 m:73
+rv2_w_off-2.5 C:/dev/occt8-mig/offset-034b2/r4/cases/rv2_w.brep w r4 off -2.5 0 - m:0 m:73
+rv2_w_thkbot-2 C:/dev/occt8-mig/offset-034b2/r4/cases/rv2_w.brep w r4 thk -2 0 bot m:0 m:211
+rv3_w_off-1.2 C:/dev/occt8-mig/offset-034b2/r4/cases/rv3_w.brep w r4 off -1.2 0 - m:0 m:73
+rv3_w_off-2 C:/dev/occt8-mig/offset-034b2/r4/cases/rv3_w.brep w r4 off -2 0 - m:0 m:73
+ring_a_off-1.5 C:/dev/occt8-mig/offset-034b2/r4/cases/ring_a.brep a r4 off -1.5 0 - 
+ring_a_off-2.5 C:/dev/occt8-mig/offset-034b2/r4/cases/ring_a.brep a r4 off -2.5 0 - 
+ring_w_off-1.5 C:/dev/occt8-mig/offset-034b2/r4/cases/ring_w.brep w r4 off -1.5 0 - 
+ring_w_off-2.5 C:/dev/occt8-mig/offset-034b2/r4/cases/ring_w.brep w r4 off -2.5 0 - 
+tr5_w_off-2 C:/dev/occt8-mig/offset-034b2/r4/cases/tr5_w.brep w r4 off -2 0 - z:8 z:5
+tr5_w_off-3 C:/dev/occt8-mig/offset-034b2/r4/cases/tr5_w.brep w r4 off -3 0 - z:8 z:5
+tr5_w_thktop-2 C:/dev/occt8-mig/offset-034b2/r4/cases/tr5_w.brep w r4 thk -2 0 top z:8
+ob2_w_off-2 C:/dev/occt8-mig/offset-034b2/r4/cases/ob2_w.brep w r4 off -2 0 - z:4 z:3.6
+ob2_w_off-3 C:/dev/occt8-mig/offset-034b2/r4/cases/ob2_w.brep w r4 off -3 0 - z:4 z:3.6
+ob3_w_off-2 C:/dev/occt8-mig/offset-034b2/r4/cases/ob3_w.brep w r4 off -2 0 - z:5 z:4.5
+ob3_w_off-3 C:/dev/occt8-mig/offset-034b2/r4/cases/ob3_w.brep w r4 off -3 0 - z:5 z:4.5

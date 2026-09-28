@@ -1,0 +1,5 @@
+C:/dev/occt8-mig/offset-034b2/rv4/out/o034b2rv4-imp/ring_a_off-1.5.brep C:/dev/occt8-mig/offset-034b2/r4/cases/ring_a.brep -1.5
+C:/dev/occt8-mig/offset-034b2/rv4/out/o034b2rv4-imp/ring_w_off-1.5.brep C:/dev/occt8-mig/offset-034b2/r4/cases/ring_w.brep -1.5
+C:/dev/occt8-mig/offset-034b2/rv4/out/o034b2rv4-rv3m/bmp_a_off-2.8.brep C:/dev/occt8-mig/offset-034b2/rv3/cases/bmp_a.brep -2.8
+C:/dev/occt8-mig/offset-034b2/rv4/out/o034b2rv4-rv3m/bmp_w_off-2.8.brep C:/dev/occt8-mig/offset-034b2/rv3/cases/bmp_w.brep -2.8
+C:/dev/occt8-mig/offset-034b2/rv4/out/o034b2rv4-imp/rv2_w_off-2.5.brep C:/dev/occt8-mig/offset-034b2/r4/cases/rv2_w.brep -2.5

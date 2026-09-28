@@ -1,0 +1,16 @@
+rv2_w_off-1.5                  EXACT  s0:A=88.367499/88.367500 sd=6.8e-09 s1:A=88.367500/88.367500 sd=1.6e-09 | valid=True bop=clean nsol=1 nf=5 vol=8818.234241248 oracle=72/0/4.4e-15 mc=55/0 ms=4433
+rv2_w_off-2.5                  EXACT  s0:A=52.590747/52.590747 sd=1.0e-08 s1:A=52.590747/52.590747 sd=2.6e-09 | valid=True bop=clean nsol=1 nf=5 vol=5235.991726920 oracle=72/0/5.8e-15 mc=55/0 ms=2524
+rv2_w_thkbot-2                 EXACT  s0:A=63.855053/63.855054 sd=3.7e-08 s1:A=63.855054/63.855054 sd=8.3e-09 | valid=True bop=clean nsol=1 nf=9 vol=6394.232731243 oracle=112/0/7.9e-15 mc=0/0 ms=2893
+rv3_w_off-1.2                  EXACT  s0:A=132.187754/132.187757 sd=3.1e-08 s1:A=132.187757/132.187757 sd=1.6e-09 | valid=True bop=clean nsol=1 nf=6 vol=14895.418017440 oracle=92/0/4.9e-15 mc=52/0 ms=3793
+rv3_w_off-2                    EXACT  s0:A=93.305330/93.305331 sd=3.5e-08 s1:A=93.305331/93.305331 sd=2.0e-09 | valid=True bop=clean nsol=1 nf=6 vol=10507.373108171 oracle=88/0/8.9e-15 mc=52/0 ms=6702
+ring_a_off-1.5                 WRONG   | valid=True bop=SelfIntersect nsol=1 nf=7 vol=10250.840668575 oracle=104/0/1.6e-15 mc=240/0 ms=71280
+ring_a_off-2.5                 WRONG   | valid=True bop=SelfIntersect nsol=1 nf=7 vol=6690.646387974 oracle=104/0/2.7e-15 mc=240/0 ms=77388
+ring_w_off-1.5                 WRONG   | valid=True bop=SelfIntersect nsol=1 nf=7 vol=10262.948318553 oracle=104/0/6e-15 mc=34/0 ms=88645
+ring_w_off-2.5                 WRONG   | valid=True bop=SelfIntersect nsol=1 nf=7 vol=6696.853323000 oracle=104/0/5.3e-15 mc=34/0 ms=100971
+tr5_w_off-2                    WRONG  s0:A=183.520854/183.520846 sd=7.8e-07 s1:A=183.520854/183.520846 sd=7.8e-07 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=3 vol=2505.922229932 oracle=32/0/2.7e-15 mc=85/1 ms=719
+tr5_w_off-3                    WRONG  s0:A=125.153621/125.153621 sd=4.5e-09 s1:A=125.153621/125.153621 sd=4.5e-09 | valid=True bop=clean nsol=1 nf=7 vol=1252.741406809 oracle=96/0/1.8e-15 mc=85/1 ms=19831
+tr5_w_thktop-2                 EXACT* s0:A=135.724983/135.724978 sd=1.8e-06 | valid=True bop=_InvalidCurveOnSurface nsol=1 nf=5 vol=2265.570246708 oracle=50/0/1.3e-15 mc=0/0 ms=1919
+ob2_w_off-2                    EXACT  s0:A=105.920782/105.920782 sd=5.0e-09 s1:A=105.920782/105.920782 sd=5.0e-09 | valid=True bop=clean nsol=1 nf=4 vol=423.692392856 oracle=48/0/2e-15 mc=76/0 ms=6344
+ob2_w_off-3                    EXACT  s0:A=65.598214/65.598214 sd=5.3e-09 s1:A=65.598214/65.598214 sd=5.3e-09 | valid=True bop=clean nsol=1 nf=4 vol=131.185024024 oracle=48/0/1.8e-15 mc=76/0 ms=17483
+ob3_w_off-2                    EXACT  s0:A=28.637032/28.637032 sd=1.2e-08 s1:A=28.637032/28.637032 sd=1.2e-08 | valid=True bop=clean nsol=1 nf=4 vol=171.822230095 oracle=56/0/1.6e-15 mc=69/0 ms=1642
+ob3_w_off-3                    EXACT  s0:A=5.481492/5.481493 sd=2.5e-08 s1:A=5.481492/5.481493 sd=2.5e-08 | valid=True bop=clean nsol=1 nf=4 vol=21.925970546 oracle=56/0/1.8e-15 mc=69/0 ms=2652

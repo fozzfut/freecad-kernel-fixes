@@ -1,0 +1,41 @@
+== class A2(rv3) vs D0
+compared 144 same 142 diff 2 missing 0 []
+   fbox50_50_50_r10_e12_nurbs_t-1_arc | done=0 err=1 exc=- valid=0 vol=0.0000 shells=- | done=0 err=6 exc=- valid=0 vol=0.0000 shells=-
+   fbox50_50_50_r10_e12_nurbs_t-2_arc | done=0 err=1 exc=- valid=0 vol=0.0000 shells=- | done=0 err=6 exc=- valid=0 vol=0.0000 shells=-
+== class r4(impl) vs D0
+compared 144 same 144 diff 0 missing 0 []
+
+== corp A2(rv3) vs D0
+compared 53 same 48 diff 5 missing 0 []
+   bfil_off-2.5 | done=0 err=6 exc=- grade=ERR vol=0.0000 nf=0 | done=1 err=0 exc=- grade=OK vol=1125.0000 nf=6
+   bfil_thk-2.5 | done=0 err=1 exc=- grade=ERR vol=0.0000 nf=0 | done=1 err=0 exc=- grade=OK vol=2151.5324 nf=31
+   bfiln_off-2.5 | done=0 err=6 exc=- grade=ERR vol=0.0000 nf=0 | done=1 err=0 exc=- grade=OK vol=1125.0000 nf=6
+   bfiln_thk-2.5 | done=0 err=6 exc=- grade=ERR vol=0.0000 nf=0 | done=1 err=0 exc=- grade=OK vol=1125.0000 nf=6
+   plate1024_off+0.2 | grade=HANG | done=1 err=0 exc=- grade=OK vol=360961.1919 nf=3098
+== corp r4(impl) vs D0
+compared 53 same 53 diff 0 missing 0 []
+
+== rv116 A2(rv3) vs D0
+compared 1 same 1 diff 0 missing 0 []
+
+== rv116 r4(impl) vs D0
+compared 1 same 1 diff 0 missing 0 []
+
+== b33 A2(rv3) vs D0
+compared 33 same 26 diff 7 missing 0 []
+   bfil_off-2.5 | done=0 err=6 exc=- grade=ERR vol=0.00000 nf=0 nsol=0 | done=1 err=0 exc=- grade=OK vol=1125.00000 nf=6 nsol=1
+   bfil_thk-2.5 | done=0 err=1 exc=- grade=ERR vol=0.00000 nf=0 nsol=0 | done=1 err=0 exc=- grade=OK vol=2151.53240 nf=31 nsol=1
+   bfiln_off-2.5 | done=0 err=6 exc=- grade=ERR vol=0.00000 nf=0 nsol=0 | done=1 err=0 exc=- grade=OK vol=1125.00000 nf=6 nsol=1
+   bfiln_thk-2.5 | done=0 err=6 exc=- grade=ERR vol=0.00000 nf=0 nsol=0 | done=1 err=0 exc=- grade=OK vol=2151.53240 nf=31 nsol=1
+   c031obl_thk+0.3 | done=0 err=1 exc=- grade=ERR vol=0.00000 nf=0 nsol=0 | done=0 err=6 exc=- grade=ERR vol=0.00000 nf=0 nsol=0
+   c031sq08_thk+0.45 | done=0 err=1 exc=- grade=ERR vol=0.00000 nf=0 nsol=0 | done=0 err=6 exc=- grade=ERR vol=0.00000 nf=0 nsol=0
+   c031sq15_thk+0.3 | done=0 err=6 exc=- grade=ERR vol=0.00000 nf=0 nsol=0 | done=0 err=1 exc=- grade=ERR vol=0.00000 nf=0 nsol=0
+== b33 r4(impl) vs D0
+compared 33 same 33 diff 0 missing 0 []
+
+== rvx A2(rv3) vs D0
+compared 1 same 1 diff 0 missing 0 []
+
+== rvx r4(impl) vs D0
+compared 1 same 1 diff 0 missing 0 []
+

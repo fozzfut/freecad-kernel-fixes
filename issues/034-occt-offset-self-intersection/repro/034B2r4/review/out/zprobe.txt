@@ -1,0 +1,18 @@
+sx_a_off-1.5_ctl vol 3708.678184 bb z 1.500000 18.500000 faces ['Plane', 'OffsetSurface', 'Plane']
+  z=1.60 area 224.188423
+  z=3.00 area 224.188423
+  z=10.00 area 224.188423
+  z=17.00 area 224.188423
+  z=18.40 area 224.188423
+sx_a_off-3 vol 1745.298766 bb z 3.000000 17.000000 faces ['Plane', 'OffsetSurface', 'Plane']
+  z=3.10 area 133.573221
+  z=5.00 area 133.573221
+  z=10.00 area 133.573221
+  z=15.00 area 133.573221
+  z=16.90 area 133.573221
+oq_a_off-3 vol 497.283810 bb z 1.982247 8.018059 faces ['Plane', 'OffsetSurface', 'Plane']
+  z=3.10 area 127.495124
+  z=4.00 area 127.495205
+  z=5.00 area 127.495367
+  z=6.00 area 127.495365
+  z=6.90 area 127.495203

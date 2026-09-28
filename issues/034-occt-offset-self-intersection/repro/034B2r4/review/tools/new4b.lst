@@ -1,0 +1,20 @@
+rk_a_off-1 C:/dev/occt8-mig/offset-034b2/rv4/cases/rk_a.brep a rv4 off -1 0 - m:0 m:73
+rk_a_off-2 C:/dev/occt8-mig/offset-034b2/rv4/cases/rk_a.brep a rv4 off -2 0 - m:0 m:73
+rk_n_off-1 C:/dev/occt8-mig/offset-034b2/rv4/cases/rk_n.brep n rv4 off -1 0 - m:0 m:73
+rk_n_off-2 C:/dev/occt8-mig/offset-034b2/rv4/cases/rk_n.brep n rv4 off -2 0 - m:0 m:73
+rk_w_off-1 C:/dev/occt8-mig/offset-034b2/rv4/cases/rk_w.brep w rv4 off -1 0 - m:0 m:73
+rk_w_off-2 C:/dev/occt8-mig/offset-034b2/rv4/cases/rk_w.brep w rv4 off -2 0 - m:0 m:73
+rk_w_thkbot-2 C:/dev/occt8-mig/offset-034b2/rv4/cases/rk_w.brep w rv4 thk -2 0 bot m:0 m:211
+rk_a_off-0.3_ctl C:/dev/occt8-mig/offset-034b2/rv4/cases/rk_a.brep a rv4 off -0.3 0 - m:0
+r3r_a_off-1.2 C:/dev/occt8-mig/offset-034b2/rv4/cases/r3r_a.brep a rv4 off -1.2 0 - m:0 m:73
+r3r_a_off-2 C:/dev/occt8-mig/offset-034b2/rv4/cases/r3r_a.brep a rv4 off -2 0 - m:0 m:73
+r3r_w_off-1.2 C:/dev/occt8-mig/offset-034b2/rv4/cases/r3r_w.brep w rv4 off -1.2 0 - m:0 m:73
+r3r_w_off-2 C:/dev/occt8-mig/offset-034b2/rv4/cases/r3r_w.brep w rv4 off -2 0 - m:0 m:73
+tq_a_off-2.5 C:/dev/occt8-mig/offset-034b2/rv4/cases/tq_a.brep a rv4 off -2.5 0 - z:9 z:5
+tq_a_off-3.5 C:/dev/occt8-mig/offset-034b2/rv4/cases/tq_a.brep a rv4 off -3.5 0 - z:9 z:5
+tq_n_off-2.5 C:/dev/occt8-mig/offset-034b2/rv4/cases/tq_n.brep n rv4 off -2.5 0 - z:9 z:5
+tq_n_off-3.5 C:/dev/occt8-mig/offset-034b2/rv4/cases/tq_n.brep n rv4 off -3.5 0 - z:9 z:5
+tq_w_off-2.5 C:/dev/occt8-mig/offset-034b2/rv4/cases/tq_w.brep w rv4 off -2.5 0 - z:9 z:5
+tq_w_off-3.5 C:/dev/occt8-mig/offset-034b2/rv4/cases/tq_w.brep w rv4 off -3.5 0 - z:9 z:5
+tq_w_thktop-3 C:/dev/occt8-mig/offset-034b2/rv4/cases/tq_w.brep w rv4 thk -3 0 top z:9
+tq_a_off-0.8_ctl C:/dev/occt8-mig/offset-034b2/rv4/cases/tq_a.brep a rv4 off -0.8 0 - z:9
