@@ -1,0 +1,336 @@
+[fcslot] waiting for a FreeCAD slot (0s)
+[fcslot] got slot4 after 5s
+testBodyBaseFeatureAcceptsLinkedShape (PartDesignTests.TestBaseFeature.TestBaseFeature.testBodyBaseFeatureAcceptsLinkedShape) ... ok
+testBodyBaseFeatureInitializesGlobalPlacement (PartDesignTests.TestBaseFeature.TestBaseFeature.testBodyBaseFeatureInitializesGlobalPlacement) ... ok
+testBodyBaseFeatureInitializesPlacement (PartDesignTests.TestBaseFeature.TestBaseFeature.testBodyBaseFeatureInitializesPlacement) ... ok
+testBodyBaseFeaturePreservesPlacementAcrossParts (PartDesignTests.TestBaseFeature.TestBaseFeature.testBodyBaseFeaturePreservesPlacementAcrossParts) ... ok
+testBodyBaseFeaturePreservesPlacementFromPartToDocumentRoot (PartDesignTests.TestBaseFeature.TestBaseFeature.testBodyBaseFeaturePreservesPlacementFromPartToDocumentRoot) ... ok
+testBodyBaseFeaturePreservesPlacementInsideSamePart (PartDesignTests.TestBaseFeature.TestBaseFeature.testBodyBaseFeaturePreservesPlacementInsideSamePart) ... ok
+testBodyCloneCanSwitchToTipFeatureWithoutTransform (PartDesignTests.TestBaseFeature.TestBaseFeature.testBodyCloneCanSwitchToTipFeatureWithoutTransform) ... ok
+testFeatureBaseDoesNotBakeSourceBodyPlacement (PartDesignTests.TestBaseFeature.TestBaseFeature.testFeatureBaseDoesNotBakeSourceBodyPlacement) ... ok
+testFeatureBaseLegacyPlacementKeepsOldBehavior (PartDesignTests.TestBaseFeature.TestBaseFeature.testFeatureBaseLegacyPlacementKeepsOldBehavior) ... ok
+testFeatureBasePlacementControlsChangedPartDesignBaseFeature (PartDesignTests.TestBaseFeature.TestBaseFeature.testFeatureBasePlacementControlsChangedPartDesignBaseFeature) ... ok
+testFeatureBasePlacementControlsExternalBaseFeature (PartDesignTests.TestBaseFeature.TestBaseFeature.testFeatureBasePlacementControlsExternalBaseFeature) ... ok
+testBooleanCommonCase (PartDesignTests.TestBoolean.TestBoolean.testBooleanCommonCase) ... Body001: Tip shape is empty
+ok
+testBooleanCutCase (PartDesignTests.TestBoolean.TestBoolean.testBooleanCutCase) ... Body001: Tip shape is empty
+ok
+testBooleanCutUsesActiveBodyGlobalPlacement (PartDesignTests.TestBoolean.TestBoolean.testBooleanCutUsesActiveBodyGlobalPlacement) ... ok
+testBooleanCutUsesActiveBodyPlacement (PartDesignTests.TestBoolean.TestBoolean.testBooleanCutUsesActiveBodyPlacement) ... ok
+testBooleanCutUsesDifferentContainerGlobalPlacements (PartDesignTests.TestBoolean.TestBoolean.testBooleanCutUsesDifferentContainerGlobalPlacements) ... ok
+testBooleanCutUsesNestedContainerGlobalPlacement (PartDesignTests.TestBoolean.TestBoolean.testBooleanCutUsesNestedContainerGlobalPlacement) ... ok
+testBooleanFirstFeatureUsesSourcePlacement (PartDesignTests.TestBoolean.TestBoolean.testBooleanFirstFeatureUsesSourcePlacement) ... ok
+testBooleanFirstFeatureUsesSubShapeBinderPlacement (PartDesignTests.TestBoolean.TestBoolean.testBooleanFirstFeatureUsesSubShapeBinderPlacement) ... ok
+testBooleanFuseCase (PartDesignTests.TestBoolean.TestBoolean.testBooleanFuseCase) ... Body001: Tip shape is empty
+ok
+testBooleanLegacyPlacementKeepsOldFirstFeatureBehavior (PartDesignTests.TestBoolean.TestBoolean.testBooleanLegacyPlacementKeepsOldFirstFeatureBehavior) ... ok
+testBooleanSelectUI (PartDesignTests.TestBoolean.TestBoolean.testBooleanSelectUI) ... ok
+testChamferCubeToOctahedron (PartDesignTests.TestChamfer.TestChamfer.testChamferCubeToOctahedron) ... ok
+testCircularPatternCreatesConcentricCopies (PartDesignTests.TestCircularPattern.TestCircularPattern.testCircularPatternCreatesConcentricCopies) ... ok
+testCircularPatternInMultiTransform (PartDesignTests.TestCircularPattern.TestCircularPattern.testCircularPatternInMultiTransform) ... ok
+testCircularPatternProperties (PartDesignTests.TestCircularPattern.TestCircularPattern.testCircularPatternProperties) ... ok
+testXAxisDatumLine (PartDesignTests.TestDatum.TestDatumLine.testXAxisDatumLine) ... ok
+testXYDatumPlane (PartDesignTests.TestDatum.TestDatumPlane.testXYDatumPlane) ... ok
+testOriginDatumPoint (PartDesignTests.TestDatum.TestDatumPoint.testOriginDatumPoint) ... ok
+testSimpleDraft (PartDesignTests.TestDraft.TestDraft.testSimpleDraft) ... ok
+testDeletingPreviousFeatureDoesNotRelinkUnsafeBaseEdge (PartDesignTests.TestFillet.TestFillet.testDeletingPreviousFeatureDoesNotRelinkUnsafeBaseEdge) ... ok
+testDeletingPreviousFeatureRelinksUniqueMatchingBaseEdge (PartDesignTests.TestFillet.TestFillet.testDeletingPreviousFeatureRelinksUniqueMatchingBaseEdge) ... ok
+testFilletCubeToSphere (PartDesignTests.TestFillet.TestFillet.testFilletCubeToSphere) ... ok
+testCircleQ1 (PartDesignTests.TestHelix.TestHelix.testCircleQ1)
+Test helix based on circle in Quadrant 1 ... ok
+testCone (PartDesignTests.TestHelix.TestHelix.testCone)
+Test helix following a cone ... ok
+testGiantHelix (PartDesignTests.TestHelix.TestHelix.testGiantHelix)
+Test giant helix ... ok
+testGiantHelixAdditive (PartDesignTests.TestHelix.TestHelix.testGiantHelixAdditive)
+Test giant helix added to Cylinder ... ok
+testGiantHelixSubtractive (PartDesignTests.TestHelix.TestHelix.testGiantHelixSubtractive)
+Test giant helix subtracted from Cylinder ... ok
+testHelicalTubeCase (PartDesignTests.TestHelix.TestHelix.testHelicalTubeCase) ... ok
+testNegativeCone (PartDesignTests.TestHelix.TestHelix.testNegativeCone)
+Test helix following a cone with a negative angle ... ok
+testRectangle (PartDesignTests.TestHelix.TestHelix.testRectangle)
+Test helix based on a rectangle ... ok
+testAngledDrillHole (PartDesignTests.TestHole.TestHole.testAngledDrillHole) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+ok
+testCounterboreHole (PartDesignTests.TestHole.TestHole.testCounterboreHole) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+ok
+testCountersinkHole (PartDesignTests.TestHole.TestHole.testCountersinkHole) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+ok
+testNoRefineHole (PartDesignTests.TestHole.TestHole.testNoRefineHole) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+ok
+testPlainHole (PartDesignTests.TestHole.TestHole.testPlainHole) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+ok
+testRefineHole (PartDesignTests.TestHole.TestHole.testRefineHole) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+ok
+testStartOffset (PartDesignTests.TestHole.TestHole.testStartOffset) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+PartDesign::Hole: Hole links are out of scope. Out of scope links to: StartReference
+ok
+testStartReferenceOffsetForPointProfile (PartDesignTests.TestHole.TestHole.testStartReferenceOffsetForPointProfile) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+PartDesign::Hole: Hole links are out of scope. Out of scope links to: StartReference
+ok
+testTaperedHole (PartDesignTests.TestHole.TestHole.testTaperedHole) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+ok
+testThreadEnums (PartDesignTests.TestHole.TestHole.testThreadEnums)
+Test thread enums for correct order ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+ok
+testCustomizedGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testCustomizedGearProfile) ... ok
+testCustomizedGearProfileForSplinedHub (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testCustomizedGearProfileForSplinedHub) ... ok
+testCustomizedGearProfileForSplinedShaft (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testCustomizedGearProfileForSplinedShaft) ... ok
+testDefaultGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testDefaultGearProfile) ... ok
+testDefaultInternalGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testDefaultInternalGearProfile) ... ok
+testExternalGearProfileOrientation (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testExternalGearProfileOrientation) ... ok
+testInternalGearProfileOrientation (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testInternalGearProfileOrientation) ... ok
+testLowPrecisionGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testLowPrecisionGearProfile) ... ok
+testLowPrecisionInternalGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testLowPrecisionInternalGearProfile) ... ok
+testRecomputeExternalGearFromV020 (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testRecomputeExternalGearFromV020) ... ok
+testRecomputeInternalGearFromV020 (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testRecomputeInternalGearFromV020) ... ok
+testShiftedExternalGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testShiftedExternalGearProfile) ... ok
+testShiftedInternalGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testShiftedInternalGearProfile) ... ok
+testUsagePadGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testUsagePadGearProfile) ... ok
+testUsagePocketInternalGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testUsagePocketInternalGearProfile) ... ok
+testZeroFilletExternalGearProfile_BaseAboveRoot (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testZeroFilletExternalGearProfile_BaseAboveRoot) ... ok
+testZeroFilletExternalGearProfile_BaseBelowRoot (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testZeroFilletExternalGearProfile_BaseBelowRoot) ... ok
+testZeroFilletInternalGearProfile (PartDesignTests.TestInvoluteGear.TestInvoluteGear.testZeroFilletInternalGearProfile) ... ok
+testHorizontalSketchAxisLinearPattern (PartDesignTests.TestLinearPattern.TestLinearPattern.testHorizontalSketchAxisLinearPattern) ... ok
+testNormalSketchAxisLinearPattern (PartDesignTests.TestLinearPattern.TestLinearPattern.testNormalSketchAxisLinearPattern) ... ok
+testVerticalSketchAxisLinearPattern (PartDesignTests.TestLinearPattern.TestLinearPattern.testVerticalSketchAxisLinearPattern) ... ok
+testXAxisLinearPattern (PartDesignTests.TestLinearPattern.TestLinearPattern.testXAxisLinearPattern) ... ok
+testYAxisLinearPattern (PartDesignTests.TestLinearPattern.TestLinearPattern.testYAxisLinearPattern) ... ok
+testZAxisLinearPattern (PartDesignTests.TestLinearPattern.TestLinearPattern.testZAxisLinearPattern) ... ok
+testCapsuleAdditiveLoftIgnoresCreationOrder (PartDesignTests.TestLoft.TestLoft.testCapsuleAdditiveLoftIgnoresCreationOrder)
+Capsule wire pairing must not depend on sketch geometry order. ... ok
+testCapsuleSubtractiveLoftIgnoresCreationOrder (PartDesignTests.TestLoft.TestLoft.testCapsuleSubtractiveLoftIgnoresCreationOrder)
+Capsule wire pairing must also be stable for subtractive lofts. ... ok
+testClosedAdditiveLoftCase (PartDesignTests.TestLoft.TestLoft.testClosedAdditiveLoftCase)
+Test issue #6156: Loft tool "Closed" option not working ... ok
+testIssue6130NestedCirclesIgnoreCreationOrder (PartDesignTests.TestLoft.TestLoft.testIssue6130NestedCirclesIgnoreCreationOrder)
+Nested circle pairing must not depend on sketch geometry order. ... ok
+testIssue6130NestedRectanglesIgnoreCreationOrder (PartDesignTests.TestLoft.TestLoft.testIssue6130NestedRectanglesIgnoreCreationOrder)
+Nested rectangle pairing must not depend on sketch geometry order. ... ok
+testIssue6130SubtractiveLoftIgnoresCreationOrder (PartDesignTests.TestLoft.TestLoft.testIssue6130SubtractiveLoftIgnoresCreationOrder)
+Nested wire pairing must also be stable for subtractive lofts. ... ok
+testNestedIslandLoftIgnoresCreationOrder (PartDesignTests.TestLoft.TestLoft.testNestedIslandLoftIgnoresCreationOrder)
+Pair outer, hole, and island wires by nesting depth. ... ok
+testPadOnLoftBetweenCones (PartDesignTests.TestLoft.TestLoft.testPadOnLoftBetweenCones)
+Test issue #15138 adapted from a script by chennes ... ok
+testSimpleAdditiveLoftCase (PartDesignTests.TestLoft.TestLoft.testSimpleAdditiveLoftCase) ... ok
+testSimpleSubtractiveLoftCase (PartDesignTests.TestLoft.TestLoft.testSimpleSubtractiveLoftCase) ... ok
+testTwoFacesAdditiveLoftCase (PartDesignTests.TestLoft.TestLoft.testTwoFacesAdditiveLoftCase)
+Test issue #19183: Loft tool "Loft between faces no longer works ... ok
+testMirroredOffsetCase (PartDesignTests.TestMirrored.TestMirrored.testMirroredOffsetCase) ... ok
+testMirroredPrimitiveCase (PartDesignTests.TestMirrored.TestMirrored.testMirroredPrimitiveCase)
+Tests the same mirroring scenario as in the sketch case, ... ok
+testMirroredSketchCase (PartDesignTests.TestMirrored.TestMirrored.testMirroredSketchCase)
+Creates a unit cube cornered at the origin and mirrors it about the Y axis. ... ok
+testMultiTransform (PartDesignTests.TestMultiTransform.TestMultiTransform.testMultiTransform) ... ok
+testMultiTransformBody (PartDesignTests.TestMultiTransform.TestMultiTransform.testMultiTransformBody) ... ok
+testMultiTransformDressup (PartDesignTests.TestMultiTransform.TestMultiTransform.testMultiTransformDressup) ... ok
+testBoxCase (PartDesignTests.TestPad.TestPad.testBoxCase) ... ok
+testPadToConcaveCase (PartDesignTests.TestPad.TestPad.testPadToConcaveCase) ... ok
+testPadToFaceCase (PartDesignTests.TestPad.TestPad.testPadToFaceCase) ... ok
+testPadToFirstCase (PartDesignTests.TestPad.TestPad.testPadToFirstCase) ... ok
+testPadToPlaneCustomDir (PartDesignTests.TestPad.TestPad.testPadToPlaneCustomDir) ... ok
+testPadToShapeCase (PartDesignTests.TestPad.TestPad.testPadToShapeCase) ... ok
+testPadTwoDimensionsCase (PartDesignTests.TestPad.TestPad.testPadTwoDimensionsCase) ... ok
+testPadtoLastCase (PartDesignTests.TestPad.TestPad.testPadtoLastCase) ... ok
+testSketchAttachmentDoesNotImportExternalBody (PartDesignTests.TestPad.TestPad.testSketchAttachmentDoesNotImportExternalBody) ... ok
+testSketchOnBasePlane (PartDesignTests.TestPad.TestPad.testSketchOnBasePlane) ... ok
+testSketchOnDatumPlane (PartDesignTests.TestPad.TestPad.testSketchOnDatumPlane) ... ok
+testStartOffsetAndReference (PartDesignTests.TestPad.TestPad.testStartOffsetAndReference) ... ok
+testStartOffsetForTwoSidedAndSymmetricPad (PartDesignTests.TestPad.TestPad.testStartOffsetForTwoSidedAndSymmetricPad) ... ok
+testStartReferenceInternalSketchFace (PartDesignTests.TestPad.TestPad.testStartReferenceInternalSketchFace) ... ok
+testPathPatternCreatesCopiesAlongPath (PartDesignTests.TestPathPattern.TestPathPattern.testPathPatternCreatesCopiesAlongPath) ... ok
+testReverseAndAlignUseRelativePathFrames (PartDesignTests.TestPathPattern.TestPathPattern.testReverseAndAlignUseRelativePathFrames) ... ok
+testSubShapeBinderCanProvidePath (PartDesignTests.TestPathPattern.TestPathPattern.testSubShapeBinderCanProvidePath) ... ok
+testSimpleAdditivePipeCase (PartDesignTests.TestPipe.TestPipe.testSimpleAdditivePipeCase) ... ok
+testSimpleSubtractivePipeCase (PartDesignTests.TestPipe.TestPipe.testSimpleSubtractivePipeCase) ... ok
+testPocketDimensionCase (PartDesignTests.TestPocket.TestPocket.testPocketDimensionCase) ... ok
+testPocketPreservesTaperDirection (PartDesignTests.TestPocket.TestPocket.testPocketPreservesTaperDirection) ... ok
+testPocketThroughAllCase (PartDesignTests.TestPocket.TestPocket.testPocketThroughAllCase) ... ok
+testPocketToFaceCase (PartDesignTests.TestPocket.TestPocket.testPocketToFaceCase) ... Pocket001: SketchBased: Up to face: Must not be parallel to extrusion direction!
+ok
+testPocketToFirstCase (PartDesignTests.TestPocket.TestPocket.testPocketToFirstCase) ... ok
+testStartOffset (PartDesignTests.TestPocket.TestPocket.testStartOffset) ... ok
+testPointPatternCreatesCopiesAtPointCoordinates (PartDesignTests.TestPointPattern.TestPointPattern.testPointPatternCreatesCopiesAtPointCoordinates) ... ok
+testPointPatternPreservesSourceOrientation (PartDesignTests.TestPointPattern.TestPointPattern.testPointPatternPreservesSourceOrientation) ... ok
+testHorizontalSketchAxisPolarPattern (PartDesignTests.TestPolarPattern.TestPolarPattern.testHorizontalSketchAxisPolarPattern) ... ok
+testNormalSketchAxisPolarPattern (PartDesignTests.TestPolarPattern.TestPolarPattern.testNormalSketchAxisPolarPattern) ... ok
+testVerticalSketchAxisPolarPattern (PartDesignTests.TestPolarPattern.TestPolarPattern.testVerticalSketchAxisPolarPattern) ... ok
+testXAxisPolarPattern (PartDesignTests.TestPolarPattern.TestPolarPattern.testXAxisPolarPattern) ... ok
+testYAxisPolarPattern (PartDesignTests.TestPolarPattern.TestPolarPattern.testYAxisPolarPattern) ... ok
+testZAxisPolarPattern (PartDesignTests.TestPolarPattern.TestPolarPattern.testZAxisPolarPattern) ... ok
+testPrimitiveBox (PartDesignTests.TestPrimitive.TestPrimitive.testPrimitiveBox) ... ok
+testPrimitiveCone (PartDesignTests.TestPrimitive.TestPrimitive.testPrimitiveCone) ... ok
+testPrimitiveCylinder (PartDesignTests.TestPrimitive.TestPrimitive.testPrimitiveCylinder) ... ok
+testPrimitiveEllipsoid (PartDesignTests.TestPrimitive.TestPrimitive.testPrimitiveEllipsoid) ... ok
+testPrimitivePrism (PartDesignTests.TestPrimitive.TestPrimitive.testPrimitivePrism) ... ok
+testPrimitiveSphere (PartDesignTests.TestPrimitive.TestPrimitive.testPrimitiveSphere) ... ok
+testPrimitiveTorus (PartDesignTests.TestPrimitive.TestPrimitive.testPrimitiveTorus) ... ok
+testPrimitiveWedge (PartDesignTests.TestPrimitive.TestPrimitive.testPrimitiveWedge) ... ok
+testGrooveFace (PartDesignTests.TestRevolve.TestRevolve.testGrooveFace) ... ok
+testRevolutionStartOffsetAndReference (PartDesignTests.TestRevolve.TestRevolve.testRevolutionStartOffsetAndReference) ... ok
+testRevolveFace (PartDesignTests.TestRevolve.TestRevolve.testRevolveFace) ... ok
+testTwoBodyShapeBinderCase (PartDesignTests.TestShapeBinder.TestShapeBinder.testTwoBodyShapeBinderCase) ... ok
+testDependency (PartDesignTests.TestSketch.TestSketch.testDependency) ... ok
+testIssue17553 (PartDesignTests.TestSketch.TestSketch.testIssue17553) ... ok
+testBinderBeforeOrAfterPad (PartDesignTests.TestShapeBinder.TestSubShapeBinder.testBinderBeforeOrAfterPad)
+Test case for PR #8763 ... ok
+testBinderWithRevolution (PartDesignTests.TestShapeBinder.TestSubShapeBinder.testBinderWithRevolution) ... ok
+testOffsetBinder (PartDesignTests.TestShapeBinder.TestSubShapeBinder.testOffsetBinder) ... ok
+testMultipleSuppressedFeaturesReload (PartDesignTests.TestSuppressed.TestSuppressed.testMultipleSuppressedFeaturesReload)
+Multiple suppressed features should all persist after reload. ... <PartDesign> FeatureDressUp.cpp(209): PartDesignTestSuppressed#Chamfer: skip edge ;#28:1;:U;FLT;:H1028:7,E.Edge2 that is not C0 continuous
+Chamfer: No edges specified
+<PropertyLinks> PropertyLinks.cpp(539): PartDesignTestSuppressed#Chamfer.Base missing element reference PartDesignTestSuppressed#Fillet ;#28:1;:U;FLT;:H1028:7,E.Edge2
+ok
+testSuppressChangesShape (PartDesignTests.TestSuppressed.TestSuppressed.testSuppressChangesShape)
+Suppressing a feature should change the body shape. ... ok
+testSuppressedPersistsAfterReload (PartDesignTests.TestSuppressed.TestSuppressed.testSuppressedPersistsAfterReload)
+Suppressed property must persist after save/close/reopen (github issue #24587). ... ok
+testSuppressibleExtensionExists (PartDesignTests.TestSuppressed.TestSuppressed.testSuppressibleExtensionExists)
+PartDesign features should have SuppressibleExtension. ... ok
+testUnsuppressedPersistsAfterReload (PartDesignTests.TestSuppressed.TestSuppressed.testUnsuppressedPersistsAfterReload)
+A feature suppressed then unsuppressed should stay unsuppressed after reload. ... ok
+testArcJoinProducesValidCenteredCurvedWall (PartDesignTests.TestThickness.TestThickness.testArcJoinProducesValidCenteredCurvedWall) ... ok
+testCase5829RectoVersoThicknessOnRotatedFillet (PartDesignTests.TestThickness.TestThickness.testCase5829RectoVersoThicknessOnRotatedFillet)
+Verify recto-verso thickness processes the issue 5829 geometry locally. ... <PartDesign> FeatureThickness.cpp(250): Exception on making thick solid: BRep_API: command not done
+RectoVersoThickness: Failed to make thick solid
+FAIL
+testCase5829ThicknessOnRotatedFillet (PartDesignTests.TestThickness.TestThickness.testCase5829ThicknessOnRotatedFillet)
+Verify thickness succeeds on the rotated fillet from issue 5829. ... <PartDesign> FeatureThickness.cpp(250): Exception on making thick solid: BRep_API: command not done
+Thickness: Failed to make thick solid
+FAIL
+testCurvedOpenShellIsCenteredRadiallyAndAxially (PartDesignTests.TestThickness.TestThickness.testCurvedOpenShellIsCenteredRadiallyAndAxially) ... ok
+testMixedPlanarAndCylindricalFacesRemainCentered (PartDesignTests.TestThickness.TestThickness.testMixedPlanarAndCylindricalFacesRemainCentered) ... ok
+testPlanarOpenShellIsCenteredOnRetainedFaces (PartDesignTests.TestThickness.TestThickness.testPlanarOpenShellIsCenteredOnRetainedFaces) ... ok
+testReversedDoesNotChangeRectoVersoResult (PartDesignTests.TestThickness.TestThickness.testReversedDoesNotChangeRectoVersoResult) ... ok
+testReversedThickness (PartDesignTests.TestThickness.TestThickness.testReversedThickness) ... ok
+testSourceSolidOrientationDoesNotChangeResult (PartDesignTests.TestThickness.TestThickness.testSourceSolidOrientationDoesNotChangeResult) ... ok
+testTransformedStandaloneThicknessUsesBasePlacement (PartDesignTests.TestThickness.TestThickness.testTransformedStandaloneThicknessUsesBasePlacement)
+Keep standalone Thickness aligned with its transformed Base fallback. ... ok
+testTwoOpeningsCreateCenteredThroughWall (PartDesignTests.TestThickness.TestThickness.testTwoOpeningsCreateCenteredThroughWall) ... ok
+testApplyFillet (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testApplyFillet) ... ok
+testBaseFeatureAttachmentSupport (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testBaseFeatureAttachmentSupport) ... ok
+testBodySubShapeBinderElementMap (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testBodySubShapeBinderElementMap) ... ok
+testChangeSketch (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testChangeSketch) ... ok
+testFileSaveRestore (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testFileSaveRestore) ... ok
+testGetElementFunctionality (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testGetElementFunctionality) ... ok
+testPD_TNPSketchLoftSketchMove (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchLoftSketchMove)
+Prove that a sketch attached to a lofted sketch shape does not have a problem when the initial sketch has geometry moved ... ok
+testPD_TNPSketchPadSketchBSpline (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadSketchBSpline)
+Prove that a sketch attached to a padded sketch shape does not have a problem when the initial sketch has BSpline changed ... ok
+testPD_TNPSketchPadSketchConstructionChange (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadSketchConstructionChange)
+Prove that a sketch attached to a padded sketch shape does not have a problem when the initial sketch has geometry changed from Construction ... ok
+testPD_TNPSketchPadSketchDelete (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadSketchDelete)
+Prove that a sketch attached to a padded sketch shape does not have a problem when the initial sketch has geometry deleted ... ok
+testPD_TNPSketchPadSketchExternal (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadSketchExternal)
+Prove that a sketch attached to a padded sketch shape does not have a problem when the initial sketch has external geometry changed ... ok
+testPD_TNPSketchPadSketchMove (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadSketchMove)
+Prove that a sketch attached to a padded sketch shape does not have a problem when the initial sketch has geometry move ... ok
+testPD_TNPSketchPadSketchSplit (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadSketchSplit)
+Prove that a sketch attached to a padded sketch shape does not have a problem when the initial sketch has geometry split ... ok
+testPD_TNPSketchPadSketchSymmetry (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadSketchSymmetry)
+Prove that a sketch attached to a padded sketch shape does not have a problem when the initial sketch has Symmetry applied ... ok
+testPD_TNPSketchPadSketchTransform (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadSketchTransform)
+Prove that a sketch attached to a padded sketch shape does not have a problem when the initial sketch has a transformation applied ... ok
+testPD_TNPSketchPadSketchTrim (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadSketchTrim)
+Prove that a sketch attached to a padded sketch shape does not have a problem when the initial sketch has geometry trimmed ... ok
+testPD_TNPSketchPadTouching (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPadTouching)
+Prove that a sketch with touching wires works correctly ... <WireJoiner> WireJoiner.cpp(2015): failed to close some wire in iteration 38
+ok
+testPD_TNPSketchPipeSketchMove (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPipeSketchMove)
+Prove that a sketch attached to a piped sketch shape does not have a problem when the initial sketch has geometry moved ... ok
+testPD_TNPSketchPocketSketchMove (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchPocketSketchMove)
+Prove that a sketch attached to a pocketed sketch shape does not have a problem when the initial sketch has geometry moved ... ok
+testPD_TNPSketchRotSketchMove (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPD_TNPSketchRotSketchMove)
+Prove that a sketch attached to a rotated sketch shape does not have a problem when the initial sketch has geometry moved ... ok
+testPadChange_UpToFirst_to_Dimension (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPadChange_UpToFirst_to_Dimension) ... <PropertyLinks> PropertyLinks.cpp(539): PartDesignTestTNP_testPadChange_UpToFirst_to_Dimension#Sketch002.AttachmentSupport missing element reference PartDesignTestTNP_testPadChange_UpToFirst_to_Dimension#Pad001 ;#5f:4;:M;FUS;:H-10cd:7,F.Face11
+ok
+testPadsOnBaseObject (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPadsOnBaseObject)
+Simple TNP test case ... ok
+testPartDesignBasicFusion (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignBasicFusion)
+Test that a basic fusion creates an element map, and refine retains it ... ok
+testPartDesignBinderRevolution (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignBinderRevolution) ... ok
+testPartDesignElementMapBox (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapBox) ... ok
+testPartDesignElementMapChamfer (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapChamfer)
+Test Chamfer ( and  FeatureDressup ) ... ok
+testPartDesignElementMapCone (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapCone) ... ok
+testPartDesignElementMapCylinder (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapCylinder) ... ok
+testPartDesignElementMapEllipsoid (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapEllipsoid) ... ok
+testPartDesignElementMapFillet (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapFillet)
+Test Fillet ( and  FeatureDressup ) ... ok
+testPartDesignElementMapGroove (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapGroove) ... ok
+testPartDesignElementMapHelix (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapHelix) ... ok
+testPartDesignElementMapHole (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapHole) ... Looking for thread definitions in: C:\dev\occt8-mig\fcD\rc\loc2r2\data\Mod/PartDesign/Resources/Hole C:\dev\occt8-mig\fcD\runs\loc2-TestPartDesignApp\data\PartDesign/Hole 
+ok
+testPartDesignElementMapLoft (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapLoft) ... ok
+testPartDesignElementMapPad (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapPad)
+Test that padding a sketch results in a correct element map.  Note that comprehensive ... ok
+testPartDesignElementMapPipe (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapPipe) ... ok
+testPartDesignElementMapPocket (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapPocket) ... PositionBySupport: AttachEngine3D: subshape not found Box.Face6
+ok
+testPartDesignElementMapPrism (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapPrism) ... ok
+testPartDesignElementMapRevolutionFuseFeatureFirst (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapRevolutionFuseFeatureFirst) ... ok
+testPartDesignElementMapRevolutionWithDefaultFuseOrder (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapRevolutionWithDefaultFuseOrder) ... ok
+testPartDesignElementMapShapeBinder (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapShapeBinder) ... ok
+testPartDesignElementMapSketch (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSketch)
+Test that creating a sketch results in a correct element map. ... ok
+testPartDesignElementMapSphere (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSphere) ... ok
+testPartDesignElementMapSubBox (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubBox) ... ok
+testPartDesignElementMapSubCone (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubCone) ... ok
+testPartDesignElementMapSubCylinder (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubCylinder) ... ok
+testPartDesignElementMapSubEllipsoid (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubEllipsoid) ... ok
+testPartDesignElementMapSubHelix (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubHelix) ... ok
+testPartDesignElementMapSubLoft (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubLoft) ... PartDesign::SubtractiveLoft: SubLoft links are out of scope. Out of scope links to: Sketch001 Sketch
+ok
+testPartDesignElementMapSubPipe (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubPipe) ... ok
+testPartDesignElementMapSubPrism (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubPrism) ... ok
+testPartDesignElementMapSubShapeBinder (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubShapeBinder) ... ok
+testPartDesignElementMapSubSphere (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubSphere) ... ok
+testPartDesignElementMapSubTorus (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubTorus) ... ok
+testPartDesignElementMapSubWedge (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapSubWedge) ... ok
+testPartDesignElementMapTorus (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapTorus) ... ok
+testPartDesignElementMapTransform (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapTransform) ... ok
+testPartDesignElementMapWedge (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementMapWedge) ... ok
+testPartDesignElementPadSketch (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignElementPadSketch) ... ok
+testPartDesignTNPChamfer (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignTNPChamfer)
+Test Chamfer ... ok
+testPartDesignTNPFillet (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPartDesignTNPFillet)
+Test Fillet ... ok
+testPlaneElementMap (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testPlaneElementMap) ... ok
+testRectanglewithArcChangeinGlobalCenter (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testRectanglewithArcChangeinGlobalCenter) ... ok
+testRectanglewithArcChangeinGlobalUpperRight (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testRectanglewithArcChangeinGlobalUpperRight) ... Pad: Wire is not closed.
+ok
+testShapeBinder (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testShapeBinder) ... ok
+testSketchElementMap (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testSketchElementMap) ... ok
+testSubShapeBinder (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testSubShapeBinder) ... ok
+testSubelementNames (PartDesignTests.TestTopologicalNamingProblem.TestTopologicalNamingProblem.testSubelementNames) ... ok
+
+======================================================================
+FAIL: testCase5829RectoVersoThicknessOnRotatedFillet (PartDesignTests.TestThickness.TestThickness.testCase5829RectoVersoThicknessOnRotatedFillet)
+Verify recto-verso thickness processes the issue 5829 geometry locally.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\dev\occt8-mig\fcD\rc\loc2r2\Mod\PartDesign\PartDesignTests\TestThickness.py", line 153, in testCase5829RectoVersoThicknessOnRotatedFillet
+    self.assertTrue(thickness.isValid())
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: testCase5829ThicknessOnRotatedFillet (PartDesignTests.TestThickness.TestThickness.testCase5829ThicknessOnRotatedFillet)
+Verify thickness succeeds on the rotated fillet from issue 5829.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\dev\occt8-mig\fcD\rc\loc2r2\Mod\PartDesign\PartDesignTests\TestThickness.py", line 133, in testCase5829ThicknessOnRotatedFillet
+    self.assertTrue(thickness.isValid())
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 226 tests in 570.889s
+
+FAILED (failures=2)
+FreeCAD 26.3.0, Libs: 26.3.0devR20260922 (Git shallow)
+(C) 2001-2026 FreeCAD contributors
+FreeCAD is free and open-source software licensed under the terms of LGPL2+ license.
+

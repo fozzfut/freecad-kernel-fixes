@@ -1,0 +1,16 @@
+== r3dll as
+PROBE type=0 rootLoc=0 faces=2478 locatedFaces=2478 locatedChildren=8
+PROBE largest rootLoc=1 vol=170931.7090
+rc=0
+== r3dll twin
+PROBE type=0 rootLoc=0 faces=2478 locatedFaces=2478 locatedChildren=8
+PROBE largest rootLoc=1 vol=170931.7090
+rc=0
+== dlv as
+PROBE largest rootLoc=1 vol=170931.7090
+PROBE as/largest t=0.2 locatedFaces=1880 done=0 err=2 ms=471
+rc=0
+== dlv twin
+PROBE type=0 rootLoc=0 faces=2478 locatedFaces=2478 locatedChildren=8
+PROBE largest rootLoc=1 vol=170931.7090
+rc=0

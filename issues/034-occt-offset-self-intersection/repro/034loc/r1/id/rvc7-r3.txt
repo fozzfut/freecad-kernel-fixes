@@ -1,0 +1,127 @@
+# loaded C:\dev\occt8-mig\offset-034loc\r3dll\TKOffset.dll md5=db26a52d331b0162c05b573f4e1b378e
+RC hex15_thk_a_arc done=1 guided=1872 valid=1 so=1 sh=2 loose=0 open=0 vK=4253.8046 v=1272.218001 graded=4853 mis=0 (missing 0 extra 0) ms=81 grade=EXACT
+RC hex15_thk_a_int done=1 guided=1872 valid=1 so=1 sh=2 loose=0 open=0 vK=4253.8046 v=1272.235353 vexp=1272.235353 dv=9.09e-13 graded=2754 mis=0 (missing 0 extra 0) ms=122 grade=EXACT
+RC hex15_thk_rot_arc done=1 guided=1872 valid=1 so=1 sh=2 loose=0 open=0 vK=4253.8046 v=1272.218007 graded=4854 mis=0 (missing 0 extra 0) ms=138 grade=EXACT
+RC hex15_thk_rot_int done=1 guided=1872 valid=1 so=1 sh=2 loose=0 open=0 vK=4253.8046 v=1272.235353 vexp=1272.235353 dv=-2.27e-13 graded=2814 mis=0 (missing 0 extra 0) ms=244 grade=EXACT
+RC hex15_thk_rot2_arc done=1 guided=1872 valid=1 so=1 sh=2 loose=0 open=0 vK=4253.8046 v=1272.218026 graded=4856 mis=0 (missing 0 extra 0) ms=175 grade=EXACT
+RC hex15_thk_rot2_int done=1 guided=1872 valid=1 so=1 sh=2 loose=0 open=0 vK=4253.8046 v=1272.235353 vexp=1272.235353 dv=2.27e-11 graded=2817 mis=0 (missing 0 extra 0) ms=193 grade=EXACT
+RC Lneck_thk_a_arc done=0 ms=100 grade=ERR
+RC Lneck_thk_a_int done=1 guided=2160 valid=1 so=1 sh=2 loose=0 open=0 vK=4363.5200 v=1351.520000 vexp=1351.520000 dv=3.18e-12 graded=5076 mis=0 (missing 0 extra 0) ms=60 grade=EXACT
+RC Lneck_thk_rot_arc done=0 ms=107 grade=ERR
+RC Lneck_thk_rot_int done=1 guided=2160 valid=1 so=1 sh=2 loose=0 open=0 vK=4363.5200 v=1351.520000 vexp=1351.520000 dv=1.14e-12 graded=5084 mis=0 (missing 0 extra 0) ms=144 grade=EXACT
+RC Lneck_thk_rot2_arc done=0 ms=108 grade=ERR
+RC Lneck_thk_rot2_int done=1 guided=2160 valid=1 so=1 sh=2 loose=0 open=0 vK=4363.5200 v=1351.520000 vexp=1351.520000 dv=2.71e-11 graded=5079 mis=0 (missing 0 extra 0) ms=77 grade=EXACT
+RC Lthick_thk_a_arc done=0 ms=63 grade=ERR
+RC Lthick_thk_a_int done=0 ms=95 grade=ERR
+RC Lthick_thk_rot_arc done=0 ms=96 grade=ERR
+RC Lthick_thk_rot_int done=0 ms=99 grade=ERR
+RC Lthick_thk_rot2_arc done=0 ms=111 grade=ERR
+RC Lthick_thk_rot2_int done=0 ms=96 grade=ERR
+RC Tflush_thk_a_arc done=1 guided=1836 valid=1 so=1 sh=2 loose=0 open=0 vK=4277.9200 v=1289.911324 graded=4813 mis=0 (missing 0 extra 0) ms=67 grade=EXACT
+RC Tflush_thk_a_int done=0 ms=154 grade=ERR
+RC Tflush_thk_rot_arc done=1 guided=1836 valid=1 so=1 sh=2 loose=0 open=0 vK=4277.9200 v=1289.911324 graded=4816 mis=0 (missing 0 extra 0) ms=135 grade=EXACT
+RC Tflush_thk_rot_int done=0 ms=271 grade=ERR
+RC Tflush_thk_rot2_arc done=1 guided=1836 valid=1 so=1 sh=2 loose=0 open=0 vK=4277.9200 v=1289.911325 graded=4818 mis=0 (missing 0 extra 0) ms=92 grade=EXACT
+RC Tflush_thk_rot2_int done=0 ms=105 grade=ERR
+RC Tflushu_thk_a_arc done=1 guided=1584 valid=1 so=1 sh=2 loose=0 open=0 vK=4277.9200 v=1289.911324 graded=4565 mis=0 (missing 0 extra 0) ms=80 grade=EXACT
+RC Tflushu_thk_a_int done=0 ms=73 grade=ERR
+RC Tflushu_thk_rot_arc done=1 guided=1584 valid=1 so=1 sh=2 loose=0 open=0 vK=4277.9200 v=1289.911324 graded=4567 mis=0 (missing 0 extra 0) ms=91 grade=EXACT
+RC Tflushu_thk_rot_int done=0 ms=88 grade=ERR
+RC Tflushu_thk_rot2_arc done=1 guided=1584 valid=1 so=1 sh=2 loose=0 open=0 vK=4277.9200 v=1289.911324 graded=4562 mis=0 (missing 0 extra 0) ms=98 grade=EXACT
+RC Tflushu_thk_rot2_int done=0 ms=65 grade=ERR
+RC step_thk_a_arc done=1 guided=2244 valid=1 so=1 sh=2 loose=0 open=0 vK=4440.1000 v=1388.340759 graded=5213 mis=0 (missing 0 extra 0) ms=100 grade=EXACT
+RC step_thk_a_int done=1 guided=2244 valid=1 so=1 sh=2 loose=0 open=0 vK=4440.1000 v=1389.600000 vexp=1389.600000 dv=2.84e-11 graded=5230 mis=0 (missing 0 extra 0) ms=164 grade=EXACT
+RC step_thk_rot_arc done=1 guided=2244 valid=1 so=1 sh=2 loose=0 open=0 vK=4440.1000 v=1388.340772 graded=5216 mis=0 (missing 0 extra 0) ms=107 grade=EXACT
+RC step_thk_rot_int done=1 guided=2244 valid=1 so=1 sh=2 loose=0 open=0 vK=4440.1000 v=1389.600000 vexp=1389.600000 dv=2.36e-11 graded=5231 mis=0 (missing 0 extra 0) ms=245 grade=EXACT
+RC step_thk_rot2_arc done=1 guided=2244 valid=1 so=1 sh=2 loose=0 open=0 vK=4440.1000 v=1388.340790 graded=5224 mis=0 (missing 0 extra 0) ms=128 grade=EXACT
+RC step_thk_rot2_int done=1 guided=2244 valid=1 so=1 sh=2 loose=0 open=0 vK=4440.1000 v=1389.600000 vexp=1389.600000 dv=5.23e-11 graded=5230 mis=0 (missing 0 extra 0) ms=259 grade=EXACT
+RC ser_thk_a_arc done=1 guided=2808 valid=1 so=1 sh=3 loose=0 open=0 vK=4387.8400 v=1383.805295 graded=5659 mis=0 (missing 0 extra 0) ms=106 grade=EXACT
+RC ser_thk_a_int done=1 guided=2808 valid=1 so=1 sh=3 loose=0 open=0 vK=4387.8400 v=1383.840000 vexp=1383.840000 dv=2.96e-12 graded=5663 mis=0 (missing 0 extra 0) ms=124 grade=EXACT
+RC ser_thk_rot_arc done=1 guided=2808 valid=1 so=1 sh=3 loose=0 open=0 vK=4387.8400 v=1383.805313 graded=5664 mis=0 (missing 0 extra 0) ms=166 grade=EXACT
+RC ser_thk_rot_int done=1 guided=2808 valid=1 so=1 sh=3 loose=0 open=0 vK=4387.8400 v=1383.840000 vexp=1383.840000 dv=3.87e-12 graded=5671 mis=0 (missing 0 extra 0) ms=291 grade=EXACT
+RC ser_thk_rot2_arc done=1 guided=2808 valid=1 so=1 sh=3 loose=0 open=0 vK=4387.8400 v=1383.805375 graded=5664 mis=0 (missing 0 extra 0) ms=216 grade=EXACT
+RC ser_thk_rot2_int done=1 guided=2808 valid=1 so=1 sh=3 loose=0 open=0 vK=4387.8400 v=1383.840000 vexp=1383.840000 dv=2.48e-11 graded=5664 mis=0 (missing 0 extra 0) ms=278 grade=EXACT
+RC rneck_thk_a_arc done=0 ms=26 grade=ERR
+RC rneck_thk_a_int done=0 ms=70 grade=ERR
+RC rneck_thk_rot_arc done=0 ms=30 grade=ERR
+RC rneck_thk_rot_int done=0 ms=81 grade=ERR
+RC rneck_thk_rot2_arc done=0 ms=57 grade=ERR
+RC rneck_thk_rot2_int done=0 ms=61 grade=ERR
+RC hexneck_thk_a_arc done=1 guided=1944 valid=1 so=1 sh=2 loose=0 open=0 vK=4417.2731 v=1369.264284 graded=4917 mis=0 (missing 0 extra 0) ms=111 grade=EXACT
+RC hexneck_thk_a_int done=1 guided=1944 valid=1 so=1 sh=2 loose=0 open=0 vK=4417.2731 v=1369.273057 vexp=1369.273057 dv=0 graded=3034 mis=0 (missing 0 extra 0) ms=82 grade=EXACT
+RC hexneck_thk_rot_arc done=1 guided=1944 valid=1 so=1 sh=2 loose=0 open=0 vK=4417.2731 v=1369.264286 graded=4914 mis=0 (missing 0 extra 0) ms=231 grade=EXACT
+RC hexneck_thk_rot_int done=1 guided=1944 valid=1 so=1 sh=2 loose=0 open=0 vK=4417.2731 v=1369.273057 vexp=1369.273057 dv=2.27e-13 graded=2917 mis=0 (missing 0 extra 0) ms=215 grade=EXACT
+RC hexneck_thk_rot2_arc done=1 guided=1944 valid=1 so=1 sh=2 loose=0 open=0 vK=4417.2731 v=1369.264287 graded=4930 mis=0 (missing 0 extra 0) ms=123 grade=EXACT
+RC hexneck_thk_rot2_int done=1 guided=1944 valid=1 so=1 sh=2 loose=0 open=0 vK=4417.2731 v=1369.273057 vexp=1369.273057 dv=2.41e-11 graded=2987 mis=0 (missing 0 extra 0) ms=203 grade=EXACT
+RC pyr60_3.9_thk_a_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=119.8600 v=81.971612 vexp=81.971612 dv=-4.26e-14 graded=3493 mis=0 (missing 0 extra 0) ms=15 grade=EXACT
+RC pyr60_3.9_thk_a_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=119.8600 v=81.971612 vexp=81.971612 dv=-2.84e-14 graded=3481 mis=0 (missing 0 extra 0) ms=18 grade=EXACT
+RC pyr60_3.9_plain_a_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=119.8600 v=15.632004 vexp=15.632004 dv=1.07e-14 graded=3495 mis=0 (missing 0 extra 0) ms=16 grade=EXACT
+RC pyr60_3.9_plain_a_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=119.8600 v=15.632004 vexp=15.632004 dv=1.07e-14 graded=3490 mis=0 (missing 0 extra 0) ms=13 grade=EXACT
+RC pyr60_3.9_thk_rot_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=119.8600 v=81.971612 vexp=81.971612 dv=1.42e-13 graded=3483 mis=0 (missing 0 extra 0) ms=17 grade=EXACT
+RC pyr60_3.9_thk_rot_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=119.8600 v=81.971612 vexp=81.971612 dv=-1.85e-13 graded=3500 mis=0 (missing 0 extra 0) ms=18 grade=EXACT
+RC pyr60_3.9_plain_rot_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=119.8600 v=15.632004 vexp=15.632004 dv=3.38e-13 graded=3485 mis=0 (missing 0 extra 0) ms=20 grade=EXACT
+RC pyr60_3.9_plain_rot_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=119.8600 v=15.632004 vexp=15.632004 dv=3.84e-13 graded=3486 mis=0 (missing 0 extra 0) ms=27 grade=EXACT
+RC pyr60_4.5_thk_a_arc done=0 ms=16 grade=ERR
+RC pyr60_4.5_thk_a_int done=0 ms=40 grade=ERR
+RC pyr60_4.5_plain_a_arc done=0 ms=18 grade=ERR
+RC pyr60_4.5_plain_a_int done=0 ms=24 grade=ERR
+RC pyr60_4.5_thk_rot_arc done=0 ms=17 grade=ERR
+RC pyr60_4.5_thk_rot_int done=0 ms=30 grade=ERR
+RC pyr60_4.5_plain_rot_arc done=0 ms=17 grade=ERR
+RC pyr60_4.5_plain_rot_int done=0 ms=27 grade=ERR
+RC pyr60_4.9_thk_a_arc done=0 ms=16 grade=ERR
+RC pyr60_4.9_thk_a_int done=0 ms=34 grade=ERR
+RC pyr60_4.9_plain_a_arc done=0 ms=26 grade=ERR
+RC pyr60_4.9_plain_a_int done=0 ms=28 grade=ERR
+RC pyr60_4.9_thk_rot_arc done=0 ms=33 grade=ERR
+RC pyr60_4.9_thk_rot_int done=0 ms=32 grade=ERR
+RC pyr60_4.9_plain_rot_arc done=0 ms=19 grade=ERR
+RC pyr60_4.9_plain_rot_int done=0 ms=26 grade=ERR
+RC pyr40_2_thk_a_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=58.8774 v=48.737641 vexp=48.737641 dv=-7.11e-15 graded=3489 mis=0 (missing 0 extra 0) ms=14 grade=EXACT
+RC pyr40_2_thk_a_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=58.8774 v=48.737641 vexp=48.737641 dv=-7.11e-15 graded=3486 mis=0 (missing 0 extra 0) ms=19 grade=EXACT
+RC pyr40_2_plain_a_arc done=0 ms=18 grade=ERR
+RC pyr40_2_plain_a_int done=1 guided=516 valid=0 so=1 sh=1 loose=0 open=0 vK=58.8774 v=0.000000 vexp=0.000000 dv=0 graded=3480 mis=0 (missing 0 extra 0) ms=14 grade=BAD
+RC pyr40_2_thk_rot_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=58.8774 v=48.737641 vexp=48.737641 dv=-1.35e-13 graded=3490 mis=0 (missing 0 extra 0) ms=17 grade=EXACT
+RC pyr40_2_thk_rot_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=58.8774 v=48.737641 vexp=48.737641 dv=-1.28e-13 graded=3485 mis=0 (missing 0 extra 0) ms=20 grade=EXACT
+RC pyr40_2_plain_rot_arc done=0 ms=98 grade=ERR
+RC pyr40_2_plain_rot_int done=1 guided=516 valid=0 so=1 sh=1 loose=0 open=0 vK=58.8774 v=-0.000000 vexp=0.000000 dv=-2.59e-14 graded=3479 mis=0 (missing 0 extra 0) ms=12 grade=BAD
+RC pyr40_2.35_thk_a_arc done=0 ms=19 grade=ERR
+RC pyr40_2.35_thk_a_int done=0 ms=42 grade=ERR
+RC pyr40_2.35_plain_a_arc done=0 ms=20 grade=ERR
+RC pyr40_2.35_plain_a_int done=0 ms=42 grade=ERR
+RC pyr40_2.35_thk_rot_arc done=0 ms=28 grade=ERR
+RC pyr40_2.35_thk_rot_int done=0 ms=34 grade=ERR
+RC pyr40_2.35_plain_rot_arc done=0 ms=21 grade=ERR
+RC pyr40_2.35_plain_rot_int done=0 ms=27 grade=ERR
+RC pyr40_2.45_thk_a_arc done=0 ms=16 grade=ERR
+RC pyr40_2.45_thk_a_int done=0 ms=35 grade=ERR
+RC pyr40_2.45_plain_a_arc done=0 ms=27 grade=ERR
+RC pyr40_2.45_plain_a_int done=0 ms=27 grade=ERR
+RC pyr40_2.45_thk_rot_arc done=0 ms=16 grade=ERR
+RC pyr40_2.45_thk_rot_int done=0 ms=77 grade=ERR
+RC pyr40_2.45_plain_rot_arc done=0 ms=19 grade=ERR
+RC pyr40_2.45_plain_rot_int done=0 ms=30 grade=ERR
+RC pyr75_7.5_thk_a_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=249.2314 v=154.665370 vexp=154.665370 dv=2.84e-14 graded=3491 mis=0 (missing 0 extra 0) ms=16 grade=EXACT
+RC pyr75_7.5_thk_a_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=249.2314 v=154.665370 vexp=154.665370 dv=2.84e-14 graded=3489 mis=0 (missing 0 extra 0) ms=39 grade=EXACT
+RC pyr75_7.5_plain_a_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=249.2314 v=66.489543 vexp=66.489543 dv=0 graded=3479 mis=0 (missing 0 extra 0) ms=16 grade=EXACT
+RC pyr75_7.5_plain_a_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=249.2314 v=66.489543 vexp=66.489543 dv=0 graded=3480 mis=0 (missing 0 extra 0) ms=34 grade=EXACT
+RC pyr75_7.5_thk_rot_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=249.2314 v=154.665370 vexp=154.665370 dv=4.26e-13 graded=3484 mis=0 (missing 0 extra 0) ms=16 grade=EXACT
+RC pyr75_7.5_thk_rot_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=249.2314 v=154.665370 vexp=154.665370 dv=8.24e-13 graded=3498 mis=0 (missing 0 extra 0) ms=29 grade=EXACT
+RC pyr75_7.5_plain_rot_arc done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=249.2314 v=66.489543 vexp=66.489543 dv=5.97e-13 graded=3489 mis=0 (missing 0 extra 0) ms=21 grade=EXACT
+RC pyr75_7.5_plain_rot_int done=1 guided=516 valid=1 so=1 sh=1 loose=0 open=0 vK=249.2314 v=66.489543 vexp=66.489543 dv=3.41e-13 graded=3478 mis=0 (missing 0 extra 0) ms=13 grade=EXACT
+RC pyr75_9_thk_a_arc done=0 ms=17 grade=ERR
+RC pyr75_9_thk_a_int done=0 ms=29 grade=ERR
+RC pyr75_9_plain_a_arc done=0 ms=17 grade=ERR
+RC pyr75_9_plain_a_int done=0 ms=24 grade=ERR
+RC pyr75_9_thk_rot_arc done=0 ms=14 grade=ERR
+RC pyr75_9_thk_rot_int done=0 ms=38 grade=ERR
+RC pyr75_9_plain_rot_arc done=0 ms=16 grade=ERR
+RC pyr75_9_plain_rot_int done=0 ms=20 grade=ERR
+RC pyr75_10.5_thk_a_arc done=0 ms=18 grade=ERR
+RC pyr75_10.5_thk_a_int done=0 ms=34 grade=ERR
+RC pyr75_10.5_plain_a_arc done=0 ms=22 grade=ERR
+RC pyr75_10.5_plain_a_int done=0 ms=23 grade=ERR
+RC pyr75_10.5_thk_rot_arc done=0 ms=19 grade=ERR
+RC pyr75_10.5_thk_rot_int done=0 ms=28 grade=ERR
+RC pyr75_10.5_plain_rot_arc done=0 ms=19 grade=ERR
+RC pyr75_10.5_plain_rot_int done=0 ms=25 grade=ERR

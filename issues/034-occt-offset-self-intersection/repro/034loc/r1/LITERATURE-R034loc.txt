@@ -1,0 +1,18 @@
+LITERATURE - lane R-034-loc round 1 (29.09). Web search budget of this session was exhausted (tool refused);
+no fresh search. Sources re-used from the 034 passes (offset-034b/LITERATURE.before-B.txt, lit-offset/LITERATURE.txt).
+
+L1. R.T. Farouki, "The approximation of non-degenerate offset surfaces", CAGD 3(1) 15-43, 1986,
+    doi:10.1016/0167-8396(86)90022-1. CAGD (specialist, full source). [ABS]
+    Idea: an offset is defined by the unit normal N = Su x Sv / |Su x Sv|; regularity (Su x Sv != 0) and the
+    non-degeneracy bound are intrinsic properties of the surface, i.e. invariant under rigid motions.
+    APPLIED: CheckInputData's per-point test (|Su|,|Sv| > 0, Su not parallel to Sv, singular points only at
+    degenerated edges) is such an intrinsic test, so it must give the same verdict in any frame; the defect
+    was comparing points of two different frames (surface frame vs located frame), not the test itself.
+L2. T. Maekawa, "An overview of offset curves and surfaces", CAD 31(3) 165-173, 1999,
+    doi:10.1016/S0010-4485(99)00013-5. CAD (specialist, full source). [ABS]
+    Idea: singular points of the parametrisation (poles, apices) need special treatment; the offset of an
+    apex is a point/circle built from the surface itself.
+    APPLIED: BRepOffset_Offset builds the offset apex from TheSurf; it must be placed like every other point
+    of TheSurf (same frame), which the fix enforces.
+Better known method? None needed: the fix is frame consistency (one frame for all compared/constructed points).
+A frame-INDEPENDENT offset (none == geo, found broken on 6 members: stock) is a separate class, see README.

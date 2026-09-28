@@ -1,0 +1,5 @@
+IP / provenance - lane R-034-loc round 1.
+1. CheckInputData frame: own derivation (compare points in one frame); no distance field, no sampling-based
+   construction; the existing stock sample grid is only moved to the located frame. EP4530910A1 not touched.
+2. BRepOffset_Offset apex placement: own derivation (the apex is a point of TheSurf, placed by the face
+   location like the other points). No proprietary source read.

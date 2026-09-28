@@ -1,0 +1,22 @@
+FCLOC sphere offset id state=Up-to-date valid=1 vol=3053.628059 area=1017.876020 cb=-0.000000,0.000000,0.000000
+FCLOC sphere offset p1 state=Touched|Invalid ERR
+FCLOC sphere offset far state=Touched|Invalid ERR
+FCLOC dome offset id state=Up-to-date valid=1 vol=3153.241564 area=1179.403917 cb=-0.000000,0.000000,3.590022
+FCLOC dome offset p1 state=Touched|Invalid ERR
+FCLOC dome offset far state=Touched|Invalid ERR
+FCLOC dome thick id state=Up-to-date valid=1 vol=567.581073 area=1196.946801 cb=0.000000,0.000000,4.758764
+FCLOC dome thick p1 state=Touched|Invalid ERR
+FCLOC dome thick far state=Touched|Invalid ERR
+FCLOC cone offset id state=Up-to-date valid=1 vol=2570.447611 area=1122.973423 cb=0.000000,-0.000000,3.536232
+FCLOC cone offset p1 state=Touched|Invalid ERR
+FCLOC cone offset far state=Touched|Invalid ERR
+FCLOC cone thick id state=Touched|Invalid ERR
+FCLOC cone thick p1 state=Touched|Invalid ERR
+FCLOC cone thick far state=Touched|Invalid ERR
+FCLOC box offset id state=Up-to-date valid=1 vol=46080.339204 area=7924.867198 cb=25.000000,17.500000,11.000000
+FCLOC box offset p1 state=Up-to-date valid=1 vol=46080.339204 area=7924.867198 cb=25.000000,17.500000,11.000000
+FCLOC box offset far state=Up-to-date valid=1 vol=46080.339204 area=7924.867198 cb=25.000000,17.500000,11.000000
+FCLOC box thick id state=Up-to-date valid=1 vol=5236.000000 area=10642.000000 cb=25.000000,17.500000,7.823529
+FCLOC box thick p1 state=Up-to-date valid=1 vol=5236.000000 area=10642.000000 cb=25.000000,17.500000,7.823529
+FCLOC box thick far state=Up-to-date valid=1 vol=5236.000000 area=10642.000000 cb=25.000000,17.500000,7.823529
+FCLOC-DONE

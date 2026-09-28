@@ -1,0 +1,5 @@
+SUMMARY {'none:DIFF': 189, 'none:EQ': 275, 'twin:DIFF': 185, 'twin:EQ': 279}
+DIFF nvfl_thk-1_arc_T1 nest:OK/0 vs geon:OK/0
+DIFF rbsp_off1_arc_T1 nest:BOP/0 vs geon:BOP/0
+SUMMARY {'none:DIFF': 25, 'none:EQ': 439, 'twin:DIFF': 2, 'twin:EQ': 462}
+SUMMARY {'none:DIFF': 26, 'none:EQ': 438, 'twin:DIFF': 3, 'twin:EQ': 461}

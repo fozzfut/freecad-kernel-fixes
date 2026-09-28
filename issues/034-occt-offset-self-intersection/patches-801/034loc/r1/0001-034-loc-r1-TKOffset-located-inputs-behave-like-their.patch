@@ -1,0 +1,142 @@
+From fbe511b2de2cbd78dbffe3276a4584c1fbeab8cf Mon Sep 17 00:00:00 2001
+From: fozzfut <vanolia13@gmail.com>
+Date: Tue, 29 Sep 2026 04:58:53 +0700
+Subject: [PATCH] 034 loc r1 (TKOffset): located inputs behave like their
+ geometry-transformed twins
+
+Class: offset / thick solid of an input whose faces carry a TopLoc_Location (Shape.Moved, FreeCAD
+Placement of Part::Offset / Part::Thickness sources, STEP/sewn faces with locations) must give the
+result of the geometry-transformed twin.
+
+Root causes (both a frame mix-up between the surface frame and the located frame):
+- CheckInputData: the degenerated (pole/apex) points come from BRep_Tool::Pnt (located frame) while
+  the sampled surface point came from the unlocated surface; a located face with a singular point
+  (sphere, dome, all-filleted corner, apex cone, revolved B-spline) was rejected as
+  BadNormalsOnGeometry. The sampled point and derivatives now go to the located frame.
+- BRepOffset_Offset::Init: MinApex/MaxApex (apex of the offset cone / singular offset surface) are
+  points of TheSurf but were not moved by the face location like the other vertex points; the
+  offset apex vertex of a located cone landed off its face (silent wrong body, Intersection join).
+
+Unlocated inputs take the unchanged code paths (identity transform skipped).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../BRepOffset/BRepOffset_MakeOffset.cxx      | 19 ++++++++++++++++--
+ .../TKOffset/BRepOffset/BRepOffset_Offset.cxx | 20 +++++++++++--------
+ 2 files changed, 29 insertions(+), 10 deletions(-)
+
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+index d89b316616..a9978711c8 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_MakeOffset.cxx
+@@ -3473,6 +3473,7 @@ static void AppendToList(NCollection_List<TopoDS_Shape>& theL, const TopoDS_Shap
+ static BRepOffset_Error checkSinglePoint(const double                            theUParam,
+                                          const double                            theVParam,
+                                          const occ::handle<Geom_Surface>&        theSurf,
++                                         const gp_Trsf*                          theSurfTrsf,
+                                          const NCollection_DynamicArray<gp_Pnt>& theBadPoints);
+ 
+ //---------------------------------------------------------------------
+@@ -8486,6 +8487,11 @@ bool BRepOffset_MakeOffset::CheckInputData(const Message_ProgressRange& theRange
+ 
+     const occ::handle<Geom_Surface>& aSurf = BRep_Tool::Surface(aF, L);
+     BRepTools::UVBounds(aF, aUmin, aUmax, aVmin, aVmax);
++    // 034-loc: the surface is returned in its own frame, while BRep_Tool::Pnt (the degenerated
++    // points below) applies the location. A located face is checked in the located frame, exactly
++    // like its geometry-transformed twin; an unlocated face is checked as before (no transformation).
++    const gp_Trsf  aSurfTrsf    = L.Transformation();
++    const gp_Trsf* aSurfTrsfPtr = L.IsIdentity() ? nullptr : &aSurfTrsf;
+ 
+     // Continuity check.
+     if (aSurf->Continuity() == GeomAbs_C0)
+@@ -8514,7 +8520,7 @@ bool BRepOffset_MakeOffset::CheckInputData(const Message_ProgressRange& theRange
+       {
+         double aVParam = aVmin + (aVmax - aVmin) * j / aPntPerDim;
+ 
+-        myError = checkSinglePoint(aUParam, aVParam, aSurf, aBad3dPnts);
++        myError = checkSinglePoint(aUParam, aVParam, aSurf, aSurfTrsfPtr, aBad3dPnts);
+         if (myError != BRepOffset_NoError)
+         {
+           return false;
+@@ -8529,7 +8535,7 @@ bool BRepOffset_MakeOffset::CheckInputData(const Message_ProgressRange& theRange
+       const TopoDS_Vertex& aV = TopoDS::Vertex(anExpFV.Current());
+       aPnt2d                  = BRep_Tool::Parameters(aV, aF);
+ 
+-      myError = checkSinglePoint(aPnt2d.X(), aPnt2d.Y(), aSurf, aBad3dPnts);
++      myError = checkSinglePoint(aPnt2d.X(), aPnt2d.Y(), aSurf, aSurfTrsfPtr, aBad3dPnts);
+       if (myError != BRepOffset_NoError)
+       {
+         return false;
+@@ -8625,11 +8631,20 @@ void BRepOffset_MakeOffset::RemoveInternalEdges()
+ BRepOffset_Error checkSinglePoint(const double                            theUParam,
+                                   const double                            theVParam,
+                                   const occ::handle<Geom_Surface>&        theSurf,
++                                  const gp_Trsf*                          theSurfTrsf,
+                                   const NCollection_DynamicArray<gp_Pnt>& theBadPoints)
+ {
+   gp_Pnt aPnt;
+   gp_Vec aD1U, aD1V;
+   theSurf->D1(theUParam, theVParam, aPnt, aD1U, aD1V);
++  if (theSurfTrsf != nullptr)
++  {
++    // 034-loc: same frame as the located degenerated points (theBadPoints) and as the
++    // geometry-transformed twin of the face (derivatives too, for a scaled location).
++    aPnt.Transform(*theSurfTrsf);
++    aD1U.Transform(*theSurfTrsf);
++    aD1V.Transform(*theSurfTrsf);
++  }
+ 
+   if (aD1U.SquareMagnitude() < Precision::SquareConfusion()
+       || aD1V.SquareMagnitude() < Precision::SquareConfusion())
+diff --git a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Offset.cxx b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Offset.cxx
+index 0075283278..888169f193 100644
+--- a/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Offset.cxx
++++ b/src/ModelingAlgorithms/TKOffset/BRepOffset/BRepOffset_Offset.cxx
+@@ -911,6 +911,10 @@ void BRepOffset_Offset::Init(
+         TopoDS_Edge  Eforward    = TopoDS::Edge(aLocalShape);
+         P2d1                     = C2d->Value(BRep_Tool::Parameter(V1, Eforward, CurFace));
+         P2d2                     = C2d->Value(BRep_Tool::Parameter(V2, Eforward, CurFace));
++        // 034-loc: MinApex / MaxApex are points of TheSurf, i.e. in the frame of the surface like
++        // TheSurf->D0 below. Both kinds of point go to the located frame of the face the same way
++        // (the apex of a located cone was left in the local frame: the offset apex vertex landed
++        // away from its face).
+         if (VonDegen.Contains(V1))
+         {
+           if (std::abs(P2d1.Y() - vf1) <= Precision::Confusion())
+@@ -927,12 +931,12 @@ void BRepOffset_Offset::Init(
+         else
+         {
+           TheSurf->D0(P2d1.X(), P2d1.Y(), P1);
+-          if (!L.IsIdentity() && !IsTransformed)
+-          {
+-            P1.Transform(L.Transformation());
+-          }
+           vstart = P2d1.Y();
+         }
++        if (!L.IsIdentity() && !IsTransformed)
++        {
++          P1.Transform(L.Transformation());
++        }
+         if (VonDegen.Contains(V2))
+         {
+           if (std::abs(P2d2.Y() - vf1) <= Precision::Confusion())
+@@ -949,12 +953,12 @@ void BRepOffset_Offset::Init(
+         else
+         {
+           TheSurf->D0(P2d2.X(), P2d2.Y(), P2);
+-          if (!L.IsIdentity() && !IsTransformed)
+-          {
+-            P2.Transform(L.Transformation());
+-          }
+           vend = P2d2.Y();
+         }
++        if (!L.IsIdentity() && !IsTransformed)
++        {
++          P2.Transform(L.Transformation());
++        }
+         // E a-t-il ume image dans la Map des Created ?
+         if (Created.IsBound(E))
+         {
+-- 
+2.52.0.windows.1
+

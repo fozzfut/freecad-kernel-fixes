@@ -1,0 +1,2 @@
+imported DLLs ours: api-ms-win-crt-heap-l1-1-0.dll api-ms-win-crt-math-l1-1-0.dll api-ms-win-crt-runtime-l1-1-0.dll api-ms-win-crt-string-l1-1-0.dll kernel32.dll msvcp140.dll tkbo.dll tkbool.dll tkbrep.dll tkernel.dll tkfillet.dll tkg2d.dll tkg3d.dll tkgeomalgo.dll tkgeombase.dll tkmath.dll tkprim.dll tkshhealing.dll tktopalgo.dll vcruntime140.dll vcruntime140_1.dll
+ABI TKOffset.dll exports=480 missing=0 extra=0 dlls-same=True import-diff=+0/-0 crt-diff=+0/-0 unresolved=0

@@ -1,0 +1,140 @@
+LOC f5829_thk-1_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T4 none done=0 err=6 exc=- ms=9677.4 grade=ERR
+LOC f5829_thk-1_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T4 geo done=0 err=6 exc=- ms=8151.0 grade=ERR
+LOC f5829_thk-1_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T4 loc done=0 err=2 exc=- ms=5.3 grade=ERR
+LOC f5829_thk-1_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T4 subloc done=0 err=2 exc=- ms=15.6 grade=ERR
+LOC f5829_thk-1_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T4 nest done=0 err=2 exc=- ms=7.7 grade=ERR
+LOC f5829_thk-1_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T4 geon done=0 err=6 exc=- ms=7181.7 grade=ERR
+LOC f5829_thk-1_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T4 floc done=0 err=2 exc=- ms=24.6 grade=ERR
+LOC f5829_thk-1_int_T4 INFO base-faces-located=10
+LOC f5829_thk-1_int_T4 none done=0 err=6 exc=- ms=10058.7 grade=ERR
+LOC f5829_thk-1_int_T4 INFO base-faces-located=10
+LOC f5829_thk-1_int_T4 geo done=0 err=6 exc=- ms=8184.8 grade=ERR
+LOC f5829_thk-1_int_T4 INFO base-faces-located=10
+LOC f5829_thk-1_int_T4 loc done=0 err=2 exc=- ms=19.6 grade=ERR
+LOC f5829_thk-1_int_T4 INFO base-faces-located=10
+LOC f5829_thk-1_int_T4 subloc done=0 err=2 exc=- ms=5.6 grade=ERR
+LOC f5829_thk-1_int_T4 INFO base-faces-located=10
+LOC f5829_thk-1_int_T4 nest done=0 err=2 exc=- ms=6.1 grade=ERR
+LOC f5829_thk-1_int_T4 INFO base-faces-located=10
+LOC f5829_thk-1_int_T4 geon done=0 err=6 exc=- ms=6943.4 grade=ERR
+LOC f5829_thk-1_int_T4 INFO base-faces-located=10
+LOC f5829_thk-1_int_T4 floc done=0 err=2 exc=- ms=22.4 grade=ERR
+LOC f5829_thk-0.5_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T4 none done=0 err=6 exc=- ms=6191.2 grade=ERR
+LOC f5829_thk-0.5_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T4 geo done=0 err=6 exc=- ms=6158.2 grade=ERR
+LOC f5829_thk-0.5_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T4 loc done=0 err=2 exc=- ms=5.4 grade=ERR
+LOC f5829_thk-0.5_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T4 subloc done=0 err=2 exc=- ms=4.6 grade=ERR
+LOC f5829_thk-0.5_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T4 nest done=0 err=2 exc=- ms=6.6 grade=ERR
+LOC f5829_thk-0.5_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T4 geon done=0 err=6 exc=- ms=5609.5 grade=ERR
+LOC f5829_thk-0.5_arc_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T4 floc done=0 err=2 exc=- ms=5.1 grade=ERR
+LOC f5829_thk-0.5_int_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T4 none done=0 err=6 exc=- ms=5753.9 grade=ERR
+LOC f5829_thk-0.5_int_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T4 geo done=0 err=6 exc=- ms=5977.8 grade=ERR
+LOC f5829_thk-0.5_int_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T4 loc done=0 err=2 exc=- ms=5.0 grade=ERR
+LOC f5829_thk-0.5_int_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T4 subloc done=0 err=2 exc=- ms=5.6 grade=ERR
+LOC f5829_thk-0.5_int_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T4 nest done=0 err=2 exc=- ms=5.7 grade=ERR
+LOC f5829_thk-0.5_int_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T4 geon done=0 err=6 exc=- ms=4987.7 grade=ERR
+LOC f5829_thk-0.5_int_T4 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T4 floc done=0 err=2 exc=- ms=4.4 grade=ERR
+LOC f5829_thk-1_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T1 none done=0 err=6 exc=- ms=8269.7 grade=ERR
+LOC f5829_thk-1_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T1 geo done=0 err=6 exc=- ms=44878.3 grade=ERR
+LOC f5829_thk-1_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T1 loc done=0 err=2 exc=- ms=12.6 grade=ERR
+LOC f5829_thk-1_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T1 subloc done=0 err=2 exc=- ms=7.2 grade=ERR
+LOC f5829_thk-1_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T1 nest done=0 err=2 exc=- ms=3.9 grade=ERR
+LOC f5829_thk-1_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T1 geon done=0 err=6 exc=- ms=8943.9 grade=ERR
+LOC f5829_thk-1_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-1_arc_T1 floc done=0 err=2 exc=- ms=4.1 grade=ERR
+LOC f5829_thk-1_int_T1 INFO base-faces-located=10
+LOC f5829_thk-1_int_T1 none done=0 err=6 exc=- ms=9970.9 grade=ERR
+LOC f5829_thk-1_int_T1 INFO base-faces-located=10
+LOC f5829_thk-1_int_T1 geo done=0 err=6 exc=- ms=52628.1 grade=ERR
+LOC f5829_thk-1_int_T1 INFO base-faces-located=10
+LOC f5829_thk-1_int_T1 loc done=0 err=2 exc=- ms=5.4 grade=ERR
+LOC f5829_thk-1_int_T1 INFO base-faces-located=10
+LOC f5829_thk-1_int_T1 subloc done=0 err=2 exc=- ms=5.1 grade=ERR
+LOC f5829_thk-1_int_T1 INFO base-faces-located=10
+LOC f5829_thk-1_int_T1 nest done=0 err=2 exc=- ms=5.4 grade=ERR
+LOC f5829_thk-1_int_T1 INFO base-faces-located=10
+LOC f5829_thk-1_int_T1 geon done=0 err=6 exc=- ms=8461.3 grade=ERR
+LOC f5829_thk-1_int_T1 INFO base-faces-located=10
+LOC f5829_thk-1_int_T1 floc done=0 err=2 exc=- ms=5.0 grade=ERR
+LOC f5829_thk-0.5_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T1 none done=0 err=6 exc=- ms=6581.8 grade=ERR
+LOC f5829_thk-0.5_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T1 geo done=0 err=6 exc=- ms=5050.7 grade=ERR
+LOC f5829_thk-0.5_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T1 loc done=0 err=2 exc=- ms=5.0 grade=ERR
+LOC f5829_thk-0.5_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T1 subloc done=0 err=2 exc=- ms=5.1 grade=ERR
+LOC f5829_thk-0.5_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T1 nest done=0 err=2 exc=- ms=4.5 grade=ERR
+LOC f5829_thk-0.5_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T1 geon done=0 err=6 exc=- ms=5028.0 grade=ERR
+LOC f5829_thk-0.5_arc_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_arc_T1 floc done=0 err=2 exc=- ms=4.8 grade=ERR
+LOC f5829_thk-0.5_int_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T1 none done=0 err=6 exc=- ms=5999.9 grade=ERR
+LOC f5829_thk-0.5_int_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T1 geo done=0 err=6 exc=- ms=4882.9 grade=ERR
+LOC f5829_thk-0.5_int_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T1 loc done=0 err=2 exc=- ms=4.7 grade=ERR
+LOC f5829_thk-0.5_int_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T1 subloc done=0 err=2 exc=- ms=5.0 grade=ERR
+LOC f5829_thk-0.5_int_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T1 nest done=0 err=2 exc=- ms=4.9 grade=ERR
+LOC f5829_thk-0.5_int_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T1 geon done=0 err=6 exc=- ms=4692.5 grade=ERR
+LOC f5829_thk-0.5_int_T1 INFO base-faces-located=10
+LOC f5829_thk-0.5_int_T1 floc done=0 err=2 exc=- ms=4.4 grade=ERR
+LOC f5829_off-1_arc_T4 INFO base-faces-located=10
+LOC f5829_off-1_arc_T4 none done=0 err=6 exc=- ms=6459.9 grade=ERR
+LOC f5829_off-1_arc_T4 INFO base-faces-located=10
+LOC f5829_off-1_arc_T4 geo done=0 err=6 exc=- ms=5736.4 grade=ERR
+LOC f5829_off-1_arc_T4 INFO base-faces-located=10
+LOC f5829_off-1_arc_T4 loc done=0 err=2 exc=- ms=4.4 grade=ERR
+LOC f5829_off-1_arc_T4 INFO base-faces-located=10
+LOC f5829_off-1_arc_T4 subloc done=0 err=2 exc=- ms=5.2 grade=ERR
+LOC f5829_off-1_arc_T4 INFO base-faces-located=10
+LOC f5829_off-1_arc_T4 nest done=0 err=2 exc=- ms=4.4 grade=ERR
+LOC f5829_off-1_arc_T4 INFO base-faces-located=10
+LOC f5829_off-1_arc_T4 geon done=0 err=6 exc=- ms=4577.7 grade=ERR
+LOC f5829_off-1_arc_T4 INFO base-faces-located=10
+LOC f5829_off-1_arc_T4 floc done=0 err=2 exc=- ms=4.4 grade=ERR
+LOC f5829_off-1_int_T4 INFO base-faces-located=10
+LOC f5829_off-1_int_T4 none done=0 err=6 exc=- ms=6385.9 grade=ERR
+LOC f5829_off-1_int_T4 INFO base-faces-located=10
+LOC f5829_off-1_int_T4 geo done=0 err=6 exc=- ms=6311.3 grade=ERR
+LOC f5829_off-1_int_T4 INFO base-faces-located=10
+LOC f5829_off-1_int_T4 loc done=0 err=2 exc=- ms=4.4 grade=ERR
+LOC f5829_off-1_int_T4 INFO base-faces-located=10
+LOC f5829_off-1_int_T4 subloc done=0 err=2 exc=- ms=4.3 grade=ERR
+LOC f5829_off-1_int_T4 INFO base-faces-located=10
+LOC f5829_off-1_int_T4 nest done=0 err=2 exc=- ms=4.4 grade=ERR
+LOC f5829_off-1_int_T4 INFO base-faces-located=10
+LOC f5829_off-1_int_T4 geon done=0 err=6 exc=- ms=5152.9 grade=ERR
+LOC f5829_off-1_int_T4 INFO base-faces-located=10
+LOC f5829_off-1_int_T4 floc done=0 err=2 exc=- ms=4.4 grade=ERR

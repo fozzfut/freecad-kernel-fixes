@@ -1,0 +1,516 @@
+LOC box_thk-1.2_arc_T1 none done=1 err=0 exc=- ms=8.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=0,0,0,50,35,22
+LOC box_thk-1.2_arc_T1 geo done=1 err=0 exc=- ms=10.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-5.329071e-15,-2.081668e-15,-3.552714e-15,50,35,22
+LOC box_thk-1.2_arc_T1 loc done=1 err=0 exc=- ms=13.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-4.135581e-15,-4.163336e-15,-2.775558e-15,50,35,22
+LOC box_thk-1.2_arc_T1 subloc done=1 err=0 exc=- ms=11.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-4.135581e-15,-4.163336e-15,-2.775558e-15,50,35,22
+LOC box_thk-1.2_arc_T1 nest done=1 err=0 exc=- ms=12.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-3.03646e-14,1.576517e-14,-3.189116e-14,50,35,22
+LOC box_thk-1.2_arc_T1 geon done=1 err=0 exc=- ms=10.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=8.881784e-15,1.953993e-14,-5.684342e-14,50,35,22
+LOC box_thk-1.2_int_T1 none done=1 err=0 exc=- ms=12.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=0,0,0,50,35,22
+LOC box_thk-1.2_int_T1 geo done=1 err=0 exc=- ms=12.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-5.329071e-15,-2.081668e-15,-3.552714e-15,50,35,22
+LOC box_thk-1.2_int_T1 loc done=1 err=0 exc=- ms=10.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-4.135581e-15,-4.163336e-15,-2.775558e-15,50,35,22
+LOC box_thk-1.2_int_T1 subloc done=1 err=0 exc=- ms=10.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-4.135581e-15,-4.163336e-15,-2.775558e-15,50,35,22
+LOC box_thk-1.2_int_T1 nest done=1 err=0 exc=- ms=10.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-3.03646e-14,1.576517e-14,-3.189116e-14,50,35,22
+LOC box_thk-1.2_int_T1 geon done=1 err=0 exc=- ms=11.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=8.881784e-15,1.953993e-14,-5.684342e-14,50,35,22
+LOC box_thk1.2_arc_T1 none done=1 err=0 exc=- ms=14.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T1 geo done=1 err=0 exc=- ms=7.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T1 loc done=1 err=0 exc=- ms=7.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T1 subloc done=1 err=0 exc=- ms=7.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T1 nest done=1 err=0 exc=- ms=8.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T1 geon done=1 err=0 exc=- ms=6.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T1 none done=1 err=0 exc=- ms=5.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T1 geo done=1 err=0 exc=- ms=5.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T1 loc done=1 err=0 exc=- ms=4.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T1 subloc done=1 err=0 exc=- ms=4.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T1 nest done=1 err=0 exc=- ms=4.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T1 geon done=1 err=0 exc=- ms=5.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk-1.2_arc_T2 none done=1 err=0 exc=- ms=11.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=0,0,0,50,35,22
+LOC box_thk-1.2_arc_T2 geo done=1 err=0 exc=- ms=12.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-2.842171e-14,-1.421085e-14,-7.105427e-15,50,35,22
+LOC box_thk-1.2_arc_T2 loc done=1 err=0 exc=- ms=6.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-1.94289e-15,-2.775558e-15,0,50,35,22
+LOC box_thk-1.2_arc_T2 subloc done=1 err=0 exc=- ms=8.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-1.94289e-15,-2.775558e-15,0,50,35,22
+LOC box_thk-1.2_arc_T2 nest done=1 err=0 exc=- ms=11.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=8.332224e-14,-1.421085e-14,-4.263256e-14,50,35,22
+LOC box_thk-1.2_arc_T2 geon done=1 err=0 exc=- ms=6.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=8.526513e-14,-2.842171e-14,-6.394885e-14,50,35,22
+LOC box_thk-1.2_int_T2 none done=1 err=0 exc=- ms=12.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=0,0,0,50,35,22
+LOC box_thk-1.2_int_T2 geo done=1 err=0 exc=- ms=14.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-2.842171e-14,-1.421085e-14,-7.105427e-15,50,35,22
+LOC box_thk-1.2_int_T2 loc done=1 err=0 exc=- ms=8.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-1.94289e-15,-2.775558e-15,0,50,35,22
+LOC box_thk-1.2_int_T2 subloc done=1 err=0 exc=- ms=14.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-1.94289e-15,-2.775558e-15,0,50,35,22
+LOC box_thk-1.2_int_T2 nest done=1 err=0 exc=- ms=14.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=8.332224e-14,-1.421085e-14,-4.263256e-14,50,35,22
+LOC box_thk-1.2_int_T2 geon done=1 err=0 exc=- ms=15.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=8.526513e-14,-2.842171e-14,-6.394885e-14,50,35,22
+LOC box_thk1.2_arc_T2 none done=1 err=0 exc=- ms=7.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T2 geo done=1 err=0 exc=- ms=6.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T2 loc done=1 err=0 exc=- ms=4.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T2 subloc done=1 err=0 exc=- ms=5.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T2 nest done=1 err=0 exc=- ms=8.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T2 geon done=1 err=0 exc=- ms=5.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T2 none done=1 err=0 exc=- ms=5.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T2 geo done=1 err=0 exc=- ms=5.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T2 loc done=1 err=0 exc=- ms=4.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T2 subloc done=1 err=0 exc=- ms=4.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T2 nest done=1 err=0 exc=- ms=4.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T2 geon done=1 err=0 exc=- ms=4.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk-1.2_arc_T3 none done=1 err=0 exc=- ms=12.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=0,0,0,50,35,22
+LOC box_thk-1.2_arc_T3 geo done=1 err=0 exc=- ms=13.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-9.540979e-16,0,-3.469447e-15,50,35,22
+LOC box_thk-1.2_arc_T3 loc done=1 err=0 exc=- ms=10.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-1.526557e-15,0,-3.469447e-15,50,35,22
+LOC box_thk-1.2_arc_T3 subloc done=1 err=0 exc=- ms=10.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-1.526557e-15,0,-3.469447e-15,50,35,22
+LOC box_thk-1.2_arc_T3 nest done=1 err=0 exc=- ms=10.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=1.33582e-12,7.31859e-12,2.593481e-12,50,35,22
+LOC box_thk-1.2_arc_T3 geon done=1 err=0 exc=- ms=10.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=0,0,0,50,35,22
+LOC box_thk-1.2_int_T3 none done=1 err=0 exc=- ms=15.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=0,0,0,50,35,22
+LOC box_thk-1.2_int_T3 geo done=1 err=0 exc=- ms=19.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-9.540979e-16,0,-3.469447e-15,50,35,22
+LOC box_thk-1.2_int_T3 loc done=1 err=0 exc=- ms=12.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-1.526557e-15,0,-3.469447e-15,50,35,22
+LOC box_thk-1.2_int_T3 subloc done=1 err=0 exc=- ms=18.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=-1.526557e-15,0,-3.469447e-15,50,35,22
+LOC box_thk-1.2_int_T3 nest done=1 err=0 exc=- ms=13.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=1.33582e-12,7.31859e-12,2.593481e-12,50,35,22
+LOC box_thk-1.2_int_T3 geon done=1 err=0 exc=- ms=16.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6223.392 area=10576.32 c=25,17.5,8.13749054 bb=0,0,0,50,35,22
+LOC box_thk1.2_arc_T3 none done=1 err=0 exc=- ms=13.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T3 geo done=1 err=0 exc=- ms=9.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T3 loc done=1 err=0 exc=- ms=6.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T3 subloc done=1 err=0 exc=- ms=7.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T3 nest done=1 err=0 exc=- ms=7.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_arc_T3 geon done=1 err=0 exc=- ms=7.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=23 vol=6883.41024 area=11683.8902 c=25,17.5,7.38982756 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T3 none done=1 err=0 exc=- ms=5.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T3 geo done=1 err=0 exc=- ms=2.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T3 loc done=1 err=0 exc=- ms=2.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T3 subloc done=1 err=0 exc=- ms=3.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T3 nest done=1 err=0 exc=- ms=5.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_thk1.2_int_T3 geon done=1 err=0 exc=- ms=5.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=6966.432 area=11826.24 c=25,17.5,7.33427497 bb=-1.2,-1.2,-1.2,51.2,36.2,22
+LOC box_off2_arc_T1 none done=1 err=0 exc=- ms=8.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T1 geo done=1 err=0 exc=- ms=10.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T1 loc done=1 err=0 exc=- ms=7.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T1 subloc done=1 err=0 exc=- ms=5.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T1 nest done=1 err=0 exc=- ms=5.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T1 geon done=1 err=0 exc=- ms=10.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T1 none done=1 err=0 exc=- ms=5.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T1 geo done=1 err=0 exc=- ms=4.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T1 loc done=1 err=0 exc=- ms=3.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T1 subloc done=1 err=0 exc=- ms=4.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T1 nest done=1 err=0 exc=- ms=4.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T1 geon done=1 err=0 exc=- ms=4.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off-2_arc_T1 none done=1 err=0 exc=- ms=14.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T1 geo done=1 err=0 exc=- ms=12.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T1 loc done=1 err=0 exc=- ms=15.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T1 subloc done=1 err=0 exc=- ms=13.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T1 nest done=1 err=0 exc=- ms=14.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T1 geon done=1 err=0 exc=- ms=15.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T1 none done=1 err=0 exc=- ms=12.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T1 geo done=1 err=0 exc=- ms=9.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T1 loc done=1 err=0 exc=- ms=10.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T1 subloc done=1 err=0 exc=- ms=8.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T1 nest done=1 err=0 exc=- ms=11.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T1 geon done=1 err=0 exc=- ms=10.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off2_arc_T3 none done=1 err=0 exc=- ms=11.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T3 geo done=1 err=0 exc=- ms=8.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T3 loc done=1 err=0 exc=- ms=9.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T3 subloc done=1 err=0 exc=- ms=6.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T3 nest done=1 err=0 exc=- ms=8.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_arc_T3 geon done=1 err=0 exc=- ms=5.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=54358.112 area=8634.86714 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T3 none done=1 err=0 exc=- ms=5.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T3 geo done=1 err=0 exc=- ms=4.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T3 loc done=1 err=0 exc=- ms=3.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T3 subloc done=1 err=0 exc=- ms=3.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T3 nest done=1 err=0 exc=- ms=4.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off2_int_T3 geon done=1 err=0 exc=- ms=4.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=54756 area=9048 c=25,17.5,11 bb=-2,-2,-2,52,37,24
+LOC box_off-2_arc_T3 none done=1 err=0 exc=- ms=14.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T3 geo done=1 err=0 exc=- ms=12.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T3 loc done=1 err=0 exc=- ms=9.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T3 subloc done=1 err=0 exc=- ms=9.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T3 nest done=1 err=0 exc=- ms=8.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_arc_T3 geon done=1 err=0 exc=- ms=11.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T3 none done=1 err=0 exc=- ms=11.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T3 geo done=1 err=0 exc=- ms=9.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T3 loc done=1 err=0 exc=- ms=8.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T3 subloc done=1 err=0 exc=- ms=9.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T3 nest done=1 err=0 exc=- ms=11.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box_off-2_int_T3 geon done=1 err=0 exc=- ms=9.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=25668 area=5624 c=25,17.5,11 bb=2,2,2,48,33,20
+LOC box2rm_thk-1.5_arc_T1 none done=1 err=0 exc=- ms=8.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=0,0,0,50,35,22
+LOC box2rm_thk-1.5_arc_T1 geo done=1 err=0 exc=- ms=7.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=-5.329071e-15,-2.081668e-15,-3.552714e-15,50,35,22
+LOC box2rm_thk-1.5_arc_T1 loc done=1 err=0 exc=- ms=7.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=-4.135581e-15,-4.163336e-15,-2.775558e-15,50,35,22
+LOC box2rm_thk-1.5_arc_T1 subloc done=1 err=0 exc=- ms=7.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=-4.135581e-15,-4.163336e-15,-2.775558e-15,50,35,22
+LOC box2rm_thk-1.5_arc_T1 nest done=1 err=0 exc=- ms=6.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=-3.03646e-14,1.576517e-14,-3.189116e-14,50,35,22
+LOC box2rm_thk-1.5_arc_T1 geon done=1 err=0 exc=- ms=7.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=5.502543e-15,1.953993e-14,-5.684342e-14,50,35,22
+LOC box2rm_thk-1.5_int_T1 none done=1 err=0 exc=- ms=9.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=0,0,0,50,35,22
+LOC box2rm_thk-1.5_int_T1 geo done=1 err=0 exc=- ms=9.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=-5.329071e-15,-2.081668e-15,-3.552714e-15,50,35,22
+LOC box2rm_thk-1.5_int_T1 loc done=1 err=0 exc=- ms=13.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=-4.135581e-15,-4.163336e-15,-2.775558e-15,50,35,22
+LOC box2rm_thk-1.5_int_T1 subloc done=1 err=0 exc=- ms=13.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=-4.135581e-15,-4.163336e-15,-2.775558e-15,50,35,22
+LOC box2rm_thk-1.5_int_T1 nest done=1 err=0 exc=- ms=11.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=-3.03646e-14,1.576517e-14,-3.189116e-14,50,35,22
+LOC box2rm_thk-1.5_int_T1 geon done=1 err=0 exc=- ms=16.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=6684 area=9228.5 c=28.2859755,17.5,7.71402449 bb=7.882583e-15,1.953993e-14,-5.684342e-14,50,35,22
+LOC cyl_thk-1_arc_T1 none done=1 err=0 exc=- ms=5.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.90458642e-16,-2.44812358e-16,8.5477707 bb=-10,-10,0,10,10,20
+LOC cyl_thk-1_arc_T1 geo done=1 err=0 exc=- ms=2.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-2.22044605e-15,1.77635684e-15,8.5477707 bb=-10,-10,-3.552714e-15,10,10,20
+LOC cyl_thk-1_arc_T1 loc done=1 err=0 exc=- ms=2.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-1.99840144e-15,-8.8817842e-16,8.5477707 bb=-10,-10,-7.850462e-16,10,10,20
+LOC cyl_thk-1_arc_T1 subloc done=1 err=0 exc=- ms=3.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-1.99840144e-15,-8.8817842e-16,8.5477707 bb=-10,-10,-7.850462e-16,10,10,20
+LOC cyl_thk-1_arc_T1 nest done=1 err=0 exc=- ms=3.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-2.84217094e-14,2.22044605e-14,8.5477707 bb=-10,-10,-2.973094e-14,10,10,20
+LOC cyl_thk-1_arc_T1 geon done=1 err=0 exc=- ms=2.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.15463195e-14,3.01980663e-14,8.5477707 bb=-10,-10,-5.808469e-14,10,10,20
+LOC cyl_thk-1_int_T1 none done=1 err=0 exc=- ms=5.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.90458642e-16,-2.93288129e-16,8.5477707 bb=-10,-10,0,10,10,20
+LOC cyl_thk-1_int_T1 geo done=1 err=0 exc=- ms=3.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-1.33226763e-15,0,8.5477707 bb=-10,-10,-3.552714e-15,10,10,20
+LOC cyl_thk-1_int_T1 loc done=1 err=0 exc=- ms=3.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-4.4408921e-16,-8.8817842e-16,8.5477707 bb=-10,-10,-7.850462e-16,10,10,20
+LOC cyl_thk-1_int_T1 subloc done=1 err=0 exc=- ms=4.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-4.4408921e-16,-8.8817842e-16,8.5477707 bb=-10,-10,-7.850462e-16,10,10,20
+LOC cyl_thk-1_int_T1 nest done=1 err=0 exc=- ms=4.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-2.84217094e-14,2.22044605e-14,8.5477707 bb=-10,-10,-2.973094e-14,10,10,20
+LOC cyl_thk-1_int_T1 geon done=1 err=0 exc=- ms=3.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.13242749e-14,3.01980663e-14,8.5477707 bb=-10,-10,-5.808469e-14,10,10,20
+LOC cyl_thk1_arc_T1 none done=1 err=0 exc=- ms=2.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=-1.90877672e-15,-3.19368142e-16,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T1 geo done=1 err=0 exc=- ms=1.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=-4.21884749e-15,-8.8817842e-16,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T1 loc done=1 err=0 exc=- ms=1.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=-2.22044605e-15,-8.8817842e-16,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T1 subloc done=1 err=0 exc=- ms=0.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=-2.22044605e-15,-8.8817842e-16,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T1 nest done=1 err=0 exc=- ms=0.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=-2.68673972e-14,2.30926389e-14,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T1 geon done=1 err=0 exc=- ms=1.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=1.26565425e-14,2.93098879e-14,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T1 none done=1 err=0 exc=- ms=6.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=-1.90829639e-15,-4.36441248e-16,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T1 geo done=1 err=0 exc=- ms=5.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=-2.66453526e-15,0,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T1 loc done=1 err=0 exc=- ms=3.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=-2.22044605e-15,0,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T1 subloc done=1 err=0 exc=- ms=4.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=-2.22044605e-15,0,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T1 nest done=1 err=0 exc=- ms=4.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=-2.93098879e-14,2.13162821e-14,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T1 geon done=1 err=0 exc=- ms=3.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=1.0658141e-14,2.84217094e-14,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk-1_arc_T3 none done=1 err=0 exc=- ms=4.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.90458642e-16,-2.44812358e-16,8.5477707 bb=-10,-10,0,10,10,20
+LOC cyl_thk-1_arc_T3 geo done=1 err=0 exc=- ms=2.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-1.13686838e-13,1.09139364e-11,8.5477707 bb=-10,-10,-6.943771e-16,10,10,20
+LOC cyl_thk-1_arc_T3 loc done=1 err=0 exc=- ms=2.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.13686838e-13,0,8.5477707 bb=-10,-10,-8.699707e-16,10,10,20
+LOC cyl_thk-1_arc_T3 subloc done=1 err=0 exc=- ms=3.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.13686838e-13,0,8.5477707 bb=-10,-10,-8.699707e-16,10,10,20
+LOC cyl_thk-1_arc_T3 nest done=1 err=0 exc=- ms=2.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.47792889e-12,1.09139364e-11,8.5477707 bb=-10,-10,2.592006e-12,10,10,20
+LOC cyl_thk-1_arc_T3 geon done=1 err=0 exc=- ms=2.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=0,3.63797881e-12,8.5477707 bb=-10,-10,-1.283585e-15,10,10,20
+LOC cyl_thk-1_int_T3 none done=1 err=0 exc=- ms=7.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.90458642e-16,-2.93288129e-16,8.5477707 bb=-10,-10,0,10,10,20
+LOC cyl_thk-1_int_T3 geo done=1 err=0 exc=- ms=4.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=-2.27373675e-13,7.27595761e-12,8.5477707 bb=-10,-10,-6.943771e-16,10,10,20
+LOC cyl_thk-1_int_T3 loc done=1 err=0 exc=- ms=4.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.13686838e-13,0,8.5477707 bb=-10,-10,-8.699707e-16,10,10,20
+LOC cyl_thk-1_int_T3 subloc done=1 err=0 exc=- ms=4.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.13686838e-13,0,8.5477707 bb=-10,-10,-8.699707e-16,10,10,20
+LOC cyl_thk-1_int_T3 nest done=1 err=0 exc=- ms=5.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=1.36424205e-12,3.63797881e-12,8.5477707 bb=-10,-10,2.592006e-12,10,10,20
+LOC cyl_thk-1_int_T3 geon done=1 err=0 exc=- ms=3.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1448.27421 area=2959.38028 c=0,3.63797881e-12,8.5477707 bb=-10,-10,-1.283585e-15,10,10,20
+LOC cyl_thk1_arc_T3 none done=1 err=0 exc=- ms=2.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=-1.90877672e-15,-3.19368142e-16,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T3 geo done=1 err=0 exc=- ms=1.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=1.13686838e-13,0,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T3 loc done=1 err=0 exc=- ms=1.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=-2.27373675e-13,0,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T3 subloc done=1 err=0 exc=- ms=1.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=-2.27373675e-13,0,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T3 nest done=1 err=0 exc=- ms=1.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=1.13686838e-12,7.27595761e-12,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_arc_T3 geon done=1 err=0 exc=- ms=1.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=6 vol=1685.0706 area=3438.20903 c=2.27373675e-13,1.09139364e-11,7.94853199 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T3 none done=1 err=0 exc=- ms=6.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=-1.90829639e-15,-4.36441248e-16,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T3 geo done=1 err=0 exc=- ms=3.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=-1.13686838e-13,0,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T3 loc done=1 err=0 exc=- ms=3.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=0,-3.63797881e-12,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T3 subloc done=1 err=0 exc=- ms=4.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=0,-3.63797881e-12,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T3 nest done=1 err=0 exc=- ms=3.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=1.25055521e-12,7.27595761e-12,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_thk1_int_T3 geon done=1 err=0 exc=- ms=3.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=1699.60163 area=3468.31829 c=0,3.63797881e-12,7.86956522 bb=-11,-11,-1,11,11,20
+LOC cyl_off1.5_arc_T1 none done=1 err=0 exc=- ms=2.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=9488.19363 area=2397.81362 c=-6.05115129e-16,-4.17092851e-16,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_arc_T1 geo done=1 err=0 exc=- ms=1.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=9488.19363 area=2397.81362 c=-2.66453526e-15,0,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_arc_T1 loc done=1 err=0 exc=- ms=0.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=9488.19363 area=2397.81362 c=-1.77635684e-15,0,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_arc_T1 subloc done=1 err=0 exc=- ms=1.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=9488.19363 area=2397.81362 c=-1.77635684e-15,8.8817842e-16,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_arc_T1 nest done=1 err=0 exc=- ms=1.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=9488.19363 area=2397.81362 c=-2.35367281e-14,2.30926389e-14,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_arc_T1 geon done=1 err=0 exc=- ms=1.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=9488.19363 area=2397.81362 c=1.22124533e-14,3.01980663e-14,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_int_T1 none done=1 err=0 exc=- ms=5.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=9555.93945 area=2492.85377 c=-1.18423789e-15,2.63739181e-17,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_int_T1 geo done=1 err=0 exc=- ms=4.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=9555.93945 area=2492.85377 c=-3.55271368e-15,8.8817842e-16,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_int_T1 loc done=1 err=0 exc=- ms=4.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=9555.93945 area=2492.85377 c=-4.4408921e-15,1.77635684e-15,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_int_T1 subloc done=1 err=0 exc=- ms=3.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=9555.93945 area=2492.85377 c=-4.4408921e-15,1.77635684e-15,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_int_T1 nest done=1 err=0 exc=- ms=3.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=9555.93945 area=2492.85377 c=-3.10862447e-14,2.22044605e-14,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cyl_off1.5_int_T1 geon done=1 err=0 exc=- ms=2.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=9555.93945 area=2492.85377 c=1.19904087e-14,3.10862447e-14,10 bb=-11.5,-11.5,-1.5,11.5,11.5,21.5
+LOC cone_thk-1_arc_T1 none done=1 err=0 exc=- ms=7.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=8.94611179e-16,-3.93174674e-16,4.87534949 bb=-10,-10,0,10,10,15
+LOC cone_thk-1_arc_T1 geo done=1 err=0 exc=- ms=6.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=-2.22044605e-16,8.8817842e-16,4.87534949 bb=-10,-10,-3.552714e-15,10,10,15
+LOC cone_thk-1_arc_T1 loc done=1 err=0 exc=- ms=3.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=2.22044605e-16,-8.8817842e-16,4.87534949 bb=-10,-10,-7.850462e-16,10,10,15
+LOC cone_thk-1_arc_T1 subloc done=1 err=0 exc=- ms=4.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=2.22044605e-16,-8.8817842e-16,4.87534949 bb=-10,-10,-7.850462e-16,10,10,15
+LOC cone_thk-1_arc_T1 nest done=1 err=0 exc=- ms=5.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=-2.81996648e-14,2.13162821e-14,4.87534949 bb=-10,-10,-2.973094e-14,10,10,15
+LOC cone_thk-1_arc_T1 geon done=1 err=0 exc=- ms=4.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=1.13242749e-14,2.84217094e-14,4.87534949 bb=-10,-10,-5.808469e-14,10,10,15
+LOC cone_thk-1_int_T1 none done=1 err=0 exc=- ms=8.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=8.94611179e-16,-2.85267223e-16,4.87534949 bb=-10,-10,0,10,10,15
+LOC cone_thk-1_int_T1 geo done=1 err=0 exc=- ms=8.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=-2.22044605e-16,8.8817842e-16,4.87534949 bb=-10,-10,-3.552714e-15,10,10,15
+LOC cone_thk-1_int_T1 loc done=1 err=0 exc=- ms=9.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=2.22044605e-16,-8.8817842e-16,4.87534949 bb=-10,-10,-7.850462e-16,10,10,15
+LOC cone_thk-1_int_T1 subloc done=1 err=0 exc=- ms=7.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=2.22044605e-16,-8.8817842e-16,4.87534949 bb=-10,-10,-7.850462e-16,10,10,15
+LOC cone_thk-1_int_T1 nest done=1 err=0 exc=- ms=7.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=-2.81996648e-14,2.13162821e-14,4.87534949 bb=-10,-10,-2.973094e-14,10,10,15
+LOC cone_thk-1_int_T1 geon done=1 err=0 exc=- ms=6.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=894.978201 area=1818.54618 c=1.17683641e-14,2.84217094e-14,4.87534949 bb=-10,-10,-5.808469e-14,10,10,15
+LOC cone_off1_arc_T2 none done=1 err=0 exc=- ms=2.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=3652.99506 area=1334.31387 c=4.83040947e-16,-2.58517932e-16,4.89890193 bb=-11,-11,-1,11,11,16
+LOC cone_off1_arc_T2 geo done=1 err=0 exc=- ms=1.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=3652.99506 area=1334.31387 c=0,-7.10542736e-15,4.89890193 bb=-11,-11,-1,11,11,16
+LOC cone_off1_arc_T2 loc done=1 err=0 exc=- ms=1.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=3652.99506 area=1334.31387 c=5.68434189e-14,-7.10542736e-15,4.89890193 bb=-11,-11,-1,11,11,16
+LOC cone_off1_arc_T2 subloc done=1 err=0 exc=- ms=1.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=3652.99506 area=1334.31387 c=2.84217094e-14,7.10542736e-15,4.89890193 bb=-11,-11,-1,11,11,16
+LOC cone_off1_arc_T2 nest done=1 err=0 exc=- ms=1.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=3652.99506 area=1334.31387 c=8.52651283e-14,-7.10542736e-15,4.89890193 bb=-11,-11,-1,11,11,16
+LOC cone_off1_arc_T2 geon done=1 err=0 exc=- ms=1.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=5 vol=3652.99506 area=1334.31387 c=1.13686838e-13,-2.13162821e-14,4.89890193 bb=-11,-11,-1,11,11,16
+LOC cone_off1_int_T2 none done=1 err=0 exc=- ms=6.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=3689.99067 area=1411.7399 c=-6.07166652e-16,-2.3842966e-16,4.63717647 bb=-11.47703,-11.47703,-1,11.47703,11.47703,16
+LOC cone_off1_int_T2 geo done=1 err=0 exc=- ms=5.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=3689.99067 area=1411.7399 c=2.84217094e-14,-7.10542736e-15,4.63717647 bb=-11.47703,-11.47703,-1,11.47703,11.47703,16
+LOC cone_off1_int_T2 loc done=1 err=0 exc=- ms=4.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=3689.99067 area=1411.7399 c=-2.84217094e-14,0,4.63717647 bb=-11.47703,-11.47703,-1,11.47703,11.47703,16
+LOC cone_off1_int_T2 subloc done=1 err=0 exc=- ms=3.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=3689.99067 area=1411.7399 c=-2.84217094e-14,0,4.63717647 bb=-11.47703,-11.47703,-1,11.47703,11.47703,16
+LOC cone_off1_int_T2 nest done=1 err=0 exc=- ms=3.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=3689.99067 area=1411.7399 c=8.52651283e-14,-1.42108547e-14,4.63717647 bb=-11.47703,-11.47703,-1,11.47703,11.47703,16
+LOC cone_off1_int_T2 geon done=1 err=0 exc=- ms=3.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=3 vol=3689.99067 area=1411.7399 c=1.13686838e-13,-2.13162821e-14,4.63717647 bb=-11.47703,-11.47703,-1,11.47703,11.47703,16
+LOC sph_off1_arc_T1 none done=1 err=0 exc=- ms=1.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=-2.72080219e-16,1.4091146e-16,2.63163976e-16 bb=-9,-9,-9,9,9,9
+LOC sph_off1_arc_T1 geo done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=-1.11022302e-15,8.8817842e-16,0 bb=-9,-9,-9,9,9,9
+LOC sph_off1_arc_T1 loc done=0 err=2 exc=- ms=0.1 grade=ERR
+LOC sph_off1_arc_T1 subloc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off1_arc_T1 nest done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off1_arc_T1 geon done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=1.08801856e-14,2.93098879e-14,-5.68434189e-14 bb=-9,-9,-9,9,9,9
+LOC sph_off1_int_T1 none done=1 err=0 exc=- ms=1.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=-2.72080219e-16,1.4091146e-16,2.63163976e-16 bb=-9,-9,-9,9,9,9
+LOC sph_off1_int_T1 geo done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=-1.11022302e-15,8.8817842e-16,0 bb=-9,-9,-9,9,9,9
+LOC sph_off1_int_T1 loc done=0 err=2 exc=- ms=0.1 grade=ERR
+LOC sph_off1_int_T1 subloc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off1_int_T1 nest done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off1_int_T1 geon done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=1.08801856e-14,2.93098879e-14,-5.68434189e-14 bb=-9,-9,-9,9,9,9
+LOC sph_off-1_arc_T1 none done=1 err=0 exc=- ms=0.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=-1.1515702e-16,-8.69245268e-17,-1.81260902e-17 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_arc_T1 geo done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=-8.8817842e-16,0,0 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_arc_T1 loc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_arc_T1 subloc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_arc_T1 nest done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_arc_T1 geon done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=1.11022302e-14,2.93098879e-14,-5.32907052e-14 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_int_T1 none done=1 err=0 exc=- ms=1.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=-1.1515702e-16,-8.69245268e-17,-1.81260902e-17 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_int_T1 geo done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=-8.8817842e-16,0,0 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_int_T1 loc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_int_T1 subloc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_int_T1 nest done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_int_T1 geon done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=1.11022302e-14,2.93098879e-14,-5.32907052e-14 bb=-7,-7,-7,7,7,7
+LOC sph_off1_arc_T3 none done=1 err=0 exc=- ms=0.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=-2.72080219e-16,1.4091146e-16,2.63163976e-16 bb=-9,-9,-9,9,9,9
+LOC sph_off1_arc_T3 geo done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=0,7.27595761e-12,1.8189894e-12 bb=-9,-9,-9,9,9,9
+LOC sph_off1_arc_T3 loc done=0 err=2 exc=- ms=0.1 grade=ERR
+LOC sph_off1_arc_T3 subloc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off1_arc_T3 nest done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off1_arc_T3 geon done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=0,7.27595761e-12,1.8189894e-12 bb=-9,-9,-9,9,9,9
+LOC sph_off1_int_T3 none done=1 err=0 exc=- ms=1.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=-2.72080219e-16,1.4091146e-16,2.63163976e-16 bb=-9,-9,-9,9,9,9
+LOC sph_off1_int_T3 geo done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=0,7.27595761e-12,1.8189894e-12 bb=-9,-9,-9,9,9,9
+LOC sph_off1_int_T3 loc done=0 err=2 exc=- ms=0.1 grade=ERR
+LOC sph_off1_int_T3 subloc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off1_int_T3 nest done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off1_int_T3 geon done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=3053.62806 area=1017.87602 c=0,7.27595761e-12,1.8189894e-12 bb=-9,-9,-9,9,9,9
+LOC sph_off-1_arc_T3 none done=1 err=0 exc=- ms=1.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=-1.1515702e-16,-8.69245268e-17,-1.81260902e-17 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_arc_T3 geo done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=0,3.63797881e-12,1.36424205e-12 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_arc_T3 loc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_arc_T3 subloc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_arc_T3 nest done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_arc_T3 geon done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=0,0,1.36424205e-12 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_int_T3 none done=1 err=0 exc=- ms=1.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=-1.1515702e-16,-8.69245268e-17,-1.81260902e-17 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_int_T3 geo done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=0,3.63797881e-12,1.36424205e-12 bb=-7,-7,-7,7,7,7
+LOC sph_off-1_int_T3 loc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_int_T3 subloc done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_int_T3 nest done=0 err=2 exc=- ms=0.0 grade=ERR
+LOC sph_off-1_int_T3 geon done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=1436.75504 area=615.75216 c=0,0,1.36424205e-12 bb=-7,-7,-7,7,7,7
+LOC sph_thk-1_arc_T1 none done=0 err=1 exc=- ms=1.1 grade=ERR
+LOC sph_thk-1_arc_T1 geo done=0 err=1 exc=- ms=0.5 grade=ERR
+LOC sph_thk-1_arc_T1 loc done=0 err=1 exc=- ms=0.6 grade=ERR
+LOC sph_thk-1_arc_T1 subloc done=0 err=1 exc=- ms=0.6 grade=ERR
+LOC sph_thk-1_arc_T1 nest done=0 err=1 exc=- ms=0.6 grade=ERR
+LOC sph_thk-1_arc_T1 geon done=0 err=1 exc=- ms=0.5 grade=ERR
+LOC sph_thk-1_int_T1 none done=0 err=1 exc=- ms=1.0 grade=ERR
+LOC sph_thk-1_int_T1 geo done=0 err=1 exc=- ms=0.5 grade=ERR
+LOC sph_thk-1_int_T1 loc done=0 err=1 exc=- ms=0.6 grade=ERR
+LOC sph_thk-1_int_T1 subloc done=0 err=1 exc=- ms=0.6 grade=ERR
+LOC sph_thk-1_int_T1 nest done=0 err=1 exc=- ms=0.6 grade=ERR
+LOC sph_thk-1_int_T1 geon done=0 err=1 exc=- ms=0.5 grade=ERR
+LOC tor_off1_arc_T1 none done=1 err=0 exc=- ms=0.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=-3.55271368e-15,1.55431223e-16,-1.9790118e-16 bb=-17,-17,-5,17,17,5
+LOC tor_off1_arc_T1 geo done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=1.77635684e-15,0,0 bb=-17,-17,-5,17,17,5
+LOC tor_off1_arc_T1 loc done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=1.77635684e-15,0,0 bb=-17,-17,-5,17,17,5
+LOC tor_off1_arc_T1 subloc done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=1.77635684e-15,0,0 bb=-17,-17,-5,17,17,5
+LOC tor_off1_arc_T1 nest done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=-2.30926389e-14,2.13162821e-14,-2.84217094e-14 bb=-17,-17,-5,17,17,5
+LOC tor_off1_arc_T1 geon done=1 err=0 exc=- ms=0.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=1.59872116e-14,2.84217094e-14,-5.32907052e-14 bb=-17,-17,-5,17,17,5
+LOC tor_off1_int_T1 none done=1 err=0 exc=- ms=1.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=-3.55271368e-15,1.55431223e-16,-1.9790118e-16 bb=-17,-17,-5,17,17,5
+LOC tor_off1_int_T1 geo done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=1.77635684e-15,0,0 bb=-17,-17,-5,17,17,5
+LOC tor_off1_int_T1 loc done=1 err=0 exc=- ms=0.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=1.77635684e-15,0,0 bb=-17,-17,-5,17,17,5
+LOC tor_off1_int_T1 subloc done=1 err=0 exc=- ms=0.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=1.77635684e-15,0,0 bb=-17,-17,-5,17,17,5
+LOC tor_off1_int_T1 nest done=1 err=0 exc=- ms=0.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=-2.30926389e-14,2.13162821e-14,-2.84217094e-14 bb=-17,-17,-5,17,17,5
+LOC tor_off1_int_T1 geon done=1 err=0 exc=- ms=0.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=1 vol=5921.76264 area=2368.70506 c=1.59872116e-14,2.84217094e-14,-5.32907052e-14 bb=-17,-17,-5,17,17,5
+LOC vfil_thk-1.2_arc_T1 none done=1 err=0 exc=- ms=19.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-8.881784e-16,-8.881784e-16,0,50,35,22
+LOC vfil_thk-1.2_arc_T1 geo done=1 err=0 exc=- ms=19.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-3.552714e-15,-2.664535e-15,-3.866732e-15,50,35,22
+LOC vfil_thk-1.2_arc_T1 loc done=1 err=0 exc=- ms=18.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-5.329071e-15,-4.884981e-15,-2.645487e-15,50,35,22
+LOC vfil_thk-1.2_arc_T1 subloc done=1 err=0 exc=- ms=23.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-5.329071e-15,-4.884981e-15,-2.645487e-15,50,35,22
+LOC vfil_thk-1.2_arc_T1 nest done=1 err=0 exc=- ms=12.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-3.108624e-14,1.509903e-14,-3.16932e-14,50,35,22
+LOC vfil_thk-1.2_arc_T1 geon done=1 err=0 exc=- ms=21.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=8.881784e-15,2.04281e-14,-5.684342e-14,50,35,22
+LOC vfil_thk-1.2_int_T1 none done=1 err=0 exc=- ms=22.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-8.881784e-16,-8.881784e-16,0,50,35,22
+LOC vfil_thk-1.2_int_T1 geo done=1 err=0 exc=- ms=42.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-3.552714e-15,-2.664535e-15,-3.866732e-15,50,35,22
+LOC vfil_thk-1.2_int_T1 loc done=1 err=0 exc=- ms=30.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-5.329071e-15,-4.884981e-15,-2.645487e-15,50,35,22
+LOC vfil_thk-1.2_int_T1 subloc done=1 err=0 exc=- ms=32.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-5.329071e-15,-4.884981e-15,-2.645487e-15,50,35,22
+LOC vfil_thk-1.2_int_T1 nest done=1 err=0 exc=- ms=29.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-3.108624e-14,1.509903e-14,-3.16932e-14,50,35,22
+LOC vfil_thk-1.2_int_T1 geon done=1 err=0 exc=- ms=28.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=8.881784e-15,2.04281e-14,-5.684342e-14,50,35,22
+LOC vfil_thk1_arc_T1 none done=1 err=0 exc=- ms=7.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T1 geo done=1 err=0 exc=- ms=8.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T1 loc done=1 err=0 exc=- ms=6.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T1 subloc done=1 err=0 exc=- ms=6.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T1 nest done=1 err=0 exc=- ms=5.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T1 geon done=1 err=0 exc=- ms=7.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T1 none done=1 err=0 exc=- ms=23.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T1 geo done=1 err=0 exc=- ms=66.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T1 loc done=1 err=0 exc=- ms=23.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T1 subloc done=1 err=0 exc=- ms=17.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T1 nest done=1 err=0 exc=- ms=17.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T1 geon done=1 err=0 exc=- ms=19.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk-1.2_arc_T3 none done=1 err=0 exc=- ms=19.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-8.881784e-16,-8.881784e-16,0,50,35,22
+LOC vfil_thk-1.2_arc_T3 geo done=1 err=0 exc=- ms=21.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-9.104488e-13,0,-3.191891e-15,50,35,22
+LOC vfil_thk-1.2_arc_T3 loc done=1 err=0 exc=- ms=24.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-1.970646e-15,-4.440892e-16,-3.329978e-15,50,35,22
+LOC vfil_thk-1.2_arc_T3 subloc done=1 err=0 exc=- ms=20.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-1.970646e-15,-4.440892e-16,-3.329978e-15,50,35,22
+LOC vfil_thk-1.2_arc_T3 nest done=1 err=0 exc=- ms=14.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=1.335376e-12,7.317924e-12,2.593724e-12,50,35,22
+LOC vfil_thk-1.2_arc_T3 geon done=1 err=0 exc=- ms=20.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-9.094947e-13,0,2.775558e-16,50,35,22
+LOC vfil_thk-1.2_int_T3 none done=1 err=0 exc=- ms=25.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-8.881784e-16,-8.881784e-16,0,50,35,22
+LOC vfil_thk-1.2_int_T3 geo done=1 err=0 exc=- ms=33.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-9.104488e-13,0,-3.191891e-15,50,35,22
+LOC vfil_thk-1.2_int_T3 loc done=1 err=0 exc=- ms=33.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-1.970646e-15,-4.440892e-16,-3.329978e-15,50,35,22
+LOC vfil_thk-1.2_int_T3 subloc done=1 err=0 exc=- ms=33.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-1.970646e-15,-4.440892e-16,-3.329978e-15,50,35,22
+LOC vfil_thk-1.2_int_T3 nest done=1 err=0 exc=- ms=37.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=1.335376e-12,7.317924e-12,2.593724e-12,50,35,22
+LOC vfil_thk-1.2_int_T3 geon done=1 err=0 exc=- ms=35.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=6061.21482 area=10297.784 c=25,17.5,8.06783263 bb=-9.094947e-13,0,2.775558e-16,50,35,22
+LOC vfil_thk1_arc_T3 none done=1 err=0 exc=- ms=6.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T3 geo done=1 err=0 exc=- ms=6.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T3 loc done=1 err=0 exc=- ms=7.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T3 subloc done=1 err=0 exc=- ms=4.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T3 nest done=1 err=0 exc=- ms=5.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_arc_T3 geon done=1 err=0 exc=- ms=5.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=27 vol=5524.51938 area=11217.4075 c=25,17.5,7.33077346 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T3 none done=1 err=0 exc=- ms=19.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T3 geo done=1 err=0 exc=- ms=18.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T3 loc done=1 err=0 exc=- ms=18.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T3 subloc done=1 err=0 exc=- ms=17.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T3 nest done=1 err=0 exc=- ms=13.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_thk1_int_T3 geon done=1 err=0 exc=- ms=18.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=5560.57516 area=11290.5663 c=25,17.5,7.27577017 bb=-1,-1,-1,51,36,22
+LOC vfil_off1_arc_T2 none done=1 err=0 exc=- ms=4.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=45588.844 area=7724.74434 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_arc_T2 geo done=1 err=0 exc=- ms=6.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=45588.844 area=7724.74434 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_arc_T2 loc done=1 err=0 exc=- ms=4.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=45588.844 area=7724.74434 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_arc_T2 subloc done=1 err=0 exc=- ms=3.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=45588.844 area=7724.74434 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_arc_T2 nest done=1 err=0 exc=- ms=5.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=45588.844 area=7724.74434 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_arc_T2 geon done=1 err=0 exc=- ms=3.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=45588.844 area=7724.74434 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_int_T2 none done=1 err=0 exc=- ms=14.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=45660.9556 area=7871.06187 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_int_T2 geo done=1 err=0 exc=- ms=14.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=45660.9556 area=7871.06187 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_int_T2 loc done=1 err=0 exc=- ms=18.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=45660.9556 area=7871.06187 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_int_T2 subloc done=1 err=0 exc=- ms=18.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=45660.9556 area=7871.06187 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_int_T2 nest done=1 err=0 exc=- ms=14.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=45660.9556 area=7871.06187 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off1_int_T2 geon done=1 err=0 exc=- ms=21.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=45660.9556 area=7871.06187 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC vfil_off-1_arc_T2 none done=1 err=0 exc=- ms=34.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_arc_T2 geo done=1 err=0 exc=- ms=31.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_arc_T2 loc done=1 err=0 exc=- ms=30.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_arc_T2 subloc done=1 err=0 exc=- ms=36.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_arc_T2 nest done=1 err=0 exc=- ms=35.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_arc_T2 geon done=1 err=0 exc=- ms=32.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_int_T2 none done=1 err=0 exc=- ms=47.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_int_T2 geo done=1 err=0 exc=- ms=33.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_int_T2 loc done=1 err=0 exc=- ms=31.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_int_T2 subloc done=1 err=0 exc=- ms=33.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_int_T2 nest done=1 err=0 exc=- ms=37.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC vfil_off-1_int_T2 geon done=1 err=0 exc=- ms=34.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=31525.4867 area=6289.53979 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off1_arc_T1 none done=1 err=0 exc=- ms=4.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_arc_T1 geo done=1 err=0 exc=- ms=5.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_arc_T1 loc done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_off1_arc_T1 subloc done=0 err=2 exc=- ms=0.6 grade=ERR
+LOC afil_off1_arc_T1 nest done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_off1_arc_T1 geon done=1 err=0 exc=- ms=4.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_int_T1 none done=1 err=0 exc=- ms=6.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_int_T1 geo done=1 err=0 exc=- ms=6.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_int_T1 loc done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_off1_int_T1 subloc done=0 err=2 exc=- ms=0.4 grade=ERR
+LOC afil_off1_int_T1 nest done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_off1_int_T1 geon done=1 err=0 exc=- ms=6.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off-1_arc_T1 none done=1 err=0 exc=- ms=3.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_arc_T1 geo done=1 err=0 exc=- ms=5.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_arc_T1 loc done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_off-1_arc_T1 subloc done=0 err=2 exc=- ms=0.4 grade=ERR
+LOC afil_off-1_arc_T1 nest done=0 err=2 exc=- ms=0.4 grade=ERR
+LOC afil_off-1_arc_T1 geon done=1 err=0 exc=- ms=4.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_int_T1 none done=1 err=0 exc=- ms=4.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_int_T1 geo done=1 err=0 exc=- ms=3.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_int_T1 loc done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off-1_int_T1 subloc done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off-1_int_T1 nest done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off-1_int_T1 geon done=1 err=0 exc=- ms=3.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off1_arc_T3 none done=1 err=0 exc=- ms=5.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_arc_T3 geo done=1 err=0 exc=- ms=2.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_arc_T3 loc done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off1_arc_T3 subloc done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off1_arc_T3 nest done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off1_arc_T3 geon done=1 err=0 exc=- ms=3.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_int_T3 none done=1 err=0 exc=- ms=6.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_int_T3 geo done=1 err=0 exc=- ms=4.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off1_int_T3 loc done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off1_int_T3 subloc done=0 err=2 exc=- ms=0.2 grade=ERR
+LOC afil_off1_int_T3 nest done=0 err=2 exc=- ms=0.2 grade=ERR
+LOC afil_off1_int_T3 geon done=1 err=0 exc=- ms=3.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=43918.4035 area=7121.68117 c=25,17.5,11 bb=-1,-1,-1,51,36,23
+LOC afil_off-1_arc_T3 none done=1 err=0 exc=- ms=4.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_arc_T3 geo done=1 err=0 exc=- ms=2.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_arc_T3 loc done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off-1_arc_T3 subloc done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off-1_arc_T3 nest done=0 err=2 exc=- ms=0.3 grade=ERR
+LOC afil_off-1_arc_T3 geon done=1 err=0 exc=- ms=2.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_int_T3 none done=1 err=0 exc=- ms=6.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_int_T3 geo done=1 err=0 exc=- ms=3.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_off-1_int_T3 loc done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_off-1_int_T3 subloc done=0 err=2 exc=- ms=0.4 grade=ERR
+LOC afil_off-1_int_T3 nest done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_off-1_int_T3 geon done=1 err=0 exc=- ms=6.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=30935.867 area=5877.61048 c=25,17.5,11 bb=1,1,1,49,34,21
+LOC afil_thk-1.2_arc_T1 none done=1 err=0 exc=- ms=84.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=54 vol=5983.06812 area=10143.4121 c=25,17.5,8.84441765 bb=-8.881784e-16,-8.881784e-16,-8.881784e-16,50,35,22
+LOC afil_thk-1.2_arc_T1 geo done=1 err=0 exc=- ms=94.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=54 vol=5983.06812 area=10143.4121 c=25,17.5,8.84441765 bb=-7.105427e-15,-3.552714e-15,-2.553513e-15,50,35,22
+LOC afil_thk-1.2_arc_T1 loc done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_thk-1.2_arc_T1 subloc done=0 err=2 exc=- ms=0.4 grade=ERR
+LOC afil_thk-1.2_arc_T1 nest done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_thk-1.2_arc_T1 geon done=1 err=0 exc=- ms=65.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=54 vol=5983.06812 area=10143.4121 c=25,17.5,8.84441765 bb=1.021405e-14,2.051137e-14,-5.662137e-14,50,35,22
+LOC afil_thk-1.2_int_T1 none done=1 err=0 exc=- ms=84.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=54 vol=5983.06812 area=10143.4121 c=25,17.5,8.84441765 bb=-8.881784e-16,-8.881784e-16,-8.881784e-16,50,35,22
+LOC afil_thk-1.2_int_T1 geo done=1 err=0 exc=- ms=87.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=54 vol=5983.06812 area=10143.4121 c=25,17.5,8.84441765 bb=-7.105427e-15,-3.552714e-15,-2.553513e-15,50,35,22
+LOC afil_thk-1.2_int_T1 loc done=0 err=2 exc=- ms=0.5 grade=ERR
+LOC afil_thk-1.2_int_T1 subloc done=0 err=2 exc=- ms=0.4 grade=ERR
+LOC afil_thk-1.2_int_T1 nest done=0 err=2 exc=- ms=0.4 grade=ERR
+LOC afil_thk-1.2_int_T1 geon done=1 err=0 exc=- ms=68.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=54 vol=5983.06812 area=10143.4121 c=25,17.5,8.84441765 bb=1.021405e-14,2.051137e-14,-5.662137e-14,50,35,22
+LOC hole_thk-1_arc_T1 none done=1 err=0 exc=- ms=8.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=0,0,0,40,30,10
+LOC hole_thk-1_arc_T1 geo done=1 err=0 exc=- ms=14.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-4.274359e-15,-1.665335e-15,-2.220446e-15,40,30,10
+LOC hole_thk-1_arc_T1 loc done=1 err=0 exc=- ms=10.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-3.053113e-15,-3.330669e-15,-2.220446e-15,40,30,10
+LOC hole_thk-1_arc_T1 subloc done=1 err=0 exc=- ms=8.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-3.053113e-15,-3.330669e-15,-2.220446e-15,40,30,10
+LOC hole_thk-1_arc_T1 nest done=1 err=0 exc=- ms=11.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-3.008704e-14,1.687539e-14,-3.119727e-14,40,30,10
+LOC hole_thk-1_arc_T1 geon done=1 err=0 exc=- ms=12.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=1.065814e-14,2.231548e-14,-5.684342e-14,40,30,10
+LOC hole_thk-1_int_T1 none done=1 err=0 exc=- ms=10.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=0,0,0,40,30,10
+LOC hole_thk-1_int_T1 geo done=1 err=0 exc=- ms=13.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-4.274359e-15,-1.665335e-15,-2.220446e-15,40,30,10
+LOC hole_thk-1_int_T1 loc done=1 err=0 exc=- ms=13.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-3.053113e-15,-3.330669e-15,-2.220446e-15,40,30,10
+LOC hole_thk-1_int_T1 subloc done=1 err=0 exc=- ms=16.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-3.053113e-15,-3.330669e-15,-2.220446e-15,40,30,10
+LOC hole_thk-1_int_T1 nest done=1 err=0 exc=- ms=17.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-3.008704e-14,1.687539e-14,-3.119727e-14,40,30,10
+LOC hole_thk-1_int_T1 geon done=1 err=0 exc=- ms=14.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=1.065814e-14,2.231548e-14,-5.684342e-14,40,30,10
+LOC hole_thk-1_arc_T2 none done=1 err=0 exc=- ms=8.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=0,0,0,40,30,10
+LOC hole_thk-1_arc_T2 geo done=1 err=0 exc=- ms=10.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=0,-9.325873e-15,-1.421085e-14,40,30,10
+LOC hole_thk-1_arc_T2 loc done=1 err=0 exc=- ms=13.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-1.665335e-15,-2.220446e-15,0,40,30,10
+LOC hole_thk-1_arc_T2 subloc done=1 err=0 exc=- ms=13.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-1.665335e-15,-2.220446e-15,0,40,30,10
+LOC hole_thk-1_arc_T2 nest done=1 err=0 exc=- ms=11.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=8.359979e-14,-1.421085e-14,-4.263256e-14,40,30,10
+LOC hole_thk-1_arc_T2 geon done=1 err=0 exc=- ms=13.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=5.684342e-14,-2.353673e-14,-6.394885e-14,40,30,10
+LOC hole_thk-1_int_T2 none done=1 err=0 exc=- ms=10.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=0,0,0,40,30,10
+LOC hole_thk-1_int_T2 geo done=1 err=0 exc=- ms=12.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=0,-9.325873e-15,-1.421085e-14,40,30,10
+LOC hole_thk-1_int_T2 loc done=1 err=0 exc=- ms=16.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-1.665335e-15,-2.220446e-15,0,40,30,10
+LOC hole_thk-1_int_T2 subloc done=1 err=0 exc=- ms=11.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=-1.665335e-15,-2.220446e-15,0,40,30,10
+LOC hole_thk-1_int_T2 nest done=1 err=0 exc=- ms=14.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=8.359979e-14,-1.421085e-14,-4.263256e-14,40,30,10
+LOC hole_thk-1_int_T2 geon done=1 err=0 exc=- ms=22.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=14 vol=2656.47786 area=5484.37164 c=20,15,3.57878377 bb=5.684342e-14,-2.353673e-14,-6.394885e-14,40,30,10
+LOC hole_off1_arc_T1 none done=1 err=0 exc=- ms=8.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=29 vol=15440.941 area=4495.59865 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_arc_T1 geo done=1 err=0 exc=- ms=7.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=29 vol=15440.941 area=4495.59865 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_arc_T1 loc done=1 err=0 exc=- ms=9.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=29 vol=15440.941 area=4495.59865 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_arc_T1 subloc done=1 err=0 exc=- ms=5.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=29 vol=15440.941 area=4495.59865 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_arc_T1 nest done=1 err=0 exc=- ms=6.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=29 vol=15440.941 area=4495.59865 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_arc_T1 geon done=1 err=0 exc=- ms=8.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=29 vol=15440.941 area=4495.59865 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_int_T1 none done=1 err=0 exc=- ms=6.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=7 vol=15524.8142 area=4665.06193 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_int_T1 geo done=1 err=0 exc=- ms=4.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=7 vol=15524.8142 area=4665.06193 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_int_T1 loc done=1 err=0 exc=- ms=4.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=7 vol=15524.8142 area=4665.06193 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_int_T1 subloc done=1 err=0 exc=- ms=4.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=7 vol=15524.8142 area=4665.06193 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_int_T1 nest done=1 err=0 exc=- ms=4.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=7 vol=15524.8142 area=4665.06193 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC hole_off1_int_T1 geon done=1 err=0 exc=- ms=5.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=7 vol=15524.8142 area=4665.06193 c=20,15,5 bb=-1,-1,-1,41,31,11
+LOC pock_thk-1_arc_T1 none done=1 err=0 exc=- ms=135.0 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=34 vol=3967.7758 area=8180.7876 c=20,20,3.61676126 bb=0,0,0,40,40,10
+LOC pock_thk-1_arc_T1 geo done=1 err=0 exc=- ms=242.8 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=34 vol=3967.7758 area=8180.7876 c=20,20,3.61676126 bb=-5.107026e-15,-1.665335e-15,-2.220446e-15,40,40,10
+LOC pock_thk-1_arc_T1 loc done=1 err=0 exc=- ms=203.2 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=34 vol=3967.7758 area=8180.7876 c=20,20,3.61676126 bb=-3.885781e-15,-3.330669e-15,-2.220446e-15,40,40,10
+LOC pock_thk-1_arc_T1 subloc done=1 err=0 exc=- ms=234.5 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=34 vol=3967.7758 area=8180.7876 c=20,20,3.61676126 bb=-3.885781e-15,-3.330669e-15,-2.220446e-15,40,40,10
+LOC pock_thk-1_arc_T1 nest done=1 err=0 exc=- ms=206.6 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=34 vol=3967.7758 area=8180.7876 c=20,20,3.61676126 bb=-3.064216e-14,1.687539e-14,-3.119727e-14,40,40,10
+LOC pock_thk-1_arc_T1 geon done=1 err=0 exc=- ms=296.1 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=34 vol=3967.7758 area=8180.7876 c=20,20,3.61676126 bb=8.881784e-15,2.231548e-14,-5.684342e-14,40,40,10
+LOC pock_thk-1_int_T1 none done=1 err=0 exc=- ms=33.9 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=22 vol=3992 area=8232 c=20,20,3.6180758 bb=0,0,0,40,40,10
+LOC pock_thk-1_int_T1 geo done=1 err=0 exc=- ms=98.6 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=22 vol=3992 area=8232 c=20,20,3.6180758 bb=-5.107026e-15,-1.665335e-15,-2.220446e-15,40,40,10
+LOC pock_thk-1_int_T1 loc done=1 err=0 exc=- ms=49.5 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=22 vol=3992 area=8232 c=20,20,3.6180758 bb=-3.885781e-15,-3.330669e-15,-2.220446e-15,40,40,10
+LOC pock_thk-1_int_T1 subloc done=1 err=0 exc=- ms=68.1 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=22 vol=3992 area=8232 c=20,20,3.6180758 bb=-3.885781e-15,-3.330669e-15,-2.220446e-15,40,40,10
+LOC pock_thk-1_int_T1 nest done=1 err=0 exc=- ms=60.5 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=22 vol=3992 area=8232 c=20,20,3.6180758 bb=-3.064216e-14,1.687539e-14,-3.119727e-14,40,40,10
+LOC pock_thk-1_int_T1 geon done=1 err=0 exc=- ms=103.3 grade=OK valid=1 bop=0 ns=2 nsh=2 nf=22 vol=3992 area=8232 c=20,20,3.6180758 bb=8.881784e-15,2.231548e-14,-5.684342e-14,40,40,10
+LOC nbox_thk-1_arc_T1 none done=1 err=0 exc=- ms=51.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_arc_T1 geo done=1 err=0 exc=- ms=58.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_arc_T1 loc done=1 err=0 exc=- ms=82.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_arc_T1 subloc done=1 err=0 exc=- ms=80.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_arc_T1 nest done=1 err=0 exc=- ms=108.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-9.999998e-08,-1e-07,30,20,12
+LOC nbox_thk-1_arc_T1 geon done=1 err=0 exc=- ms=83.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-9.999999e-08,-9.999998e-08,-1.000001e-07,30,20,12
+LOC nbox_thk-1_int_T1 none done=1 err=0 exc=- ms=22.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_int_T1 geo done=1 err=0 exc=- ms=52.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_int_T1 loc done=1 err=0 exc=- ms=45.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_int_T1 subloc done=1 err=0 exc=- ms=51.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_int_T1 nest done=1 err=0 exc=- ms=134.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-9.999998e-08,-1e-07,30,20,12
+LOC nbox_thk-1_int_T1 geon done=1 err=0 exc=- ms=145.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-9.999999e-08,-9.999998e-08,-1.000001e-07,30,20,12
+LOC nbox_thk-1_arc_T3 none done=1 err=0 exc=- ms=51.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_arc_T3 geo done=1 err=0 exc=- ms=39.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1.000009e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_arc_T3 loc done=1 err=0 exc=- ms=38.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_arc_T3 subloc done=1 err=0 exc=- ms=37.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_arc_T3 nest done=1 err=0 exc=- ms=51.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-9.999866e-08,-9.999268e-08,-9.999741e-08,30,20,12
+LOC nbox_thk-1_arc_T3 geon done=1 err=0 exc=- ms=36.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1.000009e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_int_T3 none done=1 err=0 exc=- ms=20.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_int_T3 geo done=1 err=0 exc=- ms=22.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1.000009e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_int_T3 loc done=1 err=0 exc=- ms=23.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_int_T3 subloc done=1 err=0 exc=- ms=17.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1e-07,-1e-07,-1e-07,30,20,12
+LOC nbox_thk-1_int_T3 nest done=1 err=0 exc=- ms=20.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-9.999866e-08,-9.999268e-08,-9.999741e-08,30,20,12
+LOC nbox_thk-1_int_T3 geon done=1 err=0 exc=- ms=21.1 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=11 vol=1656 area=3412 c=15,10,4.52344666 bb=-1.000009e-07,-1e-07,-1e-07,30,20,12
+LOC nvfl_thk-1_arc_T1 none done=1 err=0 exc=- ms=268.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=3694.61092 area=7524.26551 c=20.0000023,15,7.48417524 bb=-1e-07,-1e-07,-1e-07,40,30,20
+LOC nvfl_thk-1_arc_T1 geo done=1 err=0 exc=- ms=290.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=3694.61093 area=7524.2655 c=20.0000023,15,7.48417524 bb=-1e-07,-1e-07,-1e-07,40,30,20
+LOC nvfl_thk-1_arc_T1 loc done=1 err=0 exc=- ms=260.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=3694.61093 area=7524.2655 c=20.0000023,15,7.48417524 bb=-1e-07,-1e-07,-1e-07,40,30,20
+LOC nvfl_thk-1_arc_T1 subloc done=1 err=0 exc=- ms=368.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=3694.61093 area=7524.2655 c=20.0000023,15,7.48417524 bb=-1e-07,-1e-07,-1e-07,40,30,20
+LOC nvfl_thk-1_arc_T1 nest done=1 err=0 exc=- ms=905.7 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=3694.73609 area=7524.28292 c=20.0000012,15.0000283,7.48421322 bb=-1e-07,-9.999998e-08,-1e-07,40,30,20
+LOC nvfl_thk-1_arc_T1 geon done=1 err=0 exc=- ms=716.9 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=19 vol=3694.70556 area=7524.28611 c=19.9999931,15.0000285,7.48421314 bb=-9.999999e-08,-9.999998e-08,-1.000001e-07,40,30,20
+LOC nvfl_thk-1_int_T1 none done=0 err=6 exc=- ms=1568.2 grade=ERR
+LOC nvfl_thk-1_int_T1 geo done=0 err=6 exc=- ms=1895.8 grade=ERR
+LOC nvfl_thk-1_int_T1 loc done=0 err=6 exc=- ms=1469.3 grade=ERR
+LOC nvfl_thk-1_int_T1 subloc done=0 err=6 exc=- ms=1742.7 grade=ERR
+LOC nvfl_thk-1_int_T1 nest done=0 err=6 exc=- ms=3302.6 grade=ERR
+LOC nvfl_thk-1_int_T1 geon done=0 err=6 exc=- ms=3528.7 grade=ERR
+LOC nvfl_off1_arc_T2 none done=1 err=0 exc=- ms=11.8 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=29205.8682 area=5643.41221 c=20,15,10 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_arc_T2 geo done=1 err=0 exc=- ms=18.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=29205.8682 area=5643.41221 c=20,15,10 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_arc_T2 loc done=1 err=0 exc=- ms=17.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=29205.8682 area=5643.41221 c=20,15,10 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_arc_T2 subloc done=1 err=0 exc=- ms=15.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=29205.8682 area=5643.41221 c=20,15,10 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_arc_T2 nest done=1 err=0 exc=- ms=20.2 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=29205.8682 area=5643.41221 c=20,15,10 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_arc_T2 geon done=1 err=0 exc=- ms=19.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=26 vol=29205.8682 area=5643.41221 c=20,15,10 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_int_T2 none done=1 err=0 exc=- ms=1002.4 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=29265.8405 area=5765.45125 c=20,15,10 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_int_T2 geo done=1 err=0 exc=- ms=1307.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=29314.9021 area=5772.00387 c=19.9458541,14.9680214,9.9998414 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_int_T2 loc done=1 err=0 exc=- ms=1529.6 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=29314.9021 area=5772.00387 c=19.9458541,14.9680214,9.9998414 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_int_T2 subloc done=1 err=0 exc=- ms=1384.5 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=29314.9021 area=5772.00387 c=19.9458541,14.9680214,9.9998414 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_int_T2 nest done=1 err=0 exc=- ms=2946.0 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=29350.2108 area=5776.71868 c=19.9618755,14.9716091,9.99999791 bb=-1,-1,-1,41,31,21
+LOC nvfl_off1_int_T2 geon done=1 err=0 exc=- ms=2061.3 grade=OK valid=1 bop=0 ns=1 nsh=1 nf=10 vol=29350.2108 area=5776.71868 c=19.9618755,14.9716091,9.99999791 bb=-1,-1,-1,41,31,21
