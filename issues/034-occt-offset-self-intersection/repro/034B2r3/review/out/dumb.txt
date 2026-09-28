@@ -1,0 +1,16 @@
+input faces 13 vol 16040.2124 bbox BoundBox (0, 0, 0, 60, 20, 20)
+ in  Cylinder r=0.8 area=100.5310
+ in  Plane r=- area=397.9894
+ in  Plane r=- area=397.9894
+ in  Plane r=- area=400.0000
+ in  Plane r=- area=400.0000
+ in  Plane r=- area=400.0000
+ in  Plane r=- area=400.0000
+ in  Plane r=- area=400.0000
+ in  Plane r=- area=400.0000
+ in  Plane r=- area=400.0000
+ in  Plane r=- area=400.0000
+ in  Plane r=- area=400.0000
+ in  Plane r=- area=400.0000
+A2 result valid True solids 1 vol 4049.4478
+ res Cylinder r=0.2000 area=27.6460 com=Vector (30.0, 9.999999999999998, 10.0) inside_input=True dist_to_input_boundary=0.6000

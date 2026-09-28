@@ -1,0 +1,8 @@
+d0 r1 freeRAM=2972MB X_031_off-1 ERR ms=8331
+d0 r1 freeRAM=2972MB X_5829l_off-1 ERR ms=3529
+a2 r1 freeRAM=2965MB X_031_off-1 ERR ms=1714
+a2 r1 freeRAM=2965MB X_5829l_off-1 ERR ms=3874
+d0 r2 freeRAM=3004MB X_031_off-1 ERR ms=8528
+d0 r2 freeRAM=3004MB X_5829l_off-1 ERR ms=5047
+a2 r2 freeRAM=2692MB X_031_off-1 ERR ms=2253
+a2 r2 freeRAM=2692MB X_5829l_off-1 ERR ms=5520

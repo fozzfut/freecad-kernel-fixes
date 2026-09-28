@@ -1,0 +1,16 @@
+o034b2rv3 round1 freeRAM/commit=4837/15964MB rev_a_off-0.8_ctl              TIME ms=490 done=1
+o034b2rv3 round1 freeRAM/commit=4837/15964MB rev_a_off-2                    TIME ms=563 done=0
+o034b2rv3 round1 freeRAM/commit=4837/15964MB rev_a_off-2_int                TIME ms=1533 done=0
+o034b2rv3 round1 freeRAM/commit=4837/15964MB tri_a_off-1.5_ctl              TIME ms=256 done=1
+o034r2 round1 freeRAM/commit=4624/15807MB rev_a_off-0.8_ctl              TIME ms=215 done=1
+o034r2 round1 freeRAM/commit=4624/15807MB rev_a_off-2                    TIME ms=435 done=0
+o034r2 round1 freeRAM/commit=4624/15807MB rev_a_off-2_int                TIME ms=1423 done=0
+o034r2 round1 freeRAM/commit=4624/15807MB tri_a_off-1.5_ctl              TIME ms=452 done=1
+o034b2rv3 round2 freeRAM/commit=4498/15799MB rev_a_off-0.8_ctl              TIME ms=353 done=1
+o034b2rv3 round2 freeRAM/commit=4498/15799MB rev_a_off-2                    TIME ms=375 done=0
+o034b2rv3 round2 freeRAM/commit=4498/15799MB rev_a_off-2_int                TIME ms=1354 done=0
+o034b2rv3 round2 freeRAM/commit=4498/15799MB tri_a_off-1.5_ctl              TIME ms=371 done=1
+o034r2 round2 freeRAM/commit=4220/15552MB rev_a_off-0.8_ctl              TIME ms=207 done=1
+o034r2 round2 freeRAM/commit=4220/15552MB rev_a_off-2                    TIME ms=436 done=0
+o034r2 round2 freeRAM/commit=4220/15552MB rev_a_off-2_int                TIME ms=1242 done=0
+o034r2 round2 freeRAM/commit=4220/15552MB tri_a_off-1.5_ctl              TIME ms=194 done=1

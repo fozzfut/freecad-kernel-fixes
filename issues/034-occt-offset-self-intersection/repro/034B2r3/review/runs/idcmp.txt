@@ -1,0 +1,26 @@
+== class
+compared 144 same 142 diff 2 missing 0
+   fbox50_50_50_r10_e12_nurbs_t-1_arc | done=0 err=1 valid=0 vol=0.0000 shells=- | done=0 err=6 valid=0 vol=0.0000 shells=-
+   fbox50_50_50_r10_e12_nurbs_t-2_arc | done=0 err=1 valid=0 vol=0.0000 shells=- | done=0 err=6 valid=0 vol=0.0000 shells=-
+== corp
+compared 53 same 48 diff 5 missing 0
+   bfil_off-2.5 | done=0 err=6 grade=ERR vol=0.0000 nf=0 | done=1 err=0 grade=OK vol=1125.0000 nf=6
+   bfil_thk-2.5 | done=0 err=1 grade=ERR vol=0.0000 nf=0 | done=1 err=0 grade=OK vol=2151.5324 nf=31
+   bfiln_off-2.5 | done=0 err=6 grade=ERR vol=0.0000 nf=0 | done=1 err=0 grade=OK vol=1125.0000 nf=6
+   bfiln_thk-2.5 | done=0 err=6 grade=ERR vol=0.0000 nf=0 | done=1 err=0 grade=OK vol=1125.0000 nf=6
+   plate1024_off+0.2 | grade=HANG | done=1 err=0 grade=OK vol=360961.1919 nf=3098
+== rv116
+compared 116 same 115 diff 1 missing 0
+   dumbbell_rod_thick-1_int | done=1 err=0 valid=1 vol=4049.4478 shells=1 solids=1 | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0
+== b33
+compared 33 same 28 diff 5 missing 0
+   bfil_off-2.5 |  IN:nf=26 STOCK:done=0 err=6 grade=ERR vol=0.00000 nf=0 |  IN:nf=26 STOCK:done=1 err=0 grade=OK vol=1125.00000 nf=6
+   bfil_thk-2.5 |  IN:nf=26 STOCK:done=0 err=1 grade=ERR vol=0.00000 nf=0 |  IN:nf=26 STOCK:done=1 err=0 grade=OK vol=2151.53240 nf=31
+   bfiln_off-2.5 |  IN:nf=26 STOCK:done=0 err=6 grade=ERR vol=0.00000 nf=0 |  IN:nf=26 STOCK:done=1 err=0 grade=OK vol=1125.00000 nf=6
+   bfiln_thk-2.5 |  IN:nf=26 STOCK:done=0 err=6 grade=ERR vol=0.00000 nf=0 |  IN:nf=26 STOCK:done=1 err=0 grade=OK vol=2151.53240 nf=31
+   c031obl_thk+0.3 |  IN:nf=18 STOCK:done=0 err=1 grade=ERR vol=0.00000 nf=0 |  IN:nf=18 STOCK:done=0 err=6 grade=ERR vol=0.00000 nf=0
+== rvx
+compared 204 same 201 diff 3 missing 0
+   hexfil_r2_a_t-2_arc | done=0 err=1 valid=-1 vol=0.0000 shells=0 solids=0 faces=0 | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0 faces=0
+   hexfil_r2_rot_t-2_arc | done=0 err=1 valid=-1 vol=0.0000 shells=0 solids=0 faces=0 | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0 faces=0
+   hexfil_r2_nurbs_t-2_arc | done=0 err=1 valid=-1 vol=0.0000 shells=0 solids=0 faces=0 | done=0 err=6 valid=-1 vol=0.0000 shells=0 solids=0 faces=0

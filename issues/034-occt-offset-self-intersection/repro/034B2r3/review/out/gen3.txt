@@ -1,0 +1,16 @@
+case rev_a valid True faces 4 vol 27783.212244137
+case rev_n valid True faces 4 vol 28034.013633624
+case rev_w valid True faces 4 vol 27783.212244137
+rev meridian min radius 1.039532
+case tri_a valid True faces 3 vol 6600.569294218
+case tri_n valid True faces 3 vol 6286.393789527
+case tri_w valid True faces 3 vol 6600.569294218
+tri min radius 2.259613 seam at Vector (13.0, 2.7755575615628914e-17, 0.0)
+case obl_a valid True faces 3 vol 1256.637061436
+case obl_n valid True faces 3 vol 1267.463482155
+case obl_w valid True faces 3 vol 1256.637061436
+obl wall surface ['SurfaceOfExtrusion', 'Plane', 'Plane']
+bump valid True shells 1
+case bmp_a valid True faces 6 vol 16494.616987989
+case bmp_n valid True faces 6 vol 16494.616987989
+case bmp_w valid True faces 6 vol 16494.616987989

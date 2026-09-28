@@ -1,0 +1,2 @@
+bm0_a_off-2                    RES valid=True bop=FAULTS nsol=1 nf=6 oracle=54/1/0.12 mc=104/0 ms=137611
+bm0_a_off-2.8                  RES valid=True bop=FAULTS nsol=1 nf=6 oracle=54/1/0.37 mc=104/0 ms=152323

@@ -1,0 +1,5 @@
+START rev_a_off-0.8_ctl
+STEP rev_a_off-0.8_ctl kernel done ms=241
+STEP rev_a_off-0.8_ctl oracle done
+STEP rev_a_off-0.8_ctl mc done
+rev_a_off-0.8_ctl              RES valid=True bop=FAULTS nsol=1 nf=4 oracle=35/0/1.4e-15 mc=87/0 ms=241

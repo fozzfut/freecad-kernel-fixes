@@ -1,0 +1,5 @@
+START bmp_a_off-1_ctl
+STEP bmp_a_off-1_ctl kernel done ms=71031
+STEP bmp_a_off-1_ctl oracle done
+STEP bmp_a_off-1_ctl mc done
+bmp_a_off-1_ctl                RES valid=True bop=FAULTS nsol=1 nf=6 oracle=54/0/8.9e-16 mc=104/0 ms=71031

@@ -1,0 +1,3 @@
+START rev_a_off-2
+STEP rev_a_off-2 kernel done ms=456
+rev_a_off-2                    ERR ms=456 exc=BRepOffsetAPI_MakeOffsetShape_not_done

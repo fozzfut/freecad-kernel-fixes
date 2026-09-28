@@ -1,0 +1,2 @@
+tri_a_thktop-3                 RES valid=True bop=FAULTS nsol=1 nf=5 oracle=28/0/4.4e-16 mc=0/0 ms=432
+tri_w_thktop-3                 RES valid=True bop=FAULTS nsol=1 nf=5 oracle=28/0/3.7e-15 mc=0/0 ms=736

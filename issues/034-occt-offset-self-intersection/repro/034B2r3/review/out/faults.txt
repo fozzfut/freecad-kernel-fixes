@@ -1,0 +1,7 @@
+input rev_a clean
+input tri_a clean
+input tri_n clean
+input obl_a clean
+input bmp_a clean
+tri_a off-1.5 FAULTS 5: BOP check found the following errors: | Error in Edge: BOPAlgo_InvalidCurveOnSurface | Error in Face: BOPAlgo_InvalidCurveOnSurface | Error in Edge: BOPAlgo_InvalidCurveOnSurface | Error in Face: BOPAlgo_InvalidCurveOnSurface
+obl_a off-1 FAULTS 5: BOP check found the following errors: | Error in Edge: BOPAlgo_InvalidCurveOnSurface | Error in Face: BOPAlgo_InvalidCurveOnSurface | Error in Edge: BOPAlgo_InvalidCurveOnSurface | Error in Face: BOPAlgo_InvalidCurveOnSurface

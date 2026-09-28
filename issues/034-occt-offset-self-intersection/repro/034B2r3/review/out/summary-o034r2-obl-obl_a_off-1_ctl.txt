@@ -1,0 +1,5 @@
+START obl_a_off-1_ctl
+STEP obl_a_off-1_ctl kernel done ms=490
+STEP obl_a_off-1_ctl oracle done
+STEP obl_a_off-1_ctl mc done
+obl_a_off-1_ctl                RES valid=True bop=FAULTS nsol=1 nf=3 oracle=27/0/6.7e-16 mc=79/0 ms=490

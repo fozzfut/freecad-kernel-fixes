@@ -1,0 +1,3 @@
+START tri_n_off-4
+STEP tri_n_off-4 kernel done ms=312
+tri_n_off-4                    ERR ms=312 exc=BRepOffsetAPI_MakeOffsetShape_not_done

@@ -1,0 +1,11 @@
+rev_a_off-2                    ERR    ms=456 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rev_a_off-2.8                  ERR    ms=574 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rev_a_thkbot-2                 ERR    ms=1169 exc=BRep_API:_command_not_done
+rev_n_off-2                    ERR    ms=1 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rev_n_off-2.8                  ERR    ms=1 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rev_n_thkbot-2                 ERR    ms=1 exc=BRep_API:_command_not_done
+rev_w_off-2                    ERR    ms=604 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rev_w_off-2.8                  ERR    ms=456 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+rev_w_thkbot-2                 ERR    ms=841 exc=BRep_API:_command_not_done
+rev_a_off-0.8_ctl              WRONG  s0:A=173.582027/173.582028 sd=7.2e-09 | valid=True bop=FAULTS nsol=1 nf=4 oracle=35/0/1.4e-15 mc=87/0 ms=241
+rev_a_off-2_int                ERR    ms=1555 exc=BRepOffsetAPI_MakeOffsetShape_not_done

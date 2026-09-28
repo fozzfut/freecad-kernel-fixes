@@ -1,0 +1,2 @@
+bm0_a_off-2                    ERR ms=113371 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+START bm0_a_off-2.8 

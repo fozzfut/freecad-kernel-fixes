@@ -1,0 +1,12 @@
+START t_bump_12_12_off-2.8
+t_bump_12_12_off-2.8           RES valid=True nf=7 oracle=63/0/2.7e-15 island=0 kmax=0.0000 kept_folded=0 deficit_max=0 ms=23912
+START sat_near_off-2.8
+sat_near_off-2.8               ERR ms=20607 exc=BRepOffsetAPI_MakeOffsetShape_not_done island=19 kmax=0.3679
+START sat_near15_off-2.8
+sat_near15_off-2.8             ERR ms=34703 exc=BRepOffsetAPI_MakeOffsetShape_not_done island=76 kmax=0.4107
+START sat_near30_off-2.8
+sat_near30_off-2.8             ERR ms=29297 exc=BRepOffsetAPI_MakeOffsetShape_not_done island=114 kmax=0.4647
+START sat_far_off-2.8
+sat_far_off-2.8                ERR ms=13914 exc=BRepOffsetAPI_MakeOffsetShape_not_done island=1 kmax=0.3679
+START sat_far30_off-2.8
+sat_far30_off-2.8              ERR ms=12934 exc=BRepOffsetAPI_MakeOffsetShape_not_done island=17 kmax=0.4643

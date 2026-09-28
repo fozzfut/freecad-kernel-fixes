@@ -1,0 +1,3 @@
+START rev_a_thkbot-2
+STEP rev_a_thkbot-2 kernel done ms=1169
+rev_a_thkbot-2                 ERR ms=1169 exc=BRep_API:_command_not_done

@@ -1,0 +1,12 @@
+START t_bump_12_12_off-2.8
+t_bump_12_12_off-2.8           RES valid=True nf=6 oracle=54/1/0.016 island=0 kmax=0.0000 kept_folded=0 deficit_max=0 ms=2477
+START sat_near_off-2.8
+sat_near_off-2.8               RES valid=True nf=6 oracle=54/1/0.016 island=19 kmax=0.3679 kept_folded=17 deficit_max=1.22e-05 ms=7595
+START sat_near15_off-2.8
+sat_near15_off-2.8             RES valid=True nf=6 oracle=54/1/0.016 island=76 kmax=0.4107 kept_folded=71 deficit_max=0.000285 ms=7356
+START sat_near30_off-2.8
+sat_near30_off-2.8             RES valid=True nf=6 oracle=54/1/0.016 island=114 kmax=0.4647 kept_folded=109 deficit_max=0.000832 ms=10744
+START sat_far_off-2.8
+sat_far_off-2.8                RES valid=True nf=6 oracle=54/1/0.016 island=1 kmax=0.3679 kept_folded=1 deficit_max=1.28e-07 ms=6601
+START sat_far30_off-2.8
+sat_far30_off-2.8              RES valid=True nf=6 oracle=54/1/0.016 island=17 kmax=0.4643 kept_folded=16 deficit_max=0.000129 ms=5570

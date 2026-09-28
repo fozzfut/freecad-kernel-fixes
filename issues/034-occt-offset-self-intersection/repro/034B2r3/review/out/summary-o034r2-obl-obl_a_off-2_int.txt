@@ -1,0 +1,3 @@
+START obl_a_off-2_int
+STEP obl_a_off-2_int kernel done ms=547
+obl_a_off-2_int                ERR ms=547 exc=BRepOffsetAPI_MakeOffsetShape_not_done

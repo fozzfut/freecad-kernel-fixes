@@ -1,0 +1,3 @@
+START bmp_w_off-2.8
+STEP bmp_w_off-2.8 kernel done ms=136170
+bmp_w_off-2.8                  ERR ms=136170 exc=BRepOffsetAPI_MakeOffsetShape_not_done

@@ -1,0 +1,5 @@
+START tri_a_thktop-3
+STEP tri_a_thktop-3 kernel done ms=236
+STEP tri_a_thktop-3 oracle done
+STEP tri_a_thktop-3 mc done
+tri_a_thktop-3                 RES valid=True bop=FAULTS nsol=1 nf=5 oracle=28/0/4.4e-16 mc=0/0 ms=236

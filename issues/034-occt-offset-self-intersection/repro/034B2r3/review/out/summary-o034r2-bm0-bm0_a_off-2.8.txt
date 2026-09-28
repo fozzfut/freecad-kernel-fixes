@@ -1,0 +1,5 @@
+START bm0_a_off-2.8
+STEP bm0_a_off-2.8 kernel done ms=152323
+STEP bm0_a_off-2.8 oracle done
+STEP bm0_a_off-2.8 mc done
+bm0_a_off-2.8                  RES valid=True bop=FAULTS nsol=1 nf=6 oracle=54/1/0.37 mc=104/0 ms=152323

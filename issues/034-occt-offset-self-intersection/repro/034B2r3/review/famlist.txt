@@ -1,0 +1,14 @@
+E_ell_a0_d2 C:/dev/occt8-mig/offset-034b2/r3c/cases/ell_a0.brep 2 4 2 off
+E_ell_a0_d3 C:/dev/occt8-mig/offset-034b2/r3c/cases/ell_a0.brep 2 4 3 off
+E_ell85_a0_d3.5 C:/dev/occt8-mig/offset-034b2/r3/cases/ell8_5_a_p0.brep 2 5 3.5 off
+W_wave_a0_d3 C:/dev/occt8-mig/offset-034b2/r3c/cases/wave_a0.brep 1 10 3 off
+W_wave_n0_d3 C:/dev/occt8-mig/offset-034b2/r3c/cases/wave_n0.brep 1 10 3 off
+W_w18_a0_d3 C:/dev/occt8-mig/offset-034b2/r3c/cases/w18_a0.brep 1 10 3 off
+R_ridge_a0_d5 C:/dev/occt8-mig/offset-034b2/r3c/cases/t_ridge_12_12.brep 0 20 5 off
+R_ridge_n0_d5 C:/dev/occt8-mig/offset-034b2/r3c/cases/ridge_n0.brep 0 20 5 off
+R_ridge2016_d3 C:/dev/occt8-mig/offset-034b2/r3c/cases/t_ridge_20_16.brep 0 20 3 off
+T_ell_a0_t2 C:/dev/occt8-mig/offset-034b2/r3c/cases/ell_a0.brep 2 4 2 thk
+T_ell_a0_t3 C:/dev/occt8-mig/offset-034b2/r3c/cases/ell_a0.brep 2 4 3 thk
+C_ell_a0_d1 C:/dev/occt8-mig/offset-034b2/r3c/cases/ell_a0.brep 2 4 1 off
+C_wave_a0_d1 C:/dev/occt8-mig/offset-034b2/r3c/cases/wave_a0.brep 1 10 1 off
+C_ridge_a0_d1 C:/dev/occt8-mig/offset-034b2/r3c/cases/t_ridge_12_12.brep 0 20 1 off

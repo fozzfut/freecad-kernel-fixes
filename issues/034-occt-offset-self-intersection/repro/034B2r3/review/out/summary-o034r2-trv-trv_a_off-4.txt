@@ -1,0 +1,5 @@
+START trv_a_off-4
+STEP trv_a_off-4 kernel done ms=522
+STEP trv_a_off-4 oracle done
+STEP trv_a_off-4 mc done
+trv_a_off-4                    RES valid=True bop=FAULTS nsol=1 nf=3 oracle=19/0/0 mc=92/0 ms=522

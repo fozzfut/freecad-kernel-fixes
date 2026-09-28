@@ -1,0 +1,7 @@
+bmp_a_off-2                    ERR ms=36347 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+bmp_a_off-2.8                  ERR ms=132748 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+bmp_n_off-2                    ERR ms=127546 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+bmp_n_off-2.8                  ERR ms=39233 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+bmp_w_off-2                    ERR ms=54310 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+bmp_w_off-2.8                  ERR ms=136170 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+bmp_a_off-1_ctl                RES valid=True bop=FAULTS nsol=1 nf=6 oracle=54/0/8.9e-16 mc=104/0 ms=71031

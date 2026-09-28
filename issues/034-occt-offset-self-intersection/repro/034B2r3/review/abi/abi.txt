@@ -1,0 +1,51 @@
+exports new 480 weekly 480 diff 0
+import dlls new [] gone []
+imports +45 -0
+  + api-ms-win-crt-math-l1-1-0.dll floor UNRESOLVED
+  + api-ms-win-crt-math-l1-1-0.dll fmod UNRESOLVED
+  + api-ms-win-crt-math-l1-1-0.dll round UNRESOLVED
+  + msvcp140.dll ?_Xlength_error@std@@YAXPEBD@Z OK
+  + tkbo.dll ?ComputeTolerance@BOPTools_AlgoTools@@SA_NAEBVTopoDS_Face@@AEBVTopoDS_Edge@@AEAN2@Z OK
+  + tkg2d.dll ?EndPoint@Geom2d_TrimmedCurve@@UEBA?AVgp_Pnt2d@@XZ OK
+  + tkg2d.dll ?StartPoint@Geom2d_TrimmedCurve@@UEBA?AVgp_Pnt2d@@XZ OK
+  + tkg3d.dll ?Copy@Geom_BezierSurface@@UEBA?AV?$handle@VGeom_Geometry@@@opencascade@@XZ OK
+  + tkg3d.dll ?IsUPeriodic@Geom_BSplineSurface@@UEBA_NXZ OK
+  + tkg3d.dll ?IsURational@Geom_BSplineSurface@@QEBA_NXZ OK
+  + tkg3d.dll ?IsURational@Geom_BezierSurface@@QEBA_NXZ OK
+  + tkg3d.dll ?IsVPeriodic@Geom_BSplineSurface@@UEBA_NXZ OK
+  + tkg3d.dll ?IsVRational@Geom_BSplineSurface@@QEBA_NXZ OK
+  + tkg3d.dll ?IsVRational@Geom_BezierSurface@@QEBA_NXZ OK
+  + tkg3d.dll ?Pole@Geom_BezierSurface@@QEBAAEBVgp_Pnt@@HH@Z OK
+  + tkg3d.dll ?Segment@Geom_BezierSurface@@QEAAXNNNN@Z OK
+  + tkg3d.dll ?SetUNotPeriodic@Geom_BSplineSurface@@QEAAXXZ OK
+  + tkg3d.dll ?SetVNotPeriodic@Geom_BSplineSurface@@QEAAXXZ OK
+  + tkg3d.dll ?UDegree@Geom_BezierSurface@@QEBAHXZ OK
+  + tkg3d.dll ?VDegree@Geom_BezierSurface@@QEBAHXZ OK
+  + tkg3d.dll ?Weight@Geom_BezierSurface@@QEBANHH@Z OK
+  + tkgeomalgo.dll ??0Geom2dAPI_Interpolate@@QEAA@AEBV?$handle@V?$NCollection_HArray1@Vgp_Pnt2d@@@@@opencasca OK
+  + tkgeomalgo.dll ??0Geom2dAPI_ProjectPointOnCurve@@QEAA@AEBVgp_Pnt2d@@AEBV?$handle@VGeom2d_Curve@@@opencasc OK
+  + tkgeomalgo.dll ??0GeomAPI_IntCS@@QEAA@AEBV?$handle@VGeom_Curve@@@opencascade@@AEBV?$handle@VGeom_Surface@ OK
+  + tkgeomalgo.dll ?Curve@Geom2dAPI_Interpolate@@QEBAAEBV?$handle@VGeom2d_BSplineCurve@@@opencascade@@XZ OK
+  + tkgeomalgo.dll ?Distance@Geom2dAPI_ProjectPointOnCurve@@QEBANH@Z OK
+  + tkgeomalgo.dll ?IsDone@Geom2dAPI_Interpolate@@QEBA_NXZ OK
+  + tkgeomalgo.dll ?IsDone@GeomAPI_IntCS@@QEBA_NXZ OK
+  + tkgeomalgo.dll ?NbPoints@GeomAPI_IntCS@@QEBAHXZ OK
+  + tkgeomalgo.dll ?NbPoints@GeomAPI_ProjectPointOnSurf@@QEBAHXZ OK
+  + tkgeomalgo.dll ?Parameter@Geom2dAPI_ProjectPointOnCurve@@QEBANH@Z OK
+  + tkgeomalgo.dll ?Parameters@GeomAPI_IntCS@@QEBAXHAEAN00@Z OK
+  + tkgeomalgo.dll ?Perform@Geom2dAPI_Interpolate@@QEAAXXZ OK
+  + tkgeombase.dll ??0GeomConvert_BSplineSurfaceToBezierSurface@@QEAA@AEBV?$handle@VGeom_BSplineSurface@@@ope OK
+  + tkgeombase.dll ??0GeomConvert_SurfToAnaSurf@@QEAA@AEBV?$handle@VGeom_Surface@@@opencascade@@@Z OK
+  + tkgeombase.dll ?ConvertToAnalytical@GeomConvert_SurfToAnaSurf@@QEAA?AV?$handle@VGeom_Surface@@@opencascad OK
+  + tkgeombase.dll ?NbUPatches@GeomConvert_BSplineSurfaceToBezierSurface@@QEBAHXZ OK
+  + tkgeombase.dll ?NbVPatches@GeomConvert_BSplineSurfaceToBezierSurface@@QEBAHXZ OK
+  + tkgeombase.dll ?Patch@GeomConvert_BSplineSurfaceToBezierSurface@@QEAA?AV?$handle@VGeom_BezierSurface@@@op OK
+  + tkgeombase.dll ?SurfaceToBSplineSurface@GeomConvert@@SA?AV?$handle@VGeom_BSplineSurface@@@opencascade@@AE OK
+  + tkgeombase.dll ?UKnots@GeomConvert_BSplineSurfaceToBezierSurface@@QEBAXAEAV?$NCollection_Array1@N@@@Z OK
+  + tkgeombase.dll ?VKnots@GeomConvert_BSplineSurfaceToBezierSurface@@QEBAXAEAV?$NCollection_Array1@N@@@Z OK
+  + tkmath.dll ?Invert@gp_Trsf@@QEAAXXZ OK
+  + vcruntime140.dll memcmp OK
+  + vcruntime140.dll memset OK
+unresolved 3
+NEG fake symbol resolves: False
+ucrtbase has floor/fmod/round: True fake: False

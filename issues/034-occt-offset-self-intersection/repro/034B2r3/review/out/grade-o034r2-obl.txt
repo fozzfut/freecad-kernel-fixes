@@ -1,0 +1,8 @@
+obl_a_off-2                    ERR    ms=132 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+obl_a_off-3                    ERR    ms=132 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+obl_n_off-2                    ERR    ms=0 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+obl_n_off-3                    ERR    ms=1 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+obl_w_off-2                    ERR    ms=142 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+obl_w_off-3                    ERR    ms=196 exc=BRepOffsetAPI_MakeOffsetShape_not_done
+obl_a_off-1_ctl                WRONG  s0:A=81.178847/81.178848 sd=6.3e-09 | valid=True bop=FAULTS nsol=1 nf=3 oracle=27/0/6.7e-16 mc=79/0 ms=490
+obl_a_off-2_int                ERR    ms=547 exc=BRepOffsetAPI_MakeOffsetShape_not_done

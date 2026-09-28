@@ -1,0 +1,2 @@
+W_wave_a1_d3               EXACT  xa=125.2242818963 rel=4.82e-10 | EXACT done=1 err=0 exc=- ms=3523 grade=OK bop=- nsol=1 nf=9 vol=1753.09182 vol0=8027.47539 ref=0.00000 oracle S=0 OFF=9 WALL=0 MIX=0 mc=0/9/0 sd=-1 rem=- peakMB=21
+C_wave_a0_d1               WRONG  xa=- rel=- | WRONG done=1 err=0 exc=- ms=488 grade=OK bop=- nsol=1 nf=6 vol=5415.01472 vol0=8027.47539 ref=0.00000 oracle S=0 OFF=6 WALL=0 MIX=0 mc=1/125/0 sd=-1 rem=- peakMB=20

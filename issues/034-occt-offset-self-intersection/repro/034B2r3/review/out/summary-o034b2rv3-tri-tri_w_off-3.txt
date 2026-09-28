@@ -1,0 +1,5 @@
+START tri_w_off-3
+STEP tri_w_off-3 kernel done ms=274
+STEP tri_w_off-3 oracle done
+STEP tri_w_off-3 mc done
+tri_w_off-3                    RES valid=True bop=FAULTS nsol=1 nf=3 oracle=19/0/1.8e-15 mc=38/0 ms=274

@@ -1,0 +1,10 @@
+sat_near pole (10,11) greville (3.9550,4.2600) delta=0.000380 apex k=0.36786 (1/d=0.35714) window fold pts 2746
+sat_near solid valid True faces 6 vol 12245.944302 (base 12245.944302)
+sat_near15 pole (10,11) greville (3.9550,4.2600) delta=0.000853 apex k=0.41071 (1/d=0.35714) window fold pts 2803
+sat_near15 solid valid True faces 6 vol 12245.944302 (base 12245.944302)
+sat_near30 pole (10,11) greville (3.9550,4.2600) delta=0.001444 apex k=0.46429 (1/d=0.35714) window fold pts 2841
+sat_near30 solid valid True faces 6 vol 12245.944302 (base 12245.944302)
+sat_far pole (10,10) greville (3.6050,3.2600) delta=0.004876 apex k=0.36786 (1/d=0.35714) window fold pts 1
+sat_far solid valid True faces 6 vol 12245.944302 (base 12245.944302)
+sat_far30 pole (10,10) greville (3.6050,3.2600) delta=0.006358 apex k=0.46429 (1/d=0.35714) window fold pts 17
+sat_far30 solid valid True faces 6 vol 12245.944302 (base 12245.944302)

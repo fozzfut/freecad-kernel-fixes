@@ -1,0 +1,4 @@
+rev_a_off-0.8_ctl              TIME ms=207 done=1
+rev_a_off-2                    TIME ms=436 done=0
+rev_a_off-2_int                TIME ms=1242 done=0
+tri_a_off-1.5_ctl              TIME ms=194 done=1

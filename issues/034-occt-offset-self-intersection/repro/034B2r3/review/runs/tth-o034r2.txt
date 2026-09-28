@@ -1,0 +1,11 @@
+Keep standalone Thickness aligned with its transformed Base fallback. ... ok
+Verify recto-verso thickness processes the issue 5829 geometry locally. ... <PartDesign> FeatureThickness.cpp(250): Exception on making thick solid: BRep_API: command not done
+Verify thickness succeeds on the rotated fillet from issue 5829. ... <PartDesign> FeatureThickness.cpp(250): Exception on making thick solid: BRep_API: command not done
+testArcJoinProducesValidCenteredCurvedWall (PartDesignTests.TestThickness.TestThickness.testArcJoinProducesValidCenteredCurvedWall) ... ok
+testCurvedOpenShellIsCenteredRadiallyAndAxially (PartDesignTests.TestThickness.TestThickness.testCurvedOpenShellIsCenteredRadiallyAndAxially) ... ok
+testMixedPlanarAndCylindricalFacesRemainCentered (PartDesignTests.TestThickness.TestThickness.testMixedPlanarAndCylindricalFacesRemainCentered) ... ok
+testPlanarOpenShellIsCenteredOnRetainedFaces (PartDesignTests.TestThickness.TestThickness.testPlanarOpenShellIsCenteredOnRetainedFaces) ... ok
+testReversedDoesNotChangeRectoVersoResult (PartDesignTests.TestThickness.TestThickness.testReversedDoesNotChangeRectoVersoResult) ... ok
+testReversedThickness (PartDesignTests.TestThickness.TestThickness.testReversedThickness) ... ok
+testSourceSolidOrientationDoesNotChangeResult (PartDesignTests.TestThickness.TestThickness.testSourceSolidOrientationDoesNotChangeResult) ... ok
+testTwoOpeningsCreateCenteredThroughWall (PartDesignTests.TestThickness.TestThickness.testTwoOpeningsCreateCenteredThroughWall) ... ok
