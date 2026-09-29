@@ -1,0 +1,6 @@
+DIFF lemon off1 j0 T1 nest OK//valid=0 vs geon ERR/gp_Dir()_-_input_vector_has_zero_norm/valid=-
+DIFF sphx thk-1 j0 T1 loc OK//valid=0 vs geo OK//valid=1
+DIFF sphx thk-1 j0 T1 nest OK//valid=0 vs geon OK//valid=1
+DIFF sphx thk-1 j0 TF loc OK//valid=0 vs geo OK//valid=1
+DIFF sphx thk-1 j0 TF nest OK//valid=0 vs geon OK//valid=1
+SUMMARY {'EQ': 51, 'frame(geo==none):EQ': 23, 'frame(geo==none):DIFF': 5, 'DIFF': 5}

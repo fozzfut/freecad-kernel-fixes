@@ -1,0 +1,142 @@
+RV conedn off1 j2 T1 none ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=217.2 kinds=Cone,Plane
+RV conedn off1 j2 T1 geo ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=191.2 kinds=Cone,Plane
+RV conedn off1 j2 T1 loc li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=11.5 kinds=Cone,Plane
+RV conedn off1 j2 T1 nest li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=7.6 kinds=Cone,Plane
+RV conedn off1 j2 T1 geon ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=7.7 kinds=Cone,Plane
+RV conedn off1 j2 TT none ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=3.8 kinds=Cone,Plane
+RV conedn off1 j2 TT geo ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=5.7 kinds=Cone,Plane
+RV conedn off1 j2 TT loc li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=4.7 kinds=Cone,Plane
+RV conedn off1 j2 TT nest li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=4.6 kinds=Cone,Plane
+RV conedn off1 j2 TT geon ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=29.1 kinds=Cone,Plane
+RV conedn off1 j0 T1 none OK valid=1 ns=1 nf=4 vol=2570.447611 area=1122.973423 c=-6.143604031e-16,-1.344134758e-16,11.46376833 cl=-6.143604031e-16,-1.344134758e-16,11.46376833 diag=37.72376629 ms=25.1 kinds=Cone,Plane
+RV conedn off1 j0 T1 geo ERR gp_Dir()_-_input_vector_has_zero_norm ms=45.4 kinds=Cone,Plane
+RV conedn off1 j0 T1 loc li=11 ERR gp_Dir()_-_input_vector_has_zero_norm ms=1.0 kinds=Cone,Plane
+RV conedn off1 j0 T1 nest li=11 ERR gp_Dir()_-_input_vector_has_zero_norm ms=0.9 kinds=Cone,Plane
+RV conedn off1 j0 T1 geon ERR gp_Dir()_-_input_vector_has_zero_norm ms=0.9 kinds=Cone,Plane
+RV conedn off-0.5 j2 T1 none ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=7.0 kinds=Cone,Plane
+RV conedn off-0.5 j2 T1 geo ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=9.7 kinds=Cone,Plane
+RV conedn off-0.5 j2 T1 loc li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=6.3 kinds=Cone,Plane
+RV conedn off-0.5 j2 T1 nest li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=36.1 kinds=Cone,Plane
+RV conedn off-0.5 j2 T1 geon ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=6.7 kinds=Cone,Plane
+RV conedn thk-1 j2 T1 none ERR BRep_API:_command_not_done ms=5.3 kinds=Cone,Plane
+RV conedn thk-1 j2 T1 geo ERR BRep_API:_command_not_done ms=2.4 kinds=Cone,Plane
+RV conedn thk-1 j2 T1 loc li=11 ERR BRep_API:_command_not_done ms=5.5 kinds=Cone,Plane
+RV conedn thk-1 j2 T1 nest li=11 ERR BRep_API:_command_not_done ms=2.0 kinds=Cone,Plane
+RV conedn thk-1 j2 T1 geon ERR BRep_API:_command_not_done ms=2.1 kinds=Cone,Plane
+RV conedn thk-1 j2 TF none ERR BRep_API:_command_not_done ms=1.4 kinds=Cone,Plane
+RV conedn thk-1 j2 TF geo ERR BRep_API:_command_not_done ms=10.1 kinds=Cone,Plane
+RV conedn thk-1 j2 TF loc li=11 ERR BRep_API:_command_not_done ms=2.7 kinds=Cone,Plane
+RV conedn thk-1 j2 TF nest li=11 ERR BRep_API:_command_not_done ms=2.1 kinds=Cone,Plane
+RV conedn thk-1 j2 TF geon ERR BRep_API:_command_not_done ms=1.9 kinds=Cone,Plane
+RV conedn thk-1 j0 T1 none OK valid=1 ns=1 nf=3 vol=2e+100 area=2e+100 c=6.750384912,-1.071613087e-15,8.526965186 cl=6.750384912,-1.071613087e-15,8.526965186 diag=2e+100 ms=536.1 kinds=Cone,Plane
+RV conedn thk-1 j0 T1 geo OK valid=1 ns=1 nf=3 vol=2e+100 area=2e+100 c=20.52589645,-3.230581541,27.48884903 cl=6.000270239,0.9820657458,8.122292914 diag=3.464101615e+100 ms=9.8 kinds=Cone,Plane
+RV conedn thk-1 j0 T1 loc li=11 OK valid=1 ns=1 nf=3 vol=2e+100 area=2e+100 c=20.52589645,-3.230581541,27.48884903 cl=6.000270239,0.9820657458,8.122292914 diag=3.464101615e+100 ms=16.2 kinds=Cone,Plane
+RV conedn thk-1 j0 T1 nest li=11 OK valid=1 ns=1 nf=3 vol=2e+100 area=2e+100 c=20.52589645,-4.230581541,27.48884903 cl=5.368453937,0.2092097743,8.181468995 diag=3.464101615e+100 ms=15.3 kinds=Cone,Plane
+RV conedn thk-1 j0 T1 geon OK valid=1 ns=1 nf=3 vol=2e+100 area=2e+100 c=20.52589645,-3.230581541,27.48884903 cl=6.000270239,0.9820657458,8.122292914 diag=3.464101615e+100 ms=8.8 kinds=Cone,Plane
+RV lemon off1 j0 T1 none OK valid=1 ns=1 nf=3 vol=2020.696255 area=794.6739764 c=-3.873865244e-16,-5.174150299e-17,6.979907677e-16 cl=-3.873865244e-16,-5.174150299e-17,6.979907677e-16 diag=27.78488798 ms=191.1 kinds=SurfaceOfRevolution
+RV lemon off1 j0 T1 geo ERR gp_Dir()_-_input_vector_has_zero_norm ms=76.0 kinds=SurfaceOfRevolution
+RV lemon off1 j0 T1 loc li=11 ERR gp_Dir()_-_input_vector_has_zero_norm ms=203.6 kinds=SurfaceOfRevolution
+RV lemon off1 j0 T1 nest li=11 OK valid=0 ns=1 nf=3 vol=2022.800471 area=798.2909176 c=13.09583615,-7.298902167,21.89293923 cl=3.840228665e-05,0.0007585313002,-0.008235322363 diag=36.60315984 ms=27.0 kinds=SurfaceOfRevolution
+RV lemon off1 j0 T1 geon ERR gp_Dir()_-_input_vector_has_zero_norm ms=41.9 kinds=SurfaceOfRevolution
+RV lemon off1 j0 TF none OK valid=1 ns=1 nf=3 vol=2020.696255 area=794.6739764 c=-3.873865244e-16,-5.174150299e-17,6.979907677e-16 cl=-3.873865244e-16,-5.174150299e-17,6.979907677e-16 diag=27.78488798 ms=17.0 kinds=SurfaceOfRevolution
+RV lemon off1 j0 TF geo ERR gp_Dir()_-_input_vector_has_zero_norm ms=28.8 kinds=SurfaceOfRevolution
+RV lemon off1 j0 TF loc li=11 ERR gp_Dir()_-_input_vector_has_zero_norm ms=56.8 kinds=SurfaceOfRevolution
+RV lemon off1 j0 TF nest li=11 ERR gp_Dir()_-_input_vector_has_zero_norm ms=12.4 kinds=SurfaceOfRevolution
+RV lemon off1 j0 TF geon ERR gp_Dir()_-_input_vector_has_zero_norm ms=13.0 kinds=SurfaceOfRevolution
+RV lemon off-0.5 j2 T1 none ERR Access_violation ms=1241.7 kinds=SurfaceOfRevolution
+RV lemon off-0.5 j2 T1 geo ERR Access_violation ms=1548.7 kinds=SurfaceOfRevolution
+RV lemon off-0.5 j2 T1 loc li=11 ERR Access_violation ms=864.5 kinds=SurfaceOfRevolution
+RV lemon off-0.5 j2 T1 nest li=11 ERR Access_violation ms=598.2 kinds=SurfaceOfRevolution
+RV lemon off-0.5 j2 T1 geon ERR Access_violation ms=402.1 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 T1 none OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=-4.604416939e-16,-8.517593821e-17,-3.824212996e-16 cl=-4.604416939e-16,-8.517593821e-17,-3.824212996e-16 diag=31.11269837 ms=66.1 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 T1 geo OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=13.1,-7.3,21.9 cl=-1.776356839e-15,0,0 diag=44.8256023 ms=10.0 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 T1 loc li=11 OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=13.1,-7.3,21.9 cl=-1.776356839e-15,0,0 diag=44.8256023 ms=15.9 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 T1 nest li=11 OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=13.1,-7.3,21.9 cl=3.552713679e-15,0,3.552713679e-15 diag=44.8256023 ms=49.7 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 T1 geon OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=13.1,-7.3,21.9 cl=0,0,0 diag=44.8256023 ms=9.7 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TF none OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=-4.604416939e-16,-8.517593821e-17,-3.824212996e-16 cl=-4.604416939e-16,-8.517593821e-17,-3.824212996e-16 diag=31.11269837 ms=104.3 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TF geo OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=31000,-17000,9300 cl=0,0,0 diag=45.45591489 ms=25.5 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TF loc li=11 OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=31000,-17000,9300 cl=0,0,0 diag=45.45591489 ms=309.3 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TF nest li=11 OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=31000,-17000,9300 cl=0,0,0 diag=45.45591489 ms=13.6 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TF geon OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=31000,-17000,9300 cl=0,0,0 diag=45.45591489 ms=24.2 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TZ none OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=-4.604416939e-16,-8.517593821e-17,-3.824212996e-16 cl=-4.604416939e-16,-8.517593821e-17,-3.824212996e-16 diag=31.11269837 ms=149.6 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TZ geo OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=-5.036397713e-17,-1.470382555e-18,-4.079160529e-16 cl=-4.110735887e-17,2.913549834e-17,-4.079160529e-16 diag=31.11269837 ms=10.2 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TZ loc li=11 OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=-5.036397713e-17,-1.470382555e-18,-4.079160529e-16 cl=-4.110735887e-17,2.913549834e-17,-4.079160529e-16 diag=31.11269837 ms=11.1 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TZ nest li=11 OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=-2.031117487e-16,-7.332332054e-17,-9.94295379e-16 cl=-2.063393309e-16,6.367709425e-17,-9.94295379e-16 diag=31.11269837 ms=10.8 kinds=SurfaceOfRevolution
+RV spheroid off1 j0 TZ geon OK valid=1 ns=1 nf=1 vol=3502.267015 area=1158.840294 c=-2.605193041e-16,5.557224703e-18,-3.569265463e-16 cl=-2.04715546e-16,1.61222628e-16,-3.569265463e-16 diag=31.11269837 ms=10.5 kinds=SurfaceOfRevolution
+RV spheroid off-1 j2 T1 none OK valid=1 ns=1 nf=1 vol=1646.158944 area=714.0229373 c=-2.245415454e-16,4.440944881e-17,-3.254464601e-16 cl=-2.245415454e-16,4.440944881e-17,-3.254464601e-16 diag=31.11269837 ms=20.1 kinds=SurfaceOfRevolution
+RV spheroid off-1 j2 T1 geo OK valid=1 ns=1 nf=1 vol=1646.158944 area=714.0229373 c=13.1,-7.3,21.9 cl=0,-1.776356839e-15,3.552713679e-15 diag=44.8256023 ms=13.6 kinds=SurfaceOfRevolution
+RV spheroid off-1 j2 T1 loc li=11 OK valid=1 ns=1 nf=1 vol=1646.158944 area=714.0229373 c=13.1,-7.3,21.9 cl=0,-1.776356839e-15,3.552713679e-15 diag=44.8256023 ms=15.6 kinds=SurfaceOfRevolution
+RV spheroid off-1 j2 T1 nest li=11 OK valid=1 ns=1 nf=1 vol=1646.158944 area=714.0229373 c=13.1,-7.3,21.9 cl=0,1.776356839e-15,0 diag=44.8256023 ms=18.8 kinds=SurfaceOfRevolution
+RV spheroid off-1 j2 T1 geon OK valid=1 ns=1 nf=1 vol=1646.158944 area=714.0229373 c=13.1,-7.3,21.9 cl=0,0,0 diag=44.8256023 ms=13.1 kinds=SurfaceOfRevolution
+RV capsule thk-1 j0 T1 none OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=-2.809489969e-15,6.780503105e-17,7.760253906 cl=-2.809489969e-15,6.780503105e-17,7.760253906 diag=23.32380758 ms=210.9 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 T1 geo OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=16.66248584,-7.759221417,28.77890624 cl=-7.993605777e-15,1.776356839e-15,7.760253906 diag=26.8884843 ms=3.5 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 T1 loc li=11 OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=16.66248584,-7.759221417,28.77890624 cl=-2.664535259e-15,0,7.760253906 diag=26.8884843 ms=63.3 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 T1 nest li=11 OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=16.66248584,-7.759221417,28.77890624 cl=-2.664535259e-15,-1.776356839e-15,7.760253906 diag=26.8884843 ms=1.8 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 T1 geon OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=16.66248584,-7.759221417,28.77890624 cl=-9.769962617e-15,1.776356839e-15,7.760253906 diag=26.8884843 ms=12.7 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TF none OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=-2.809489969e-15,6.780503105e-17,7.760253906 cl=-2.809489969e-15,6.780503105e-17,7.760253906 diag=23.32380758 ms=1.7 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TF geo OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=31003.26938,-16994.61862,9295.4642 cl=1.818989404e-12,-1.455191523e-11,7.760253906 diag=28.67440422 ms=2.0 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TF loc li=11 OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=31003.26938,-16994.61862,9295.4642 cl=1.818989404e-12,-7.275957614e-12,7.760253906 diag=28.67440422 ms=1.6 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TF nest li=11 OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=31003.26938,-16994.61862,9295.4642 cl=1.818989404e-12,7.275957614e-12,7.760253906 diag=28.67440422 ms=2.9 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TF geon OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=31003.26938,-16994.61862,9295.4642 cl=2.728484105e-12,-7.275957614e-12,7.760253906 diag=28.67440422 ms=2.9 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TT none OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=-2.809489969e-15,6.780503105e-17,7.760253906 cl=-2.809489969e-15,6.780503105e-17,7.760253906 diag=23.32380758 ms=5.2 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TT geo OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=250,-40,82.76025391 cl=2.842170943e-14,0,7.760253906 diag=23.32380758 ms=10.8 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TT loc li=11 OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=250,-40,82.76025391 cl=2.842170943e-14,0,7.760253906 diag=23.32380758 ms=1.9 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TT nest li=11 OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=250,-40,82.76025391 cl=2.842170943e-14,7.105427358e-15,7.760253906 diag=23.32380758 ms=1.9 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j0 TT geon OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=250,-40,82.76025391 cl=-2.842170943e-14,0,7.760253906 diag=23.32380758 ms=2.3 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j2 T1 none OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=-2.809489969e-15,4.835833066e-16,7.760253906 cl=-2.809489969e-15,4.835833066e-16,7.760253906 diag=23.32380758 ms=8.2 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j2 T1 geo OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=16.66248584,-7.759221417,28.77890624 cl=-7.993605777e-15,1.776356839e-15,7.760253906 diag=26.8884843 ms=4.2 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j2 T1 loc li=11 OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=16.66248584,-7.759221417,28.77890624 cl=-2.664535259e-15,0,7.760253906 diag=26.8884843 ms=3.3 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j2 T1 nest li=11 OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=16.66248584,-7.759221417,28.77890624 cl=-2.664535259e-15,0,7.760253906 diag=26.8884843 ms=5.0 kinds=Cylinder,Plane,Sphere
+RV capsule thk-1 j2 T1 geon OK valid=1 ns=1 nf=5 vol=536.1651462 area=1108.982207 c=16.66248584,-7.759221417,28.77890624 cl=-1.509903313e-14,7.105427358e-15,7.760253906 diag=26.8884843 ms=8.1 kinds=Cylinder,Plane,Sphere
+RV capsule off1 j0 T1 none OK valid=1 ns=1 nf=4 vol=2402.558464 area=926.2971988 c=2.365953616e-17,1.542961647e-16,6.949474073 cl=2.365953616e-17,1.542961647e-16,6.949474073 diag=27.98672126 ms=1.0 kinds=Cylinder,Plane,Sphere
+RV capsule off1 j0 T1 geo OK valid=1 ns=1 nf=4 vol=2402.558464 area=926.2971988 c=16.29028259,-7.711242644,28.0602083 cl=0,-3.552713679e-15,6.949474073 diag=30.9491338 ms=1.6 kinds=Cylinder,Plane,Sphere
+RV capsule off1 j0 T1 loc li=11 OK valid=1 ns=1 nf=4 vol=2402.558464 area=926.2971988 c=16.29028259,-7.711242644,28.0602083 cl=0,-1.776356839e-15,6.949474073 diag=30.9491338 ms=1.4 kinds=Cylinder,Plane,Sphere
+RV capsule off1 j0 T1 nest li=11 OK valid=1 ns=1 nf=4 vol=2402.558464 area=926.2971988 c=16.29028259,-7.711242644,28.0602083 cl=0,0,6.949474073 diag=30.9491338 ms=1.1 kinds=Cylinder,Plane,Sphere
+RV capsule off1 j0 T1 geon OK valid=1 ns=1 nf=4 vol=2402.558464 area=926.2971988 c=16.29028259,-7.711242644,28.0602083 cl=1.776356839e-15,0,6.949474073 diag=30.9491338 ms=1.0 kinds=Cylinder,Plane,Sphere
+RV sphx thk-1 j0 T1 none OK valid=1 ns=1 nf=4 vol=1077.124003 area=2198.157099 c=1.98492798e-09,-2.260575283e-08,-5.525046155e-09 cl=1.98492798e-09,-2.260575283e-08,-5.525046155e-09 diag=34.64101615 ms=246.2 kinds=Cylinder,Sphere
+RV sphx thk-1 j0 T1 geo OK valid=1 ns=1 nf=4 vol=1077.1277 area=2198.155911 c=13.09999813,-7.300003397,21.9000013 cl=-3.882730192e-06,-1.183192412e-06,4.963910811e-07 diag=34.64101615 ms=1049.7 kinds=Cylinder,Sphere
+RV sphx thk-1 j0 T1 loc li=11 OK valid=0 ns=1 nf=4 vol=1077.1277 area=2198.155911 c=13.09999813,-7.300003397,21.9000013 cl=-3.882730192e-06,-1.183192412e-06,4.963910811e-07 diag=34.64101615 ms=531.2 kinds=Cylinder,Sphere
+RV sphx thk-1 j0 T1 nest li=11 OK valid=0 ns=1 nf=4 vol=1077.127597 area=2198.155944 c=13.09999834,-7.300003597,21.90000127 cl=-3.854018035e-06,-1.459733937e-06,5.715643709e-07 diag=34.64101615 ms=257.7 kinds=Cylinder,Sphere
+RV sphx thk-1 j0 T1 geon OK valid=1 ns=1 nf=4 vol=1077.127654 area=2198.155926 c=13.09999822,-7.300003519,21.90000121 cl=-3.868355907e-06,-1.355941122e-06,4.631563364e-07 diag=34.64101615 ms=231.5 kinds=Cylinder,Sphere
+RV sphx thk-1 j0 TF none OK valid=1 ns=1 nf=4 vol=1077.124003 area=2198.157099 c=1.98492798e-09,-2.260575283e-08,-5.525046155e-09 cl=1.98492798e-09,-2.260575283e-08,-5.525046155e-09 diag=34.64101615 ms=42.4 kinds=Cylinder,Sphere
+RV sphx thk-1 j0 TF geo OK valid=1 ns=1 nf=4 vol=1077.123899 area=2198.157139 c=31000,-17000,9300 cl=-5.391239029e-07,-5.6236604e-07,2.208698788e-07 diag=34.64101615 ms=210.1 kinds=Cylinder,Sphere
+RV sphx thk-1 j0 TF loc li=11 OK valid=0 ns=1 nf=4 vol=1077.123899 area=2198.157139 c=31000,-17000,9300 cl=-5.391229934e-07,-5.6236604e-07,2.208735168e-07 diag=34.64101615 ms=893.9 kinds=Cylinder,Sphere
+RV sphx thk-1 j0 TF nest li=11 OK valid=0 ns=1 nf=4 vol=1077.124448 area=2198.156957 c=31000,-17000,9300.000001 cl=-6.696063792e-07,9.410141502e-07,1.131775207e-08 diag=34.64101615 ms=598.3 kinds=Cylinder,Sphere
+RV sphx thk-1 j0 TF geon OK valid=1 ns=1 nf=4 vol=1077.123931 area=2198.157129 c=31000,-17000,9300 cl=-4.843604984e-07,3.515742719e-07,9.365430742e-08 diag=34.64101615 ms=708.7 kinds=Cylinder,Sphere
+RV sphx off1 j2 T1 none OK valid=0 ns=1 nf=2 vol=2860.307112 area=885.8235212 c=-0.4990021335,9.853659474e-14,-3.904404732 cl=-0.4990021335,9.853659474e-14,-3.904404732 diag=33.7194306 ms=12.1 kinds=Cylinder,Sphere
+RV sphx off1 j2 T1 geo ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=146.7 kinds=Cylinder,Sphere
+RV sphx off1 j2 T1 loc li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=313.2 kinds=Cylinder,Sphere
+RV sphx off1 j2 T1 nest li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=260.1 kinds=Cylinder,Sphere
+RV sphx off1 j2 T1 geon ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=81.6 kinds=Cylinder,Sphere
+RV ellipsoid off1 j0 T1 none ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.5 kinds=BSplineSurface
+RV ellipsoid off1 j0 T1 geo ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.1 kinds=BSplineSurface
+RV ellipsoid off1 j0 T1 loc li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.2 kinds=BSplineSurface
+RV ellipsoid off1 j0 T1 nest li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.2 kinds=BSplineSurface
+RV ellipsoid off1 j0 T1 geon ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.2 kinds=BSplineSurface
+RV ellipsoid off1 j0 TZ none ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.1 kinds=BSplineSurface
+RV ellipsoid off1 j0 TZ geo ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.2 kinds=BSplineSurface
+RV ellipsoid off1 j0 TZ loc li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.2 kinds=BSplineSurface
+RV ellipsoid off1 j0 TZ nest li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.3 kinds=BSplineSurface
+RV ellipsoid off1 j0 TZ geon ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.2 kinds=BSplineSurface
+RV ellipsoid off-0.8 j2 T1 none ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.2 kinds=BSplineSurface
+RV ellipsoid off-0.8 j2 T1 geo ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.2 kinds=BSplineSurface
+RV ellipsoid off-0.8 j2 T1 loc li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.3 kinds=BSplineSurface
+RV ellipsoid off-0.8 j2 T1 nest li=11 ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.4 kinds=BSplineSurface
+RV ellipsoid off-0.8 j2 T1 geon ERR BRepOffsetAPI_MakeOffsetShape_not_done ms=0.3 kinds=BSplineSurface
+RV offoff BUILD-FAILED Base.CADKernelError: BRepOffsetAPI_MakeOffsetShape not done
+RV spface off1 j0 T1 none OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=0,7.861470211e-17,5.5 cl=0,7.861470211e-17,5.5 diag=33 ms=0.5 kinds=Sphere
+RV spface off1 j0 T1 geo OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=15.62487513,-7.625468448,26.77535392 cl=-8.881784197e-16,0,5.5 diag=34.25759271 ms=0.4 kinds=Sphere
+RV spface off1 j0 T1 loc li=10 OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=15.62487513,-7.625468448,26.77535392 cl=-8.881784197e-16,0,5.5 diag=34.25759271 ms=0.3 kinds=Sphere
+RV spface off1 j0 T1 nest li=10 OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=15.62487513,-7.625468448,26.77535392 cl=1.776356839e-15,-1.776356839e-15,5.5 diag=34.25759271 ms=0.3 kinds=Sphere
+RV spface off1 j0 T1 geon OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=15.62487513,-7.625468448,26.77535392 cl=-8.881784197e-16,0,5.5 diag=34.25759271 ms=0.7 kinds=Sphere
+RV spface off1 j0 TF none OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=0,7.861470211e-17,5.5 cl=0,7.861470211e-17,5.5 diag=33 ms=0.2 kinds=Sphere
+RV spface off1 j0 TF geo OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=31002.31714,-16996.18601,9296.785298 cl=1.818989404e-12,-7.275957614e-12,5.5 diag=34.57159663 ms=0.4 kinds=Sphere
+RV spface off1 j0 TF loc li=10 OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=31002.31714,-16996.18601,9296.785298 cl=1.818989404e-12,-7.275957614e-12,5.5 diag=34.57159663 ms=0.4 kinds=Sphere
+RV spface off1 j0 TF nest li=10 OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=31002.31714,-16996.18601,9296.785298 cl=1.818989404e-12,-7.275957614e-12,5.5 diag=34.57159663 ms=0.4 kinds=Sphere
+RV spface off1 j0 TF geon OK valid=1 ns=0 nf=1 vol=0 area=760.2654222 c=31002.31714,-16996.18601,9296.785298 cl=1.818989404e-12,-7.275957614e-12,5.5 diag=34.57159663 ms=0.4 kinds=Sphere
+RV spface off-1 j2 T1 none OK valid=1 ns=0 nf=1 vol=0 area=508.9380099 c=0,-1.554697789e-16,4.5 cl=0,-1.554697789e-16,4.5 diag=27 ms=0.4 kinds=Sphere
+RV spface off-1 j2 T1 geo OK valid=1 ns=0 nf=1 vol=0 area=508.9380099 c=15.16580693,-7.566292367,25.88892594 cl=-8.881784197e-16,0,4.5 diag=28.02893949 ms=0.4 kinds=Sphere
+RV spface off-1 j2 T1 loc li=10 OK valid=1 ns=0 nf=1 vol=0 area=508.9380099 c=15.16580693,-7.566292367,25.88892594 cl=-8.881784197e-16,0,4.5 diag=28.02893949 ms=0.4 kinds=Sphere
+RV spface off-1 j2 T1 nest li=10 OK valid=1 ns=0 nf=1 vol=0 area=508.9380099 c=15.16580693,-7.566292367,25.88892594 cl=2.664535259e-15,0,4.5 diag=28.02893949 ms=0.6 kinds=Sphere
+RV spface off-1 j2 T1 geon OK valid=1 ns=0 nf=1 vol=0 area=508.9380099 c=15.16580693,-7.566292367,25.88892594 cl=-8.881784197e-16,-1.776356839e-15,4.5 diag=28.02893949 ms=0.7 kinds=Sphere
+RV-DONE

@@ -1,0 +1,7 @@
+FCDOC boxhole id state=Up-to-date valid=1 vol=3330.920367 tolV=26.3 tolE=26.3 chk=BOP:216 srcTol=26.3
+FCDOC boxhole p1 state=Up-to-date valid=1 vol=3330.920367 tolV=35.6 tolE=35.6 chk=BOP:392 srcTol=35.6
+FCDOC boxhole tr state=Up-to-date valid=1 vol=3330.920367 tolV=295 tolE=295 chk=BOP:392 srcTol=295
+FCDOC sphx id state=Up-to-date valid=0 vol=1077.124003 tolV=29.7 tolE=29.7 chk=BRep:Unorientable shape srcTol=29.7
+FCDOC sphx p1 state=Touched|Invalid NULL
+FCDOC sphx tr state=Up-to-date valid=0 vol=1077.124003 tolV=277 tolE=277 chk=BRep:Unorientable shape srcTol=277
+FCDOC-DONE

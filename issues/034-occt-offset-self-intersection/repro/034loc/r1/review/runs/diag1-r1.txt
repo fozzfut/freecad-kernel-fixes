@@ -1,0 +1,21 @@
+D sphx T1 geo valid=1
+  check-ok
+  F1 Sphere valid=1 loc=id tol=1e-07 ; F2 Cylinder valid=1 loc=id tol=1e-07 ; F3 Sphere valid=1 loc=id tol=1e-07 ; F4 Cylinder valid=1 loc=id tol=1e-07
+  moved-back valid=1
+  baked valid=1 check-ok
+D sphx T1 loc valid=0
+  check: Unorientable shape | Unorientable shape | No error | No error | 
+  F1 Sphere valid=0 loc=L tol=1e-07 ; F2 Cylinder valid=1 loc=L tol=1e-07 ; F3 Sphere valid=0 loc=L tol=1e-07 ; F4 Cylinder valid=1 loc=L tol=1e-07
+  moved-back valid=0
+  baked valid=0 check: Unorientable shape | Unorientable shape | No error | No error | 
+D capsule T1 geo valid=1
+  check-ok
+  F1 Cylinder valid=1 loc=id tol=1e-07 ; F2 Sphere valid=1 loc=id tol=1e-07 ; F3 Plane valid=1 loc=id tol=1e-07 ; F4 Cylinder valid=1 loc=id tol=1e-07 ; F5 Sphere valid=1 loc=id tol=1e-07
+  moved-back valid=1
+  baked valid=1 check-ok
+D capsule T1 loc valid=1
+  check-ok
+  F1 Cylinder valid=1 loc=L tol=1e-07 ; F2 Sphere valid=1 loc=L tol=1e-07 ; F3 Plane valid=1 loc=L tol=1e-07 ; F4 Cylinder valid=1 loc=L tol=1e-07 ; F5 Sphere valid=1 loc=id tol=1e-07
+  moved-back valid=1
+  baked valid=1 check-ok
+DIAG-DONE

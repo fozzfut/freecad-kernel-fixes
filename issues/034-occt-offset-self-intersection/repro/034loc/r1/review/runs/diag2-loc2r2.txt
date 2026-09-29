@@ -1,0 +1,79 @@
+D2 sphx thk T1 none valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphx thk T1 geo valid=1 vol=1077.1277 area=2198.15591 chk=ok
+D2 sphx thk T1 loc valid=0 vol=1077.1277 area=2198.15591 chk=Unorientable shape|Unorientable shape|No error|No error|
+D2 sphx thk TT geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphx thk TT loc valid=0 vol=1077.124 area=2198.1571 chk=Unorientable shape|Unorientable shape|No error|No error|
+D2 sphx thk TT1 geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphx thk TT1 loc valid=1 vol=1077.124 area=2198.1571 chk=BOP check found the following errors:|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error 
+D2 sphx thk TZ geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphx thk TZ loc valid=1 vol=1077.124 area=2198.1571 chk=BOP check found the following errors:|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error 
+D2 sphx thk TX geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphx thk TX loc valid=1 vol=1077.124 area=2198.1571 chk=BOP check found the following errors:|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error 
+D2 sphx thk TX1 geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphx thk TX1 loc valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphz thk T1 none valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphz thk T1 geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphz thk T1 loc valid=1 vol=1077.124 area=2198.1571 chk=BOP check found the following errors:|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error 
+D2 sphz thk TT geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphz thk TT loc valid=1 vol=1077.124 area=2198.1571 chk=BOP check found the following errors:|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error 
+D2 sphz thk TT1 geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphz thk TT1 loc valid=1 vol=1077.124 area=2198.1571 chk=BOP check found the following errors:|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error 
+D2 sphz thk TZ geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphz thk TZ loc valid=1 vol=1077.124 area=2198.1571 chk=BOP check found the following errors:|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error 
+D2 sphz thk TX geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphz thk TX loc valid=1 vol=1077.124 area=2198.1571 chk=BOP check found the following errors:|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error in Vertex: BOPAlgo SelfIntersect|Error 
+D2 sphz thk TX1 geo valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphz thk TX1 loc valid=1 vol=1077.124 area=2198.1571 chk=ok
+D2 sphblind thk T1 none ERR BRep_API: command not done
+D2 sphblind thk T1 geo ERR BRep_API: command not done
+D2 sphblind thk T1 loc ERR BRep_API: command not done
+D2 sphblind thk TT geo ERR BRep_API: command not done
+D2 sphblind thk TT loc ERR BRep_API: command not done
+D2 sphblind thk TT1 geo ERR BRep_API: command not done
+D2 sphblind thk TT1 loc ERR BRep_API: command not done
+D2 sphblind thk TZ geo ERR BRep_API: command not done
+D2 sphblind thk TZ loc ERR BRep_API: command not done
+D2 sphblind thk TX geo ERR BRep_API: command not done
+D2 sphblind thk TX loc ERR BRep_API: command not done
+D2 sphblind thk TX1 geo ERR BRep_API: command not done
+D2 sphblind thk TX1 loc ERR BRep_API: command not done
+D2 domehole thk T1 none valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk T1 geo valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk T1 loc valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TT geo valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TT loc valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TT1 geo valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TT1 loc valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TZ geo valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TZ loc valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TX geo valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TX loc valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TX1 geo valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 domehole thk TX1 loc valid=1 vol=660.90505 area=1391.79771 chk=ok
+D2 sphxshell off T1 none valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off T1 geo valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off T1 loc valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TT geo valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TT loc valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TT1 geo valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TT1 loc valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TZ geo valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TZ loc valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TX geo valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TX loc valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TX1 geo valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphxshell off TX1 loc valid=1 vol=2912.97551 area=970.991835 chk=ok
+D2 sphx off T1 none valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off T1 geo valid=0 vol=2370.1868 area=1407.2257 chk=Unorientable shape|No error|No error|
+D2 sphx off T1 loc valid=0 vol=2370.1868 area=1407.2257 chk=Unorientable shape|No error|No error|
+D2 sphx off TT geo valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off TT loc valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off TT1 geo valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off TT1 loc valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off TZ geo valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off TZ loc valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off TX geo valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off TX loc valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off TX1 geo valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+D2 sphx off TX1 loc valid=0 vol=2370.18663 area=1407.22565 chk=Unorientable shape|No error|No error|
+DIAG2-DONE

@@ -1,0 +1,6 @@
+buildlock: waiting for cmd //c C:\dev\occt8-mig\offset-034c0\r3\tools\build.bat poleval
+CL-EXIT=0
+RC-EXIT=0
+LINK-EXIT=0
+BUILD-OK TKOffset
+EXIT=0
